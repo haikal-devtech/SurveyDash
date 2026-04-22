@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { 
   BarChart3, Clock, Calendar, ChevronRight, Search, PlusCircle, X, 
-  CheckSquare, Square, BarChart2, TrendingUp, Users as UsersIcon, AlertCircle, RefreshCw
+  CheckSquare, Square, BarChart2, TrendingUp, Users as UsersIcon, AlertCircle, RefreshCw, Briefcase
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
