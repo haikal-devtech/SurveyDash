@@ -192,8 +192,13 @@ export const SurveyDetailPage: React.FC = () => {
 
   if (!data || !config) return null;
 
-  const demoGenderData = Object.entries(data.demographics.gender).map(([name, value]) => ({ name, value }));
-  const demoEduData = Object.entries(data.demographics.education).map(([name, value]) => ({ name, value }));
+  const demoGenderData = data?.demographics?.gender 
+    ? Object.entries(data.demographics.gender).map(([name, value]) => ({ name, value }))
+    : [];
+    
+  const demoEduData = data?.demographics?.education 
+    ? Object.entries(data.demographics.education).map(([name, value]) => ({ name, value }))
+    : [];
   const COLORS = ['#0f172a', '#334155', '#64748b', '#94a3b8'];
 
   return (
@@ -433,7 +438,8 @@ export const SurveyDetailPage: React.FC = () => {
         </TabsList>
 
         <TabsContent value="indicators" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {data.indicators && data.indicators.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="lg:col-span-1 border-none shadow-sm bg-muted/20">
                <CardHeader className="flex flex-row items-center justify-between">
                  <div>
@@ -529,7 +535,11 @@ export const SurveyDetailPage: React.FC = () => {
                 );
               })}
             </div>
-          </div>
+          ) : (
+            <div className="py-20 text-center bg-muted/20 rounded-2xl border-2 border-dashed border-border">
+              <p className="text-muted-foreground italic">Data indikator belum tersedia di Google Sheets.</p>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="demographics" className="space-y-6">
@@ -592,7 +602,8 @@ export const SurveyDetailPage: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="public" className="space-y-6">
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           {data.open_ended ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="h-[600px] flex flex-col">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
