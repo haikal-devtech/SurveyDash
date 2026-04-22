@@ -116,23 +116,26 @@ function doGet() {
     }
   });
 
-  // --- KALKULASI AKHIR (MENGGUNAKAN RUMUS EXCEL) ---
-  const totalResp = rows.length; // Menggunakan total keseluruhan baris
+  // --- KALKULASI AKHIR (PERMENPAN RB No. 14 Tahun 2017) ---
+  // Hanya hitung baris yang valid (tidak kosong)
+  const validRows = rows.filter(r => r[0]);
+  const totalResp = validRows.length;
+  
+  let nilaiIndeks = 0; // Ini adalah Nilai Indeks (X) sebelum dikali 25
+  
   if (totalResp > 0) {
     indicatorsData.forEach(ind => {
-      // 1. Hitung NRR per unsur (Jumlah Nilai / Total Responden)
-      ind.avg = Number((ind.totalScore / totalResp).toFixed(3)); 
+      // NRR = Jumlah Nilai Per Unsur / Total Unsur yang Terisi
+      ind.avg = Number((ind.totalScore / totalResp).toFixed(2));
       
-      // 2. Hitung NRR Tertimbang (NRR * Bobot 0.111)
-      let nrrTertimbang = ind.avg * 0.111;
-      
-      // 3. Jumlahkan Total NRR Tertimbang
-      totalNrrTertimbang += nrrTertimbang; 
+      // Nilai Indeks per unsur = NRR * Bobot (0.11)
+      // Rumus: (a x 0,11) + (b x 0,11) + ... + (i x 0,11) = Nilai Indeks (X)
+      nilaiIndeks += ind.avg * 0.11;
     });
   }
 
-  // 4. Hitung IKM Akhir (Total NRR Tertimbang * 25)
-  const finalIkm = Number((totalNrrTertimbang * 25).toFixed(2));
+  // Nilai IKM Unit Pelayanan = Nilai Indeks (X) * 25
+  const finalIkm = Number((nilaiIndeks * 25).toFixed(2));
 
   // Struktur JSON yang dibutuhkan oleh SurveyDash
   const result = {
@@ -144,8 +147,20 @@ function doGet() {
     },
     ikm: {
       score: finalIkm,
-      category: finalIkm >= 88.31 ? "SANGAT BAIK" : finalIkm >= 76.61 ? "BAIK" : "KURANG BAIK",
-      label: finalIkm >= 88.31 ? "A" : finalIkm >= 76.61 ? "B" : "C"
+      nilaiIndeks: Number(nilaiIndeks.toFixed(4)),
+      // Kategori berdasarkan NIK (Nilai Interval Konversi) — Permenpan RB 2017
+      // A (Sangat Baik): 88,31 - 100,00
+      // B (Baik)       : 76,61 - 88,30
+      // C (Kurang Baik): 65,00 - 76,60
+      // D (Tidak Baik) : 25,00 - 64,99
+      category: finalIkm >= 88.31 ? "SANGAT BAIK" 
+              : finalIkm >= 76.61 ? "BAIK" 
+              : finalIkm >= 65.00 ? "KURANG BAIK" 
+              : "TIDAK BAIK",
+      label: finalIkm >= 88.31 ? "A" 
+           : finalIkm >= 76.61 ? "B" 
+           : finalIkm >= 65.00 ? "C" 
+           : "D"
     },
     indicators: indicatorsData,
     demographics: demoStats,

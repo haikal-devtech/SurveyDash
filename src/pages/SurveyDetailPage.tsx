@@ -399,15 +399,30 @@ export const SurveyDetailPage: React.FC = () => {
         </Card>
 
         <Card className="glass-card border-none relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-2 h-full bg-blue-500/50" />
+          <div className="absolute top-0 left-0 w-2 h-full" style={{
+            backgroundColor: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
+          }} />
           <CardHeader className="pb-2">
-            <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Indeks Kepuasan (IKM)</CardDescription>
-            <CardTitle className="text-5xl font-black text-blue-600 dark:text-blue-400 tracking-tighter">{data.ikm.score.toFixed(2)}</CardTitle>
+            <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Indeks Kepuasan (NIK)</CardDescription>
+            <CardTitle className="text-5xl font-black tracking-tighter" style={{
+              color: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
+            }}>{data.ikm.score.toFixed(2)}</CardTitle>
           </CardHeader>
           <CardContent>
-             <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-300 hover:bg-blue-500/30 border-none font-black px-4 py-1.5 rounded-full uppercase tracking-wider text-xs">
-               Mutu: {data.ikm.category} ({data.ikm.label})
+             <Badge className="hover:opacity-90 border-none font-black px-4 py-1.5 rounded-full uppercase tracking-wider text-xs text-white" style={{
+               backgroundColor: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
+             }}>
+               {(() => {
+                 const s = data.ikm.score;
+                 if (s >= 88.31) return "Mutu A — Sangat Baik";
+                 if (s >= 76.61) return "Mutu B — Baik";
+                 if (s >= 65.00) return "Mutu C — Kurang Baik";
+                 return "Mutu D — Tidak Baik";
+               })()}
              </Badge>
+             <p className="text-[10px] text-muted-foreground mt-2 font-mono">
+               Nilai Interval: {data.ikm.score >= 88.31 ? "88,31–100" : data.ikm.score >= 76.61 ? "76,61–88,30" : data.ikm.score >= 65.00 ? "65,00–76,60" : "25,00–64,99"}
+             </p>
           </CardContent>
         </Card>
 
