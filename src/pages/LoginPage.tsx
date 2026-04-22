@@ -97,7 +97,7 @@ export const LoginPage: React.FC = () => {
           </CardContent>
           <CardFooter className="bg-muted/30 border-t flex justify-center py-4">
              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-               Secure &bullet; Scalable &bullet; Real-time
+               Secure • Scalable • Real-time
              </p>
           </CardFooter>
         </Card>
