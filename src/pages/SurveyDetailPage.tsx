@@ -109,7 +109,9 @@ export const SurveyDetailPage: React.FC = () => {
       setError(null);
     } catch (err: any) {
       console.error("Fetch error:", err);
-      const serverError = err.response?.data?.error || err.message;
+      const serverError = typeof err.response?.data === 'object' 
+        ? (err.response.data.error || JSON.stringify(err.response.data)) 
+        : (err.response?.data || err.message);
       setError(`Gagal memuat data: ${serverError}. Pastikan URL Google Apps Script benar dan sudah dideploy sebagai Web App.`);
     }
   };
