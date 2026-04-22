@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and role information",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["SUPER_ADMIN", "ADMIN", "VIEWER"] },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role", "isActive", "createdAt"]
+    },
+    "Survey": {
+      "title": "Survey",
+      "description": "Survey configuration and metadata",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "agency": { "type": "string" },
+        "period": { "type": "string" },
+        "scriptUrl": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "lastFetched": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["name", "agency", "period", "scriptUrl", "isActive", "createdAt", "createdBy"]
+    },
+    "UserSurvey": {
+      "title": "UserSurvey",
+      "description": "Mapping between users and surveys for access control",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "surveyId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "surveyId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "surveys/{surveyId}": {
+      "schema": "Survey",
+      "description": "Survey definitions"
+    },
+    "userSurveys/{mappingId}": {
+      "schema": "UserSurvey",
+      "description": "Access control mappings"
+    }
+  }
+}

@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitive Definition
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      // Bootstrapped admin: user who created the app
+      return isSignedIn() && (
+        request.auth.token.email == "gamingjre7@gmail.com" ||
+        (isEmailVerified() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (getUserData().role == "SUPER_ADMIN" || getUserData().role == "ADMIN"))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // 1. Users Collection
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.keys().hasAll(['email', 'role', 'isActive', 'createdAt']) &&
+               data.keys().size() == 4 &&
+               data.email is string && data.email.size() <= 256 &&
+               data.role in ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] &&
+               data.isActive is bool &&
+               data.createdAt is timestamp;
+      }
+
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isEmailVerified() && request.auth.uid == userId && isValidUser(incoming()) && 
+        (
+          (incoming().role == 'SUPER_ADMIN' && request.auth.token.email == 'gamingjre7@gmail.com') ||
+          (incoming().role == 'VIEWER' && request.auth.token.email != 'gamingjre7@gmail.com')
+        ) && 
+        incoming().createdAt == request.time;
+      allow update: if isAdmin() && isValidUser(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // 2. Surveys Collection
+    match /surveys/{surveyId} {
+      function isValidSurvey(data) {
+        return data.keys().hasAll(['name', 'agency', 'period', 'scriptUrl', 'isActive', 'createdAt', 'createdBy']) &&
+               data.keys().size() >= 7 &&
+               data.name is string && data.name.size() <= 256 &&
+               data.agency is string && data.agency.size() <= 256 &&
+               data.period is string && data.period.size() <= 100 &&
+               data.scriptUrl is string && data.scriptUrl.size() <= 1024 &&
+               data.isActive is bool &&
+               (data.get('visibility', 'PRIVATE') in ['PRIVATE', 'LINK_ONLY', 'PUBLIC']) &&
+               data.createdAt is timestamp &&
+               data.createdBy is string;
+      }
+
+      function hasAccess(sId) {
+        let survey = get(/databases/$(database)/documents/surveys/$(sId)).data;
+        let visibility = survey.get('visibility', 'PRIVATE');
+        return isAdmin() || 
+               visibility == 'PUBLIC' || 
+               visibility == 'LINK_ONLY' || 
+               exists(/databases/$(database)/documents/userSurveys/$(request.auth.uid + "_" + sId));
+      }
+
+      allow get: if isEmailVerified() && hasAccess(surveyId);
+      allow list: if isEmailVerified(); // Note: must filter in query
+      allow create: if isAdmin() && isValidSurvey(incoming()) && incoming().createdAt == request.time && incoming().createdBy == request.auth.uid;
+      allow update: if isAdmin() && isValidSurvey(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // 3. UserSurveys Collection (Mappings)
+    match /userSurveys/{mappingId} {
+      function isValidMapping(data) {
+        return data.keys().hasAll(['userId', 'surveyId', 'createdAt']) &&
+               data.keys().size() == 3 &&
+               data.userId is string && data.surveyId is string &&
+               data.createdAt is timestamp;
+      }
+
+      allow read: if isEmailVerified() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow write: if isAdmin() && isValidMapping(incoming());
+    }
+  }
+}

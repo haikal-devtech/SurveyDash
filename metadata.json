@@ -1,0 +1,6 @@
+{
+  "name": "SurveyDash",
+  "description": "Platform dashboard terpusat untuk pemaparan hasil survei interaktif dengan integrasi Google Apps Script.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
