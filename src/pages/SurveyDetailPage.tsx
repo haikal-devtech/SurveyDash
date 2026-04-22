@@ -632,9 +632,14 @@ export const SurveyDetailPage: React.FC = () => {
                         label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}
                         labelLine={false}
                       >
-                        {demoGenderData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS_GENDER[index % COLORS_GENDER.length]} stroke="transparent" />
-                        ))}
+                        {demoGenderData.map((entry, index) => {
+                          const name = entry.name.toLowerCase();
+                          let color = COLORS_GENDER[index % COLORS_GENDER.length];
+                          if (name.includes('laki') || name.includes('pria')) color = '#3b82f6'; // Blue
+                          else if (name.includes('perempuan') || name.includes('wanita')) color = '#ec4899'; // Pink
+                          
+                          return <Cell key={`cell-${index}`} fill={color} stroke="transparent" />;
+                        })}
                       </Pie>
                       <Tooltip content={<CustomTooltip />} />
                       <Legend wrapperStyle={{ fontSize: '11px', color: 'currentColor' }} />
