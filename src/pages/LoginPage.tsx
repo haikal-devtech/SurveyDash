@@ -17,9 +17,9 @@ export const LoginPage: React.FC = () => {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
       navigate("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
-      alert("Login gagal. Pastikan pop-up diizinkan.");
+      alert(`Login gagal: ${error.message || "Pastikan pop-up diizinkan."}`);
     } finally {
       setLoading(false);
     }
