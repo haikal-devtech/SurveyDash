@@ -535,7 +535,8 @@ export const SurveyDetailPage: React.FC = () => {
                 );
               })}
             </div>
-          ) : (
+          </div>
+        ) : (
             <div className="py-20 text-center bg-muted/20 rounded-2xl border-2 border-dashed border-border">
               <p className="text-muted-foreground italic">Data indikator belum tersedia di Google Sheets.</p>
             </div>
