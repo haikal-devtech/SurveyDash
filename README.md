@@ -103,9 +103,8 @@ function doGet() {
       rowScores[labels[i]] = score;
     }
 
-    // 3. Daftar Responden (Ambil 50 terbaru untuk efisiensi)
-    if (rowIndex < 50) { 
-      respondentList.push({
+    // 3. Daftar Responden (semua data dikirim, paginasi ditangani di frontend)
+    respondentList.push({
         id: "R" + (rowIndex + 1),
         name: row[COL_NAMA] || "Anonim",
         timestamp: row[0],
@@ -113,7 +112,6 @@ function doGet() {
         education: pendidikan,
         answers: rowScores
       });
-    }
   });
 
   // --- KALKULASI AKHIR (PERMENPAN RB No. 14 Tahun 2017) ---
