@@ -57,6 +57,9 @@ export const SurveyDetailPage: React.FC = () => {
   const [refreshInterval, setRefreshInterval] = useState(60000); // 1 minute
   const [lastNotification, setLastNotification] = useState<{message: string, type: 'info' | 'success'} | null>(null);
   const { role, user } = useAuth();
+  const [respPage, setRespPage] = useState(1);
+  const [respSort, setRespSort] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'timestamp', dir: 'desc' });
+  const RESP_PER_PAGE = 50;
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -457,16 +460,17 @@ export const SurveyDetailPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-none relative overflow-hidden group bg-slate-950 text-white">
+        <Card className="glass-card border-none relative overflow-hidden group">
           <div className="absolute -right-6 -top-6 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700">
-            <BriefcaseBusiness className="w-32 h-32" />
+            <BriefcaseBusiness className="w-32 h-32 text-primary" />
           </div>
+          <div className="absolute top-0 left-0 w-2 h-full bg-primary/50" />
           <CardHeader className="pb-2">
-            <CardDescription className="uppercase text-[10px] font-black tracking-widest text-slate-400">Instansi Pelaksana</CardDescription>
-            <CardTitle className="text-2xl font-black mt-2 uppercase leading-tight line-clamp-2">{config.agency}</CardTitle>
+            <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Instansi Pelaksana</CardDescription>
+            <CardTitle className="text-base font-black mt-2 uppercase leading-tight text-foreground">{config.agency}</CardTitle>
           </CardHeader>
           <CardContent>
-             <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] italic">Official E-Survey Dashboard</p>
+             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] italic">Official E-Survey Dashboard</p>
           </CardContent>
         </Card>
       </div>
@@ -859,94 +863,171 @@ export const SurveyDetailPage: React.FC = () => {
 
         <TabsContent value="respondents" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <CardTitle>Nama-nama Responden</CardTitle>
                 <CardDescription>Klik "Detail Jawaban" untuk melihat rincian setiap kuesioner.</CardDescription>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="h-6">{data.respondents?.length || 0} Responden</Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Sort controls */}
+                <div className="flex items-center gap-1 text-xs font-bold text-muted-foreground">
+                  <span className="uppercase tracking-wider text-[10px]">Urutkan:</span>
+                  {[
+                    { key: 'name', label: 'Nama' },
+                    { key: 'gender', label: 'Gender' },
+                    { key: 'education', label: 'Pendidikan' },
+                    { key: 'timestamp', label: 'Waktu' },
+                  ].map(s => (
+                    <Button
+                      key={s.key}
+                      variant={respSort.key === s.key ? 'default' : 'outline'}
+                      size="sm"
+                      className="h-7 text-[10px] font-black px-2"
+                      onClick={() => {
+                        if (respSort.key === s.key) {
+                          setRespSort({ key: s.key, dir: respSort.dir === 'asc' ? 'desc' : 'asc' });
+                        } else {
+                          setRespSort({ key: s.key, dir: 'asc' });
+                        }
+                        setRespPage(1);
+                      }}
+                    >
+                      {s.label} {respSort.key === s.key ? (respSort.dir === 'asc' ? '↑' : '↓') : ''}
+                    </Button>
+                  ))}
+                </div>
+                <Badge variant="outline" className="h-7">{data.respondents?.length || 0} Total</Badge>
                 <Button variant="outline" size="sm" onClick={() => {
                   const exportData = data.respondents.map(r => ({
                     ...r,
                     answers: JSON.stringify(r.answers)
                   }));
                   exportToCSV(exportData, `respondents_list_${config?.id}`);
-                }} className="h-8 gap-2 text-[10px] font-black uppercase">
+                }} className="h-7 gap-2 text-[10px] font-black uppercase">
                   <Download className="w-3 h-3" />
                   Excel/CSV
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              {data.respondents && data.respondents.length > 0 ? (
-                <div className="border rounded-xl overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nama</TableHead>
-                        <TableHead className="hidden md:table-cell">Gender</TableHead>
-                        <TableHead className="hidden md:table-cell">Pendidikan</TableHead>
-                        <TableHead>Waktu</TableHead>
-                        <TableHead className="text-right">Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.respondents.map((r) => (
-                        <TableRow key={r.id} className="hover:bg-muted/30">
-                          <TableCell className="font-bold text-foreground">{r.name}</TableCell>
-                          <TableCell className="hidden md:table-cell text-foreground/80">{r.gender}</TableCell>
-                          <TableCell className="hidden md:table-cell text-foreground/80">{r.education}</TableCell>
-                          <TableCell className="text-muted-foreground dark:text-gray-400 text-xs font-medium">
-                            {new Date(r.timestamp).toLocaleDateString("id-ID")}
-                          </TableCell>
-                          <TableCell className="text-right">
-                             <Dialog>
-                               <DialogTrigger render={
-                                 <Button variant="outline" size="sm" className="h-7 text-xs font-bold">Detail Jawaban</Button>
-                               } />
-                               <DialogContent className="max-w-md">
-                                 <DialogHeader>
-                                   <DialogTitle>Detail Kuesioner: {r.name}</DialogTitle>
-                                   <DialogDescription>Transkrip lengkap jawaban survey.</DialogDescription>
-                                 </DialogHeader>
-                                 <div className="space-y-4 pt-4">
-                                   <div className="grid grid-cols-2 gap-y-2 text-sm p-4 bg-primary/5 dark:bg-primary/20 rounded-2xl border border-primary/10">
-                                      <div className="text-muted-foreground dark:text-muted-foreground">Jenis Kelamin</div>
-                                      <div className="font-bold text-right text-foreground">{r.gender}</div>
-                                      <div className="text-muted-foreground dark:text-muted-foreground">Pendidikan Terakhir</div>
-                                      <div className="font-bold text-right text-foreground">{r.education}</div>
-                                      <div className="text-muted-foreground dark:text-muted-foreground">Rata-rata Skor</div>
-                                      <div className="font-black text-right text-primary">
-                                        {(() => {
-                                          const scores = Object.values(r.answers).filter(v => typeof v === 'number') as number[];
-                                          return scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : "0.00";
-                                        })()}
-                                      </div>
-                                      <div className="text-muted-foreground dark:text-muted-foreground">Waktu Pengisian</div>
-                                      <div className="font-bold text-right text-[10px] text-foreground">{new Date(r.timestamp).toLocaleString("id-ID")}</div>
-                                   </div>
-                                   <div className="space-y-2">
-                                      <h4 className="text-[10px] font-black uppercase text-primary tracking-widest px-1">Indikator Kepuasan</h4>
-                                      <div className="space-y-1">
-                                        {Object.entries(r.answers).map(([key, val]) => (
-                                          <div key={key} className="flex justify-between items-center p-3 hover:bg-muted/50 rounded-xl transition-colors">
-                                            <span className="text-sm font-medium text-foreground">{key}</span>
-                                            <Badge className="font-black h-6 w-6 flex items-center justify-center p-0 rounded-full">{val}</Badge>
+              {data.respondents && data.respondents.length > 0 ? (() => {
+                // Sort
+                const sorted = [...data.respondents].sort((a, b) => {
+                  const k = respSort.key as keyof typeof a;
+                  const av = String(a[k] ?? '');
+                  const bv = String(b[k] ?? '');
+                  return respSort.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+                });
+                // Paginate
+                const totalPages = Math.ceil(sorted.length / RESP_PER_PAGE);
+                const pageData = sorted.slice((respPage - 1) * RESP_PER_PAGE, respPage * RESP_PER_PAGE);
+
+                return (
+                  <div className="space-y-4">
+                    <div className="border rounded-xl overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-8">#</TableHead>
+                            <TableHead>Nama</TableHead>
+                            <TableHead className="hidden md:table-cell">Gender</TableHead>
+                            <TableHead className="hidden md:table-cell">Pendidikan</TableHead>
+                            <TableHead>Waktu</TableHead>
+                            <TableHead className="text-right">Aksi</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {pageData.map((r, idx) => (
+                            <TableRow key={r.id} className="hover:bg-muted/30">
+                              <TableCell className="text-muted-foreground text-xs">{(respPage - 1) * RESP_PER_PAGE + idx + 1}</TableCell>
+                              <TableCell className="font-bold text-foreground">{r.name}</TableCell>
+                              <TableCell className="hidden md:table-cell text-foreground/80">{r.gender}</TableCell>
+                              <TableCell className="hidden md:table-cell text-foreground/80">{r.education}</TableCell>
+                              <TableCell className="text-muted-foreground text-xs font-medium">
+                                {new Date(r.timestamp).toLocaleDateString("id-ID")}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                 <Dialog>
+                                   <DialogTrigger render={
+                                     <Button variant="outline" size="sm" className="h-7 text-xs font-bold">Detail Jawaban</Button>
+                                   } />
+                                   <DialogContent className="max-w-md">
+                                     <DialogHeader>
+                                       <DialogTitle>Detail Kuesioner: {r.name}</DialogTitle>
+                                       <DialogDescription>Transkrip lengkap jawaban survey.</DialogDescription>
+                                     </DialogHeader>
+                                     <div className="space-y-4 pt-4">
+                                       <div className="grid grid-cols-2 gap-y-2 text-sm p-4 bg-primary/5 dark:bg-primary/20 rounded-2xl border border-primary/10">
+                                          <div className="text-muted-foreground">Jenis Kelamin</div>
+                                          <div className="font-bold text-right text-foreground">{r.gender}</div>
+                                          <div className="text-muted-foreground">Pendidikan Terakhir</div>
+                                          <div className="font-bold text-right text-foreground">{r.education}</div>
+                                          <div className="text-muted-foreground">Rata-rata Skor</div>
+                                          <div className="font-black text-right text-primary">
+                                            {(() => {
+                                              const scores = Object.values(r.answers).filter(v => typeof v === 'number') as number[];
+                                              return scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : "0.00";
+                                            })()}
                                           </div>
-                                        ))}
-                                      </div>
-                                   </div>
-                                 </div>
-                               </DialogContent>
-                             </Dialog>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
+                                          <div className="text-muted-foreground">Waktu Pengisian</div>
+                                          <div className="font-bold text-right text-[10px] text-foreground">{new Date(r.timestamp).toLocaleString("id-ID")}</div>
+                                       </div>
+                                       <div className="space-y-2">
+                                          <h4 className="text-[10px] font-black uppercase text-primary tracking-widest px-1">Indikator Kepuasan</h4>
+                                          <div className="space-y-1">
+                                            {Object.entries(r.answers).map(([key, val]) => (
+                                              <div key={key} className="flex justify-between items-center p-3 hover:bg-muted/50 rounded-xl transition-colors">
+                                                <span className="text-sm font-medium text-foreground">{key}</span>
+                                                <Badge className="font-black h-6 w-6 flex items-center justify-center p-0 rounded-full">{val}</Badge>
+                                              </div>
+                                            ))}
+                                          </div>
+                                       </div>
+                                     </div>
+                                   </DialogContent>
+                                 </Dialog>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between pt-2">
+                        <p className="text-xs text-muted-foreground font-medium">
+                          Halaman {respPage} dari {totalPages} &nbsp;·&nbsp; {sorted.length} responden
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline" size="sm" className="h-8 text-xs"
+                            disabled={respPage === 1}
+                            onClick={() => setRespPage(p => p - 1)}
+                          >← Sebelumnya</Button>
+                          {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                            const page = totalPages <= 7 ? i + 1 : respPage <= 4 ? i + 1 : respPage >= totalPages - 3 ? totalPages - 6 + i : respPage - 3 + i;
+                            return (
+                              <Button
+                                key={page}
+                                variant={respPage === page ? 'default' : 'outline'}
+                                size="sm"
+                                className="h-8 w-8 text-xs p-0"
+                                onClick={() => setRespPage(page)}
+                              >{page}</Button>
+                            );
+                          })}
+                          <Button
+                            variant="outline" size="sm" className="h-8 text-xs"
+                            disabled={respPage === totalPages}
+                            onClick={() => setRespPage(p => p + 1)}
+                          >Berikutnya →</Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })() : (
                 <div className="py-20 text-center space-y-4">
                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
                      <Users className="w-8 h-8 text-muted-foreground" />
@@ -961,3 +1042,5 @@ export const SurveyDetailPage: React.FC = () => {
     </div>
   );
 };
+
+
