@@ -241,8 +241,21 @@ export const DashboardPage: React.FC = () => {
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-48 w-full rounded-xl" />
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="glass-card rounded-[2rem] p-6 border border-white/5 space-y-6 animate-pulse">
+              <div className="flex justify-between items-start">
+                <div className="space-y-3">
+                  <div className="h-6 w-3/4 bg-muted/40 rounded-lg" />
+                  <div className="h-4 w-1/2 bg-muted/20 rounded-md" />
+                </div>
+                <div className="w-10 h-10 bg-muted/30 rounded-xl" />
+              </div>
+              <div className="flex gap-2">
+                <div className="h-6 w-20 bg-muted/20 rounded-full" />
+                <div className="h-6 w-24 bg-muted/20 rounded-full" />
+              </div>
+              <div className="h-12 w-full bg-muted/30 rounded-xl mt-4" />
+            </div>
           ))}
         </div>
       ) : filteredSurveys.length > 0 ? (
@@ -313,14 +326,26 @@ export const DashboardPage: React.FC = () => {
           ))}
         </div>
       ) : (
-        <div className="text-center py-20 bg-muted/20 rounded-2xl border-2 border-dashed border-border">
-          <p className="text-lg font-medium text-muted-foreground">Tidak ada survei ditemukan.</p>
-          {role === "SUPER_ADMIN" && (
-             <Link to="/admin" className="text-primary hover:underline mt-2 block">Daftarkan survei baru sekarang</Link>
-          )}
+        <div className="text-center py-32 bg-muted/10 rounded-[3rem] border border-dashed border-border relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-muted/20 opacity-50" />
+          <div className="relative z-10 flex flex-col items-center justify-center space-y-4">
+            <div className="w-20 h-20 bg-muted/30 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+              <Search className="w-10 h-10 text-muted-foreground opacity-50" />
+            </div>
+            <h3 className="text-2xl font-black text-foreground tracking-tighter uppercase">Wah, Kosong Nih!</h3>
+            <p className="text-sm md:text-base text-muted-foreground max-w-md mx-auto">
+              Belum ada data survei yang cocok dengan pencarian Anda di <strong className="text-primary font-bold">SurveyDash</strong>. Coba sesuaikan kata kunci atau tanggalnya.
+            </p>
+            {role === "SUPER_ADMIN" && (
+               <Link to="/admin">
+                 <Button className="mt-4 rounded-full font-bold px-8 shadow-lg shadow-primary/20">
+                   Daftarkan Survei Baru
+                 </Button>
+               </Link>
+            )}
+          </div>
         </div>
       )}
-
       {/* Comparison Floating Bar */}
       <AnimatePresence>
         {selectedIds.length > 0 && (

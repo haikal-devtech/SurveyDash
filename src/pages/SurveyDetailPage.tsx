@@ -176,22 +176,62 @@ export const SurveyDetailPage: React.FC = () => {
     setRefreshing(false);
   };
 
-  if (loading) return <div className="p-10 flex items-center justify-center min-h-[50vh]">
-    <div className="flex flex-col items-center gap-4">
-      <RefreshCw className="w-10 h-10 animate-spin text-primary" />
-      <p className="text-muted-foreground animate-pulse">Memuat data survei...</p>
-    </div>
-  </div>;
+  if (loading) return (
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 animate-pulse">
+      {/* Header Skeleton */}
+      <div className="h-32 md:h-40 bg-muted/40 rounded-[2rem] border border-white/10" />
+      
+      {/* Stats Cards Skeleton */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="h-28 md:h-36 bg-muted/30 rounded-[1.5rem] border border-white/5" />
+        ))}
+      </div>
 
-  if (error) return <div className="p-10 max-w-xl mx-auto text-center space-y-4">
-    <div className="p-6 bg-destructive/10 text-destructive rounded-2xl border border-destructive/20">
-      <Info className="w-12 h-12 mx-auto mb-4" />
-      <h3 className="text-xl font-bold">Terjadi Kesalahan</h3>
-      <p className="mt-2 text-sm opacity-90">{error}</p>
+      {/* Main Content Skeleton */}
+      <div className="space-y-4 pt-6">
+        <div className="flex gap-2">
+          <div className="h-10 w-32 bg-muted/40 rounded-full" />
+          <div className="h-10 w-32 bg-muted/20 rounded-full" />
+          <div className="h-10 w-32 bg-muted/20 rounded-full hidden md:block" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="h-[400px] bg-muted/20 rounded-3xl" />
+          <div className="space-y-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-24 bg-muted/20 rounded-2xl" />
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
-    <Button onClick={() => window.location.reload()} variant="outline">Coba Lagi</Button>
-    <Link to="/dashboard" className="block text-sm text-primary hover:underline">Kembali ke Dashboard</Link>
-  </div>;
+  );
+
+  if (error) return (
+    <div className="p-6 md:p-10 max-w-2xl mx-auto text-center flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+      <div className="relative">
+        <div className="absolute -inset-4 bg-destructive/10 blur-xl rounded-full" />
+        <Info className="w-20 h-20 text-destructive relative z-10 mx-auto" />
+      </div>
+      <div className="space-y-2">
+        <h3 className="text-3xl font-black tracking-tighter text-foreground uppercase">Duh, koneksi terputus!</h3>
+        <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto leading-relaxed">
+          Sistem <strong className="text-primary font-black">SurveyDash</strong> gagal mengambil data dari Google Sheets. <br className="hidden md:block" />
+          <span className="italic opacity-80">{error}</span>
+        </p>
+      </div>
+      <div className="flex flex-col sm:flex-row items-center gap-3 pt-4">
+        <Button onClick={() => window.location.reload()} className="h-12 px-8 rounded-full font-bold shadow-lg shadow-primary/20 transition-transform active:scale-95">
+          <RefreshCw className="w-4 h-4 mr-2" /> Coba Sinkronisasi Ulang
+        </Button>
+        <Link to="/dashboard">
+          <Button variant="ghost" className="h-12 px-6 rounded-full font-bold text-muted-foreground">
+            Kembali ke Beranda
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
 
   if (!data || !config) return null;
 
