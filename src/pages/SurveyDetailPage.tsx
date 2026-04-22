@@ -216,12 +216,29 @@ export const SurveyDetailPage: React.FC = () => {
     ? Object.entries(data.demographics.layanan).map(([name, value]) => ({ name, value }))
     : [];
 
-  // Color palettes
-  const COLORS_GENDER = ['#0f172a', '#334155', '#64748b', '#94a3b8']; // Slates
-  const COLORS_UMUR = ['#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0']; // Emeralds
-  const COLORS_PEKERJAAN = ['#d97706', '#f59e0b', '#fbbf24', '#fcd34d', '#fde68a']; // Ambers
-  const COLORS_SUKU = ['#be123c', '#e11d48', '#fb7185', '#fda4af', '#fecdd3']; // Roses
-  const COLORS_LAYANAN = ['#0284c7', '#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd']; // Skys
+  // Color palettes — bright, works on both light & dark
+  const COLORS_GENDER = ['#3b82f6', '#ec4899', '#8b5cf6', '#f97316']; // Blue/Pink
+  const COLORS_UMUR = ['#10b981', '#34d399', '#f59e0b', '#f97316', '#ef4444', '#8b5cf6']; // Multi
+  const COLORS_PEKERJAAN = ['#f97316', '#eab308', '#22c55e', '#06b6d4', '#8b5cf6', '#ec4899', '#ef4444', '#14b8a6', '#6366f1', '#f43f5e'];
+  const COLORS_SUKU = ['#e11d48', '#f97316', '#eab308', '#10b981', '#06b6d4', '#8b5cf6']; // Vivid
+  const COLORS_LAYANAN = ['#0ea5e9', '#06b6d4', '#10b981', '#8b5cf6', '#f97316', '#ec4899', '#ef4444', '#eab308', '#22c55e', '#3b82f6'];
+
+  // Custom tooltip for recharts — readable in dark mode
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-card border border-border rounded-xl shadow-xl px-4 py-2 text-sm">
+          {label && <p className="font-bold text-foreground mb-1">{label}</p>}
+          {payload.map((p: any, i: number) => (
+            <p key={i} className="text-foreground font-semibold">
+              <span style={{ color: p.color || p.fill }}>●</span> {p.name || 'Jumlah'}: <strong>{p.value}</strong>
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -491,21 +508,17 @@ export const SurveyDetailPage: React.FC = () => {
                <CardContent className="h-[400px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.indicators} layout="vertical" margin={{ left: 100 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.3} />
+                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.15} />
                       <XAxis type="number" domain={[0, 4]} hide />
-                      <YAxis dataKey="label" type="category" width={100} axisLine={false} tickLine={false} fontSize={10} />
-                      <Tooltip 
-                        cursor={{ fill: 'rgba(0,0,0,0.05)' }}
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                      />
+                      <YAxis dataKey="label" type="category" width={100} axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'currentColor' }} />
+                      <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(128,128,128,0.1)' }} />
                       <Bar 
                         dataKey="avg" 
-                        fill="var(--primary)" 
                         radius={[0, 4, 4, 0]} 
                         barSize={24}
                       >
                          {data.indicators.map((entry, index) => (
-                           <Cell key={`cell-${index}`} fill={entry.avg < 3.2 ? '#ef4444' : '#0f172a'} />
+                           <Cell key={`cell-${index}`} fill={entry.avg >= 3.532 ? '#10b981' : entry.avg >= 3.0644 ? '#3b82f6' : entry.avg >= 2.60 ? '#f59e0b' : '#ef4444'} />
                          ))}
                       </Bar>
                     </BarChart>
@@ -518,6 +531,7 @@ export const SurveyDetailPage: React.FC = () => {
                 const total = indicator.distribution.reduce((a, b) => a + b, 0);
                 const maxVal = Math.max(...indicator.distribution);
                 const maxIdx = indicator.distribution.indexOf(maxVal);
+                const DIST_COLORS = ['#ef4444','#f59e0b','#3b82f6','#10b981'];
                 
                 return (
                   <motion.div
@@ -543,22 +557,29 @@ export const SurveyDetailPage: React.FC = () => {
                                const count = indicator.distribution[i];
                                const percentage = ((count / total) * 100).toFixed(1);
                                const isDominant = i === maxIdx;
+                               const barColor = DIST_COLORS[i];
                                
                                return (
-                                <div key={label} className={`p-2 rounded-xl border transition-all duration-300 ${isDominant ? 'bg-primary/5 border-primary/20 ring-1 ring-primary/20 shadow-lg' : 'bg-muted/10 border-transparent opacity-70'}`}>
-                                  <div className="flex items-center justify-between text-[9px] font-black uppercase text-muted-foreground mb-1.5 tracking-tighter">
-                                    <span className={isDominant ? 'text-primary' : ''}>{label}</span>
+                                <div 
+                                  key={label} 
+                                  className="p-2 rounded-xl border transition-all duration-300"
+                                  style={{ 
+                                    backgroundColor: `${barColor}18`,
+                                    borderColor: isDominant ? barColor : 'rgba(128,128,128,0.2)',
+                                    boxShadow: isDominant ? `0 0 0 1px ${barColor}` : undefined
+                                  }}
+                                >
+                                  <div className="flex items-center justify-between text-[9px] font-black uppercase mb-1.5 tracking-tighter" style={{ color: barColor }}>
+                                    <span>{label}</span>
                                     <span className="text-[11px] font-black text-foreground">{count} <span className="text-[8px] font-bold opacity-60">org</span></span>
                                   </div>
-                                  <Progress 
-                                    value={parseFloat(percentage)} 
-                                    className="h-2 rounded-full bg-muted/50"
-                                    indicatorClassName={isDominant ? "bg-gradient-primary shadow-[0_0_10px_rgba(var(--primary),0.5)]" : "bg-slate-400"}
-                                  />
+                                  <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${barColor}25` }}>
+                                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percentage}%`, backgroundColor: barColor }} />
+                                  </div>
                                   <div className="flex items-center justify-between mt-1.5">
-                                    <span className={`text-[10px] font-black ${isDominant ? 'text-primary' : 'text-muted-foreground'}`}>{percentage}%</span>
+                                    <span className="text-[10px] font-black" style={{ color: barColor }}>{percentage}%</span>
                                     {isDominant && (
-                                      <Badge className="h-3.5 px-1 bg-primary text-[7px] font-black rounded-sm border-none">DOMINAN</Badge>
+                                      <Badge className="h-3.5 px-1 text-[7px] font-black rounded-sm border-none text-white" style={{ backgroundColor: barColor }}>DOMINAN</Badge>
                                     )}
                                   </div>
                                 </div>
@@ -601,16 +622,18 @@ export const SurveyDetailPage: React.FC = () => {
                         cx="50%"
                         cy="50%"
                         innerRadius={50}
-                        outerRadius={70}
-                        paddingAngle={5}
+                        outerRadius={75}
+                        paddingAngle={4}
                         dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}
+                        labelLine={false}
                       >
                         {demoGenderData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS_GENDER[index % COLORS_GENDER.length]} />
+                          <Cell key={`cell-${index}`} fill={COLORS_GENDER[index % COLORS_GENDER.length]} stroke="transparent" />
                         ))}
                       </Pie>
-                      <Tooltip />
-                      <Legend wrapperStyle={{ fontSize: '10px' }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend wrapperStyle={{ fontSize: '11px', color: 'currentColor' }} />
                     </PieChart>
                  </ResponsiveContainer>
                </CardContent>
@@ -630,10 +653,10 @@ export const SurveyDetailPage: React.FC = () => {
                <CardContent className="h-[250px] min-h-[250px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={demoUmurData} margin={{ left: -20, right: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                      <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis fontSize={10} tickLine={false} axisLine={false} />
-                      <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                      <XAxis dataKey="name" fontSize={9} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} />
+                      <YAxis fontSize={9} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} />
+                      <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(128,128,128,0.1)'}} />
                       <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                         {demoUmurData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS_UMUR[index % COLORS_UMUR.length]} />
@@ -659,9 +682,9 @@ export const SurveyDetailPage: React.FC = () => {
                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={demoEduData} layout="vertical" margin={{ left: 10, right: 10 }}>
                       <XAxis type="number" hide />
-                      <YAxis dataKey="name" type="category" fontSize={10} axisLine={false} tickLine={false} width={80} />
-                      <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} />
-                      <Bar dataKey="value" fill="#4f46e5" radius={[0, 4, 4, 0]} barSize={15} />
+                      <YAxis dataKey="name" type="category" fontSize={9} axisLine={false} tickLine={false} width={85} tick={{ fill: 'currentColor' }} />
+                      <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(128,128,128,0.1)'}} />
+                      <Bar dataKey="value" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={14} />
                     </BarChart>
                  </ResponsiveContainer>
                </CardContent>
@@ -684,18 +707,18 @@ export const SurveyDetailPage: React.FC = () => {
                       <Pie
                         data={demoPekerjaanData}
                         cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={70}
+                        cy="40%"
+                        innerRadius={35}
+                        outerRadius={65}
                         paddingAngle={2}
                         dataKey="value"
                       >
                         {demoPekerjaanData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS_PEKERJAAN[index % COLORS_PEKERJAAN.length]} />
+                          <Cell key={`cell-${index}`} fill={COLORS_PEKERJAAN[index % COLORS_PEKERJAAN.length]} stroke="transparent" />
                         ))}
                       </Pie>
-                      <Tooltip />
-                      <Legend wrapperStyle={{ fontSize: '10px' }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend wrapperStyle={{ fontSize: '9px', color: 'currentColor' }} iconSize={8} />
                     </PieChart>
                  </ResponsiveContainer>
                </CardContent>
@@ -715,11 +738,11 @@ export const SurveyDetailPage: React.FC = () => {
                <CardContent className="h-[250px] min-h-[250px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={demoSukuData} margin={{ left: -20, right: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                      <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis fontSize={10} tickLine={false} axisLine={false} />
-                      <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={30}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                      <XAxis dataKey="name" fontSize={9} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} />
+                      <YAxis fontSize={9} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} />
+                      <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(128,128,128,0.1)'}} />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={28}>
                         {demoSukuData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS_SUKU[index % COLORS_SUKU.length]} />
                         ))}
@@ -744,9 +767,9 @@ export const SurveyDetailPage: React.FC = () => {
                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={demoLayananData} layout="vertical" margin={{ left: 10, right: 10 }}>
                       <XAxis type="number" hide />
-                      <YAxis dataKey="name" type="category" fontSize={9} axisLine={false} tickLine={false} width={100} />
-                      <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} />
-                      <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={15}>
+                      <YAxis dataKey="name" type="category" fontSize={8} axisLine={false} tickLine={false} width={110} tick={{ fill: 'currentColor' }} />
+                      <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(128,128,128,0.1)'}} />
+                      <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={14}>
                         {demoLayananData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS_LAYANAN[index % COLORS_LAYANAN.length]} />
                         ))}
