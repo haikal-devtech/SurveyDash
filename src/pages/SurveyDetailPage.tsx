@@ -669,7 +669,12 @@ export const SurveyDetailPage: React.FC = () => {
                   </ScrollArea>
                 </CardContent>
               </Card>
-           </div>
+            </div>
+           ) : (
+             <div className="py-20 text-center bg-muted/20 rounded-2xl border-2 border-dashed border-border">
+               <p className="text-muted-foreground italic">Data saran dan aspirasi publik belum tersedia.</p>
+             </div>
+           )}
         </TabsContent>
 
         <TabsContent value="respondents" className="space-y-4">
