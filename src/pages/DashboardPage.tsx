@@ -86,8 +86,8 @@ export const DashboardPage: React.FC = () => {
 
   const filteredSurveys = surveys.filter(s => {
     /* ... existing filter logic ... */
-    const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         s.agency.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (s.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         (s.agency || "").toLowerCase().includes(searchTerm.toLowerCase());
     
     let matchesDate = true;
     if (s.createdAt) {
