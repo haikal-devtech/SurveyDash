@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { 
   BarChart3, Clock, Calendar, ChevronRight, Search, PlusCircle, X, 
-  CheckSquare, Square, BarChart2, TrendingUp, Users as UsersIcon, AlertCircle, RefreshCw, Briefcase
+  CheckSquare, Square, BarChart2, TrendingUp, Users as UsersIcon, AlertCircle, RefreshCw, BriefcaseBusiness
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -274,7 +274,7 @@ export const DashboardPage: React.FC = () => {
                 </div>
                 <CardDescription className="flex items-center gap-2 font-bold text-muted-foreground/80 mt-2">
                   <div className="p-1 rounded-md bg-muted/50">
-                    <Briefcase className="w-3.5 h-3.5" />
+                    <BriefcaseBusiness className="w-3.5 h-3.5" />
                   </div>
                   {survey.agency}
                 </CardDescription>

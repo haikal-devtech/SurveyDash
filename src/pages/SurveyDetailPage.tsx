@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { 
   ArrowLeft, RefreshCw, Users, TrendingUp, Info, Shield, Share2, Copy, Check,
-  LayoutDashboard as LucideBarChart, MessageSquare, Briefcase, GraduationCap, PieChart as PieChartIcon, 
+  LayoutDashboard as LucideBarChart, MessageSquare, BriefcaseBusiness, GraduationCap, PieChart as PieChartIcon, 
   Download, Bell, Timer, Play, Pause
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -221,7 +221,7 @@ export const SurveyDetailPage: React.FC = () => {
                <h2 className="text-4xl font-black tracking-tighter text-gradient uppercase leading-none mt-1">{data.meta.survey_name}</h2>
                <div className="flex items-center gap-2 text-sm text-muted-foreground/80 font-semibold tracking-tight">
                <div className="p-1 rounded-md bg-primary/10">
-                 <Briefcase className="w-4 h-4 text-primary" />
+                 <BriefcaseBusiness className="w-4 h-4 text-primary" />
                </div>
                {config.agency}
              </div>
@@ -398,7 +398,7 @@ export const SurveyDetailPage: React.FC = () => {
 
         <Card className="glass-card border-none relative overflow-hidden group bg-slate-950 text-white">
           <div className="absolute -right-6 -top-6 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700">
-            <Briefcase className="w-32 h-32" />
+            <BriefcaseBusiness className="w-32 h-32" />
           </div>
           <CardHeader className="pb-2">
             <CardDescription className="uppercase text-[10px] font-black tracking-widest text-slate-400">Instansi Pelaksana</CardDescription>
