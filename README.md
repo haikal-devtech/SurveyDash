@@ -32,9 +32,13 @@ function doGet() {
   const rows = data.slice(1); // Mengabaikan baris pertama (header)
 
   // --- CONFIGURASI KOLOM (Indeks dimulai dari 0 = Kolom A) ---
-  const COL_NAMA = 2;       // Kolom C
-  const COL_GENDER = 3;     // Kolom D
-  const COL_PENDIDIKAN = 6; // Kolom G
+  const COL_NAMA = 2;       // Kolom C: Nama
+  const COL_GENDER = 3;     // Kolom D: Jenis Kelamin
+  const COL_UMUR = 4;       // Kolom E: Umur
+  const COL_PEKERJAAN = 5;  // Kolom F: Pekerjaan
+  const COL_PENDIDIKAN = 6; // Kolom G: Pendidikan Terakhir
+  const COL_SUKU = 7;       // Kolom H: Suku Etnis
+  const COL_LAYANAN = 9;    // Kolom J: Jenis Layanan
   const START_INDIKATOR = 10; // Mulai dari Kolom K (Indikator 1) sampai S (Indikator 9)
   
   const labels = [
@@ -44,7 +48,7 @@ function doGet() {
   ];
 
   // --- PENGOLAHAN DATA ---
-  let totalIkmScore = 0;
+  let totalNrrTertimbang = 0;
   let indicatorsData = labels.map((label, i) => ({
     id: i + 1,
     label: label,
@@ -52,8 +56,15 @@ function doGet() {
     distribution: [0, 0, 0, 0] // [SK(1), K(2), B(3), SB(4)]
   }));
 
-  let genderStats = {};
-  let eduStats = {};
+  let demoStats = {
+    gender: {},
+    umur: {},
+    pekerjaan: {},
+    pendidikan: {},
+    suku: {},
+    layanan: {}
+  };
+
   let respondentList = [];
 
   rows.forEach((row, rowIndex) => {
@@ -61,10 +72,19 @@ function doGet() {
     if (!row[0]) return;
 
     // 1. Demografi
-    let gender = row[COL_GENDER] || "Lainnya";
-    let edu = row[COL_PENDIDIKAN] || "Tidak Diketahui";
-    genderStats[gender] = (genderStats[gender] || 0) + 1;
-    eduStats[edu] = (eduStats[edu] || 0) + 1;
+    let gender = row[COL_GENDER] || "Tidak Diketahui";
+    let umur = row[COL_UMUR] || "Tidak Diketahui";
+    let pekerjaan = row[COL_PEKERJAAN] || "Tidak Diketahui";
+    let pendidikan = row[COL_PENDIDIKAN] || "Tidak Diketahui";
+    let suku = row[COL_SUKU] || "Tidak Diketahui";
+    let layanan = row[COL_LAYANAN] || "Tidak Diketahui";
+
+    demoStats.gender[gender] = (demoStats.gender[gender] || 0) + 1;
+    demoStats.umur[umur] = (demoStats.umur[umur] || 0) + 1;
+    demoStats.pekerjaan[pekerjaan] = (demoStats.pekerjaan[pekerjaan] || 0) + 1;
+    demoStats.pendidikan[pendidikan] = (demoStats.pendidikan[pendidikan] || 0) + 1;
+    demoStats.suku[suku] = (demoStats.suku[suku] || 0) + 1;
+    demoStats.layanan[layanan] = (demoStats.layanan[layanan] || 0) + 1;
 
     // 2. Indikator (Ambil angka dari jawaban, misal "Sangat Sesuai, 4" -> 4)
     let rowScores = {};
@@ -90,22 +110,29 @@ function doGet() {
         name: row[COL_NAMA] || "Anonim",
         timestamp: row[0],
         gender: gender,
-        education: edu,
+        education: pendidikan,
         answers: rowScores
       });
     }
   });
 
-  // --- KALKULASI AKHIR ---
-  const totalResp = respondentList.length || rows.length; // Hindari pembagian 0
+  // --- KALKULASI AKHIR (MENGGUNAKAN RUMUS EXCEL) ---
+  const totalResp = rows.length; // Menggunakan total keseluruhan baris
   if (totalResp > 0) {
     indicatorsData.forEach(ind => {
-      ind.avg = ind.totalScore / totalResp;
-      totalIkmScore += ind.avg;
+      // 1. Hitung NRR per unsur (Jumlah Nilai / Total Responden)
+      ind.avg = Number((ind.totalScore / totalResp).toFixed(3)); 
+      
+      // 2. Hitung NRR Tertimbang (NRR * Bobot 0.111)
+      let nrrTertimbang = ind.avg * 0.111;
+      
+      // 3. Jumlahkan Total NRR Tertimbang
+      totalNrrTertimbang += nrrTertimbang; 
     });
   }
 
-  const finalIkm = (totalIkmScore / 9) * 25; // Skala 100
+  // 4. Hitung IKM Akhir (Total NRR Tertimbang * 25)
+  const finalIkm = Number((totalNrrTertimbang * 25).toFixed(2));
 
   // Struktur JSON yang dibutuhkan oleh SurveyDash
   const result = {
@@ -121,10 +148,7 @@ function doGet() {
       label: finalIkm >= 88.31 ? "A" : finalIkm >= 76.61 ? "B" : "C"
     },
     indicators: indicatorsData,
-    demographics: {
-      gender: genderStats,
-      education: eduStats
-    },
+    demographics: demoStats,
     respondents: respondentList
   };
 

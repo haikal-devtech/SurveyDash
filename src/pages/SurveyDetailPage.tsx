@@ -196,10 +196,32 @@ export const SurveyDetailPage: React.FC = () => {
     ? Object.entries(data.demographics.gender).map(([name, value]) => ({ name, value }))
     : [];
     
-  const demoEduData = data?.demographics?.education 
-    ? Object.entries(data.demographics.education).map(([name, value]) => ({ name, value }))
+  const demoEduData = data?.demographics?.pendidikan || data?.demographics?.education 
+    ? Object.entries(data?.demographics?.pendidikan || data?.demographics?.education).map(([name, value]) => ({ name, value }))
     : [];
-  const COLORS = ['#0f172a', '#334155', '#64748b', '#94a3b8'];
+
+  const demoUmurData = data?.demographics?.umur
+    ? Object.entries(data.demographics.umur).map(([name, value]) => ({ name, value }))
+    : [];
+    
+  const demoPekerjaanData = data?.demographics?.pekerjaan
+    ? Object.entries(data.demographics.pekerjaan).map(([name, value]) => ({ name, value }))
+    : [];
+
+  const demoSukuData = data?.demographics?.suku
+    ? Object.entries(data.demographics.suku).map(([name, value]) => ({ name, value }))
+    : [];
+
+  const demoLayananData = data?.demographics?.layanan
+    ? Object.entries(data.demographics.layanan).map(([name, value]) => ({ name, value }))
+    : [];
+
+  // Color palettes
+  const COLORS_GENDER = ['#0f172a', '#334155', '#64748b', '#94a3b8']; // Slates
+  const COLORS_UMUR = ['#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0']; // Emeralds
+  const COLORS_PEKERJAAN = ['#d97706', '#f59e0b', '#fbbf24', '#fcd34d', '#fde68a']; // Ambers
+  const COLORS_SUKU = ['#be123c', '#e11d48', '#fb7185', '#fda4af', '#fecdd3']; // Roses
+  const COLORS_LAYANAN = ['#0284c7', '#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd']; // Skys
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -544,57 +566,176 @@ export const SurveyDetailPage: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="demographics" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             {/* GENDER */}
              <Card>
                <CardHeader className="flex flex-row items-center justify-between">
-                 <CardTitle className="text-lg flex items-center gap-2">
-                   <Users className="w-5 h-5" />
-                   Komposisi Jenis Kelamin
+                 <CardTitle className="text-sm flex items-center gap-2">
+                   <Users className="w-4 h-4 text-slate-700" />
+                   Jenis Kelamin
                  </CardTitle>
-                 <Button variant="ghost" size="icon" onClick={() => exportToCSV(demoGenderData, `gender_data_${config?.id}`)}>
-                    <Download className="w-4 h-4" />
+                 <Button variant="ghost" size="icon" onClick={() => exportToCSV(demoGenderData, `gender_data_${config?.id}`)} className="h-6 w-6">
+                    <Download className="w-3 h-3" />
                   </Button>
                </CardHeader>
-               <CardContent className="h-[300px] min-h-[300px]">
+               <CardContent className="h-[250px] min-h-[250px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={demoGenderData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
+                        innerRadius={50}
+                        outerRadius={70}
                         paddingAngle={5}
                         dataKey="value"
                       >
                         {demoGenderData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell key={`cell-${index}`} fill={COLORS_GENDER[index % COLORS_GENDER.length]} />
                         ))}
                       </Pie>
                       <Tooltip />
-                      <Legend />
+                      <Legend wrapperStyle={{ fontSize: '10px' }} />
                     </PieChart>
                  </ResponsiveContainer>
                </CardContent>
              </Card>
 
+             {/* UMUR */}
              <Card>
                <CardHeader className="flex flex-row items-center justify-between">
-                 <CardTitle className="text-lg flex items-center gap-2">
-                   <GraduationCap className="w-5 h-5 text-primary" />
-                   Tingkat Pendidikan
+                 <CardTitle className="text-sm flex items-center gap-2">
+                   <Timer className="w-4 h-4 text-emerald-600" />
+                   Kelompok Umur
                  </CardTitle>
-                 <Button variant="ghost" size="icon" onClick={() => exportToCSV(demoEduData, `education_data_${config?.id}`)}>
-                    <Download className="w-4 h-4" />
+                 <Button variant="ghost" size="icon" onClick={() => exportToCSV(demoUmurData, `umur_data_${config?.id}`)} className="h-6 w-6">
+                    <Download className="w-3 h-3" />
                   </Button>
                </CardHeader>
-               <CardContent className="h-[300px] min-h-[300px]">
+               <CardContent className="h-[250px] min-h-[250px]">
                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={demoEduData} layout="vertical" margin={{ left: 20 }}>
+                    <BarChart data={demoUmurData} margin={{ left: -20, right: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                      <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
+                      <YAxis fontSize={10} tickLine={false} axisLine={false} />
+                      <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                        {demoUmurData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS_UMUR[index % COLORS_UMUR.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                 </ResponsiveContainer>
+               </CardContent>
+             </Card>
+
+             {/* PENDIDIKAN */}
+             <Card>
+               <CardHeader className="flex flex-row items-center justify-between">
+                 <CardTitle className="text-sm flex items-center gap-2">
+                   <GraduationCap className="w-4 h-4 text-indigo-600" />
+                   Pendidikan Terakhir
+                 </CardTitle>
+                 <Button variant="ghost" size="icon" onClick={() => exportToCSV(demoEduData, `education_data_${config?.id}`)} className="h-6 w-6">
+                    <Download className="w-3 h-3" />
+                  </Button>
+               </CardHeader>
+               <CardContent className="h-[250px] min-h-[250px]">
+                 <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={demoEduData} layout="vertical" margin={{ left: 10, right: 10 }}>
                       <XAxis type="number" hide />
-                      <YAxis dataKey="name" type="category" fontSize={11} axisLine={false} tickLine={false} />
+                      <YAxis dataKey="name" type="category" fontSize={10} axisLine={false} tickLine={false} width={80} />
+                      <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} />
+                      <Bar dataKey="value" fill="#4f46e5" radius={[0, 4, 4, 0]} barSize={15} />
+                    </BarChart>
+                 </ResponsiveContainer>
+               </CardContent>
+             </Card>
+
+             {/* PEKERJAAN */}
+             <Card>
+               <CardHeader className="flex flex-row items-center justify-between">
+                 <CardTitle className="text-sm flex items-center gap-2">
+                   <BriefcaseBusiness className="w-4 h-4 text-amber-500" />
+                   Profesi / Pekerjaan
+                 </CardTitle>
+                 <Button variant="ghost" size="icon" onClick={() => exportToCSV(demoPekerjaanData, `pekerjaan_data_${config?.id}`)} className="h-6 w-6">
+                    <Download className="w-3 h-3" />
+                  </Button>
+               </CardHeader>
+               <CardContent className="h-[250px] min-h-[250px]">
+                 <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={demoPekerjaanData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={70}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {demoPekerjaanData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS_PEKERJAAN[index % COLORS_PEKERJAAN.length]} />
+                        ))}
+                      </Pie>
                       <Tooltip />
-                      <Bar dataKey="value" fill="#0f172a" radius={[0, 4, 4, 0]} barSize={20} />
+                      <Legend wrapperStyle={{ fontSize: '10px' }} />
+                    </PieChart>
+                 </ResponsiveContainer>
+               </CardContent>
+             </Card>
+
+             {/* SUKU ETNIS */}
+             <Card>
+               <CardHeader className="flex flex-row items-center justify-between">
+                 <CardTitle className="text-sm flex items-center gap-2">
+                   <Users className="w-4 h-4 text-rose-500" />
+                   Suku Etnis
+                 </CardTitle>
+                 <Button variant="ghost" size="icon" onClick={() => exportToCSV(demoSukuData, `suku_data_${config?.id}`)} className="h-6 w-6">
+                    <Download className="w-3 h-3" />
+                  </Button>
+               </CardHeader>
+               <CardContent className="h-[250px] min-h-[250px]">
+                 <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={demoSukuData} margin={{ left: -20, right: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                      <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
+                      <YAxis fontSize={10} tickLine={false} axisLine={false} />
+                      <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={30}>
+                        {demoSukuData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS_SUKU[index % COLORS_SUKU.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                 </ResponsiveContainer>
+               </CardContent>
+             </Card>
+
+             {/* JENIS LAYANAN */}
+             <Card>
+               <CardHeader className="flex flex-row items-center justify-between">
+                 <CardTitle className="text-sm flex items-center gap-2">
+                   <Info className="w-4 h-4 text-sky-500" />
+                   Jenis Layanan
+                 </CardTitle>
+                 <Button variant="ghost" size="icon" onClick={() => exportToCSV(demoLayananData, `layanan_data_${config?.id}`)} className="h-6 w-6">
+                    <Download className="w-3 h-3" />
+                  </Button>
+               </CardHeader>
+               <CardContent className="h-[250px] min-h-[250px]">
+                 <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={demoLayananData} layout="vertical" margin={{ left: 10, right: 10 }}>
+                      <XAxis type="number" hide />
+                      <YAxis dataKey="name" type="category" fontSize={9} axisLine={false} tickLine={false} width={100} />
+                      <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} />
+                      <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={15}>
+                        {demoLayananData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS_LAYANAN[index % COLORS_LAYANAN.length]} />
+                        ))}
+                      </Bar>
                     </BarChart>
                  </ResponsiveContainer>
                </CardContent>
