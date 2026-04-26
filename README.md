@@ -49,7 +49,8 @@ function doGet() {
     id: i + 1,
     label: label,
     totalScore: 0,
-    distribution: [0, 0, 0, 0] // [SK(1), K(2), B(3), SB(4)]
+    distribution: [0, 0, 0, 0], // [SK(1), K(2), B(3), SB(4)]
+    avg: 0 // Menghindari error di frontend saat data masih kosong
   }));
 
   let demoStats = {
