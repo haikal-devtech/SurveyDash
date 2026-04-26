@@ -34,8 +34,13 @@ function doGet() {
   const COL_PEKERJAAN = 5;  // Kolom F: Pekerjaan
   const COL_PENDIDIKAN = 6; // Kolom G: Pendidikan Terakhir
   const COL_SUKU = 7;       // Kolom H: Suku Etnis
+  const COL_ALAMAT = 8;     // Kolom I: Alamat
   const COL_LAYANAN = 9;    // Kolom J: Jenis Layanan
-  const START_INDIKATOR = 10; // Mulai dari Kolom K (Indikator 1) sampai S (Indikator 9)
+  const START_INDIKATOR = 10; // Kolom K-S: Indikator 1-9
+  const COL_OPINION = 19;   // Kolom T: B1. Secara umum...
+  const COL_EXPECTATION = 20; // Kolom U: B2. Harapan...
+  const COL_DOKUMENTASI = 21; // Kolom V: Dokumentasi (Link Foto)
+  const COL_SURVEYOR = 22;  // Kolom W: Surveyor
   
   const labels = [
     "Persyaratan", "Sistem & Prosedur", "Waktu Pelayanan", 
@@ -44,7 +49,6 @@ function doGet() {
   ];
 
   // --- PENGOLAHAN DATA ---
-  let totalNrrTertimbang = 0;
   let indicatorsData = labels.map((label, i) => ({
     id: i + 1,
     label: label,
@@ -54,19 +58,14 @@ function doGet() {
   }));
 
   let demoStats = {
-    gender: {},
-    umur: {},
-    pekerjaan: {},
-    pendidikan: {},
-    suku: {},
-    layanan: {}
+    gender: {}, umur: {}, pekerjaan: {}, pendidikan: {}, suku: {}, layanan: {}
   };
 
+  let openEnded = { general_opinion: [], expectations: [] };
   let respondentList = [];
 
   rows.forEach((row, rowIndex) => {
-    // Lewati baris kosong
-    if (!row[0]) return;
+    if (!row[0]) return; // Lewati baris kosong
 
     // 1. Demografi
     let gender = row[COL_GENDER] || "Tidak Diketahui";
@@ -83,15 +82,13 @@ function doGet() {
     demoStats.suku[suku] = (demoStats.suku[suku] || 0) + 1;
     demoStats.layanan[layanan] = (demoStats.layanan[layanan] || 0) + 1;
 
-    // 2. Indikator (Ambil angka dari jawaban, misal "Sangat Sesuai, 4" -> 4)
+    // 2. Indikator
     let rowScores = {};
     for (let i = 0; i < 9; i++) {
       let cellValue = String(row[START_INDIKATOR + i]);
-      // Ekstrak angka terakhir dari teks
       let scoreMatch = cellValue.match(/\d/g);
       let score = scoreMatch ? parseInt(scoreMatch.pop()) : 1; 
       
-      // Batasi skor antara 1-4
       if (score < 1) score = 1;
       if (score > 4) score = 4;
 
@@ -100,42 +97,39 @@ function doGet() {
       rowScores[labels[i]] = score;
     }
 
-    // 3. Daftar Responden (semua data dikirim, paginasi ditangani di frontend)
+    // Harapan Publik
+    if (row[COL_OPINION]) openEnded.general_opinion.push(String(row[COL_OPINION]));
+    if (row[COL_EXPECTATION]) openEnded.expectations.push(String(row[COL_EXPECTATION]));
+
+    // 3. Daftar Responden
     respondentList.push({
         id: "R" + (rowIndex + 1),
         name: row[COL_NAMA] || "Anonim",
         timestamp: row[0],
         gender: gender,
         education: pendidikan,
-        answers: rowScores
+        answers: rowScores,
+        documentation: row[COL_DOKUMENTASI] || null,
+        surveyor: row[COL_SURVEYOR] || "-"
       });
   });
 
-  // --- KALKULASI AKHIR (PERMENPAN RB No. 14 Tahun 2017) ---
-  // Hanya hitung baris yang valid (tidak kosong)
   const validRows = rows.filter(r => r[0]);
   const totalResp = validRows.length;
-  
-  let nilaiIndeks = 0; // Ini adalah Nilai Indeks (X) sebelum dikali 25
+  let nilaiIndeks = 0;
   
   if (totalResp > 0) {
     indicatorsData.forEach(ind => {
-      // NRR = Jumlah Nilai Per Unsur / Total Unsur yang Terisi
       ind.avg = Number((ind.totalScore / totalResp).toFixed(2));
-      
-      // Nilai Indeks per unsur = NRR * Bobot (0.11)
-      // Rumus: (a x 0,11) + (b x 0,11) + ... + (i x 0,11) = Nilai Indeks (X)
       nilaiIndeks += ind.avg * 0.11;
     });
   }
 
-  // Nilai IKM Unit Pelayanan = Nilai Indeks (X) * 25
   const finalIkm = Number((nilaiIndeks * 25).toFixed(2));
 
-  // Struktur JSON yang dibutuhkan oleh SurveyDash
   const result = {
     meta: {
-      survey_name: "SKM BPBD Kota Tangerang Selatan", // Ubah sesuai nama survei
+      survey_name: "SKM BPBD", // Ubah sesuai nama survei
       period: "Tahun 2026",
       total_respondents: totalResp,
       last_updated: new Date().toISOString()
@@ -143,22 +137,12 @@ function doGet() {
     ikm: {
       score: finalIkm,
       nilaiIndeks: Number(nilaiIndeks.toFixed(4)),
-      // Kategori berdasarkan NIK (Nilai Interval Konversi) — Permenpan RB 2017
-      // A (Sangat Baik): 88,31 - 100,00
-      // B (Baik)       : 76,61 - 88,30
-      // C (Kurang Baik): 65,00 - 76,60
-      // D (Tidak Baik) : 25,00 - 64,99
-      category: finalIkm >= 88.31 ? "SANGAT BAIK" 
-              : finalIkm >= 76.61 ? "BAIK" 
-              : finalIkm >= 65.00 ? "KURANG BAIK" 
-              : "TIDAK BAIK",
-      label: finalIkm >= 88.31 ? "A" 
-           : finalIkm >= 76.61 ? "B" 
-           : finalIkm >= 65.00 ? "C" 
-           : "D"
+      category: finalIkm >= 88.31 ? "SANGAT BAIK" : finalIkm >= 76.61 ? "BAIK" : finalIkm >= 65.00 ? "KURANG BAIK" : "TIDAK BAIK",
+      label: finalIkm >= 88.31 ? "A" : finalIkm >= 76.61 ? "B" : finalIkm >= 65.00 ? "C" : "D"
     },
     indicators: indicatorsData,
     demographics: demoStats,
+    open_ended: openEnded,
     respondents: respondentList
   };
 

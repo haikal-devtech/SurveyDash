@@ -5,6 +5,8 @@ export interface Respondent {
   gender: string;
   education: string;
   answers: { [key: string]: string | number };
+  documentation?: string | null;
+  surveyor?: string | null;
 }
 
 export interface SurveyData {

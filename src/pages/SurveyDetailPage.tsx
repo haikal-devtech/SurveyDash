@@ -975,8 +975,9 @@ export const SurveyDetailPage: React.FC = () => {
                           <TableRow>
                             <TableHead className="w-8">#</TableHead>
                             <TableHead>Nama</TableHead>
-                            <TableHead className="hidden md:table-cell">Gender</TableHead>
-                            <TableHead className="hidden md:table-cell">Pendidikan</TableHead>
+                            <TableHead className="hidden md:table-cell">Surveyor</TableHead>
+                            <TableHead className="hidden lg:table-cell">Gender</TableHead>
+                            <TableHead className="hidden lg:table-cell">Pendidikan</TableHead>
                             <TableHead>Waktu</TableHead>
                             <TableHead className="text-right">Aksi</TableHead>
                           </TableRow>
@@ -986,8 +987,9 @@ export const SurveyDetailPage: React.FC = () => {
                             <TableRow key={r.id} className="hover:bg-muted/30">
                               <TableCell className="text-muted-foreground text-xs">{(respPage - 1) * RESP_PER_PAGE + idx + 1}</TableCell>
                               <TableCell className="font-bold text-foreground">{r.name}</TableCell>
-                              <TableCell className="hidden md:table-cell text-foreground/80">{r.gender}</TableCell>
-                              <TableCell className="hidden md:table-cell text-foreground/80">{r.education}</TableCell>
+                              <TableCell className="hidden md:table-cell font-medium text-foreground/80">{r.surveyor || "-"}</TableCell>
+                              <TableCell className="hidden lg:table-cell text-foreground/80">{r.gender}</TableCell>
+                              <TableCell className="hidden lg:table-cell text-foreground/80">{r.education}</TableCell>
                               <TableCell className="text-muted-foreground text-xs font-medium">
                                 {new Date(r.timestamp).toLocaleDateString("id-ID")}
                               </TableCell>
@@ -1007,6 +1009,8 @@ export const SurveyDetailPage: React.FC = () => {
                                           <div className="font-bold text-right text-foreground">{r.gender}</div>
                                           <div className="text-muted-foreground">Pendidikan Terakhir</div>
                                           <div className="font-bold text-right text-foreground">{r.education}</div>
+                                          <div className="text-muted-foreground">Surveyor</div>
+                                          <div className="font-bold text-right text-primary">{r.surveyor || "-"}</div>
                                           <div className="text-muted-foreground">Rata-rata Skor</div>
                                           <div className="font-black text-right text-primary">
                                             {(() => {
@@ -1016,6 +1020,16 @@ export const SurveyDetailPage: React.FC = () => {
                                           </div>
                                           <div className="text-muted-foreground">Waktu Pengisian</div>
                                           <div className="font-bold text-right text-[10px] text-foreground">{new Date(r.timestamp).toLocaleString("id-ID")}</div>
+                                       </div>
+                                       <div className="space-y-2">
+                                          <h4 className="text-[10px] font-black uppercase text-primary tracking-widest px-1">Dokumentasi</h4>
+                                          {r.documentation && r.documentation.startsWith("http") ? (
+                                            <a href={r.documentation} target="_blank" rel="noreferrer" className="block w-full hover:opacity-80 transition-opacity">
+                                              <img src={r.documentation} alt="Dokumentasi" className="w-full h-auto max-h-48 object-cover rounded-xl border shadow-sm" />
+                                            </a>
+                                          ) : (
+                                            <div className="p-4 bg-muted/50 rounded-xl text-center text-xs text-muted-foreground border border-dashed">Tidak ada foto dokumentasi</div>
+                                          )}
                                        </div>
                                        <div className="space-y-2">
                                           <h4 className="text-[10px] font-black uppercase text-primary tracking-widest px-1">Indikator Kepuasan</h4>
