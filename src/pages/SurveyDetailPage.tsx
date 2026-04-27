@@ -1004,7 +1004,7 @@ export const SurveyDetailPage: React.FC = () => {
                                        <DialogDescription>Transkrip lengkap jawaban survey.</DialogDescription>
                                      </DialogHeader>
                                      <div className="space-y-4 pt-4">
-                                       <div className="grid grid-cols-2 gap-y-2 text-sm p-4 bg-primary/5 dark:bg-primary/20 rounded-2xl border border-primary/10">
+                                       <div className="grid grid-cols-2 gap-y-1.5 text-xs p-3 bg-primary/5 dark:bg-primary/20 rounded-xl border border-primary/10">
                                           <div className="text-muted-foreground">Jenis Kelamin</div>
                                           <div className="font-bold text-right text-foreground">{r.gender}</div>
                                           <div className="text-muted-foreground">Pendidikan Terakhir</div>
@@ -1025,19 +1025,19 @@ export const SurveyDetailPage: React.FC = () => {
                                           <h4 className="text-[10px] font-black uppercase text-primary tracking-widest px-1">Dokumentasi</h4>
                                           {r.documentation && r.documentation.startsWith("http") ? (
                                             <a href={r.documentation} target="_blank" rel="noreferrer" className="block w-full hover:opacity-80 transition-opacity">
-                                              <img src={r.documentation} alt="Dokumentasi" className="w-full h-auto max-h-48 object-cover rounded-xl border shadow-sm" />
+                                              <img src={r.documentation} alt="Dokumentasi" className="w-full h-auto max-h-32 object-cover rounded-lg border shadow-sm" />
                                             </a>
                                           ) : (
-                                            <div className="p-4 bg-muted/50 rounded-xl text-center text-xs text-muted-foreground border border-dashed">Tidak ada foto dokumentasi</div>
+                                            <div className="p-3 bg-muted/50 rounded-lg text-center text-[10px] text-muted-foreground border border-dashed">Tidak ada foto dokumentasi</div>
                                           )}
                                        </div>
                                        <div className="space-y-2">
                                           <h4 className="text-[10px] font-black uppercase text-primary tracking-widest px-1">Indikator Kepuasan</h4>
-                                          <div className="space-y-1">
+                                          <div className="space-y-0.5">
                                             {Object.entries(r.answers).map(([key, val]) => (
-                                              <div key={key} className="flex justify-between items-center p-3 hover:bg-muted/50 rounded-xl transition-colors">
-                                                <span className="text-sm font-medium text-foreground">{key}</span>
-                                                <Badge className="font-black h-6 w-6 flex items-center justify-center p-0 rounded-full">{val}</Badge>
+                                              <div key={key} className="flex justify-between items-center px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
+                                                <span className="text-xs font-medium text-foreground">{key}</span>
+                                                <Badge className="font-black h-5 w-5 text-[10px] flex items-center justify-center p-0 rounded-full">{val}</Badge>
                                               </div>
                                             ))}
                                           </div>
