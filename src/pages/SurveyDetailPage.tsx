@@ -39,7 +39,9 @@ const downloadPNG = async (elementId: string, filename: string) => {
   const a = document.createElement('a');
   a.href = dataURL;
   a.download = `${filename}.png`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
 };
 
 // Helper for CSV Export
