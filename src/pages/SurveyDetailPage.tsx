@@ -284,17 +284,17 @@ export const SurveyDetailPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 max-w-[1400px] mx-auto space-y-4">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 glass rounded-[2rem] overflow-hidden relative group p-8 border-white/20 shadow-2xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass rounded-[1.5rem] overflow-hidden relative group p-5 border-white/20 shadow-xl">
         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
           <LucideBarChart className="w-48 h-48 animate-float text-primary/30" />
         </div>
         
-        <div className="flex items-center gap-6 relative z-10">
+        <div className="flex items-center gap-4 relative z-10">
           <Link to="/dashboard">
-            <Button variant="outline" size="icon" className="rounded-2xl h-14 w-14 glass border-white/20 hover:scale-110 transition-all">
-              <ArrowLeft className="w-6 h-6" />
+            <Button variant="outline" size="icon" className="rounded-xl h-10 w-10 glass border-white/20 hover:scale-110 transition-all">
+              <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
           <div className="space-y-2">
@@ -307,7 +307,7 @@ export const SurveyDetailPage: React.FC = () => {
                  Sinkronisasi: {new Date(data.meta.last_updated).toLocaleString("id-ID")}
                </div>
              </div>
-               <h2 className="text-4xl font-black tracking-tighter text-gradient uppercase leading-none mt-1">{data.meta.survey_name}</h2>
+               <h2 className="text-2xl md:text-3xl font-black tracking-tighter text-gradient uppercase leading-none mt-1">{data.meta.survey_name}</h2>
                <div className="flex items-center gap-2 text-sm text-muted-foreground/80 font-semibold tracking-tight">
                <div className="p-1 rounded-md bg-primary/10">
                  <BriefcaseBusiness className="w-4 h-4 text-primary" />
@@ -321,8 +321,8 @@ export const SurveyDetailPage: React.FC = () => {
           {role === "SUPER_ADMIN" && (
             <Dialog>
               <DialogTrigger render={
-                <Button variant="outline" className="gap-2 font-bold text-xs h-12 px-4 rounded-2xl border-primary/20 hover:bg-primary/5 transition-all">
-                  <Share2 className="w-4 h-4" />
+                <Button variant="outline" className="gap-2 font-bold text-[10px] md:text-xs h-9 px-3 rounded-xl border-primary/20 hover:bg-primary/5 transition-all">
+                  <Share2 className="w-3.5 h-3.5" />
                   Bagikan
                 </Button>
               } />
@@ -376,7 +376,7 @@ export const SurveyDetailPage: React.FC = () => {
           <Button 
             variant="outline" 
             onClick={() => window.print()}
-            className="gap-2 font-bold text-xs h-12 px-6 rounded-2xl border-primary/20 hover:border-primary transition-all hidden sm:flex"
+            className="gap-2 font-bold text-[10px] md:text-xs h-9 px-4 rounded-xl border-primary/20 hover:border-primary transition-all hidden sm:flex"
           >
             <PieChartIcon className="w-4 h-4" />
             Cetak PDF
@@ -384,7 +384,7 @@ export const SurveyDetailPage: React.FC = () => {
           <Button 
             onClick={handleRefresh} 
             disabled={refreshing}
-            className="gap-2 font-black text-xs h-12 px-6 rounded-2xl shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-95 transition-all"
+            className="gap-2 font-black text-[10px] md:text-xs h-9 px-4 rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 active:scale-95 transition-all"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             {refreshing ? "SINKRONISASI..." : "REFRESH DATA"}
@@ -393,7 +393,7 @@ export const SurveyDetailPage: React.FC = () => {
           <Button 
             variant={autoRefreshEnabled ? "default" : "outline"}
             onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-            className={`gap-2 font-black text-xs h-12 px-4 rounded-2xl transition-all border-primary/20 ${autoRefreshEnabled ? 'bg-emerald-500 hover:bg-emerald-600 border-none' : ''}`}
+            className={`gap-2 font-black text-[10px] md:text-xs h-9 px-3 rounded-xl transition-all border-primary/20 ${autoRefreshEnabled ? 'bg-emerald-500 hover:bg-emerald-600 border-none' : ''}`}
           >
             {autoRefreshEnabled ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             <span className="hidden lg:inline">{autoRefreshEnabled ? "AUTO-FETCH AKTIF (1m)" : "AUTO-FETCH"}</span>
@@ -448,7 +448,7 @@ export const SurveyDetailPage: React.FC = () => {
           </div>
           <CardHeader className="pb-2">
             <CardDescription className="text-primary-foreground/70 uppercase text-[10px] font-black tracking-widest">Total Responden</CardDescription>
-            <CardTitle className="text-5xl font-black tracking-tighter">{data.meta.total_respondents}</CardTitle>
+            <CardTitle className="text-3xl md:text-4xl font-black tracking-tighter">{data.meta.total_respondents}</CardTitle>
           </CardHeader>
           <CardContent>
              <div className="flex items-center gap-2 text-xs font-bold bg-white/10 w-fit px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
@@ -464,7 +464,7 @@ export const SurveyDetailPage: React.FC = () => {
           }} />
           <CardHeader className="pb-2">
             <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Indeks Kepuasan (NIK)</CardDescription>
-            <CardTitle className="text-5xl font-black tracking-tighter" style={{
+            <CardTitle className="text-3xl md:text-4xl font-black tracking-tighter" style={{
               color: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
             }}>{data.ikm.score.toFixed(2)}</CardTitle>
           </CardHeader>
@@ -490,7 +490,7 @@ export const SurveyDetailPage: React.FC = () => {
           <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500/50" />
           <CardHeader className="pb-2">
             <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Target Mutu 2026</CardDescription>
-            <CardTitle className="text-5xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">90.00</CardTitle>
+            <CardTitle className="text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">90.00</CardTitle>
           </CardHeader>
           <CardContent>
              <div className="flex items-center gap-2 text-xs text-muted-foreground font-black uppercase tracking-wider bg-emerald-500/10 w-fit px-3 py-1 rounded-full border border-emerald-500/20">
@@ -549,7 +549,7 @@ export const SurveyDetailPage: React.FC = () => {
                    Ekspor CSV
                  </Button>
                </CardHeader>
-               <CardContent className="h-[400px]">
+               <CardContent className="h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.indicators} layout="vertical" margin={{ left: 100 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.15} />
@@ -570,7 +570,7 @@ export const SurveyDetailPage: React.FC = () => {
                </CardContent>
             </Card>
 
-            <div className="space-y-4 max-h-[500px] overflow-auto pr-2 custom-scrollbar">
+            <div className="space-y-3 max-h-[350px] overflow-auto pr-2 custom-scrollbar">
               {data.indicators.map((indicator, idx) => {
                 const total = indicator.distribution.reduce((a, b) => a + b, 0);
                 const maxVal = Math.max(...indicator.distribution);
@@ -658,7 +658,7 @@ export const SurveyDetailPage: React.FC = () => {
                     <Download className="w-3 h-3" />
                   </Button>
                </CardHeader>
-               <CardContent className="h-[250px] min-h-[250px]">
+               <CardContent className="h-[200px] min-h-[200px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -699,7 +699,7 @@ export const SurveyDetailPage: React.FC = () => {
                     <Download className="w-3 h-3" />
                   </Button>
                </CardHeader>
-               <CardContent className="h-[250px] min-h-[250px]">
+               <CardContent className="h-[200px] min-h-[200px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={demoUmurData} margin={{ left: -20, right: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
@@ -727,7 +727,7 @@ export const SurveyDetailPage: React.FC = () => {
                     <Download className="w-3 h-3" />
                   </Button>
                </CardHeader>
-               <CardContent className="h-[250px] min-h-[250px]">
+               <CardContent className="h-[200px] min-h-[200px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={demoEduData} layout="vertical" margin={{ left: 10, right: 10 }}>
                       <XAxis type="number" hide />
@@ -750,7 +750,7 @@ export const SurveyDetailPage: React.FC = () => {
                     <Download className="w-3 h-3" />
                   </Button>
                </CardHeader>
-               <CardContent className="h-[250px] min-h-[250px]">
+               <CardContent className="h-[200px] min-h-[200px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -784,7 +784,7 @@ export const SurveyDetailPage: React.FC = () => {
                     <Download className="w-3 h-3" />
                   </Button>
                </CardHeader>
-               <CardContent className="h-[250px] min-h-[250px]">
+               <CardContent className="h-[200px] min-h-[200px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={demoSukuData} margin={{ left: -20, right: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
@@ -812,7 +812,7 @@ export const SurveyDetailPage: React.FC = () => {
                     <Download className="w-3 h-3" />
                   </Button>
                </CardHeader>
-               <CardContent className="h-[250px] min-h-[250px]">
+               <CardContent className="h-[200px] min-h-[200px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={demoLayananData} layout="vertical" margin={{ left: 10, right: 10 }}>
                       <XAxis type="number" hide />
@@ -833,7 +833,7 @@ export const SurveyDetailPage: React.FC = () => {
         <TabsContent value="public" className="space-y-6">
            {data.open_ended ? (
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="h-[600px] flex flex-col">
+              <Card className="h-[400px] flex flex-col">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -866,7 +866,7 @@ export const SurveyDetailPage: React.FC = () => {
                 </CardContent>
               </Card>
 
-              <Card className="h-[600px] flex flex-col">
+              <Card className="h-[400px] flex flex-col">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardTitle className="text-lg flex items-center gap-2">
