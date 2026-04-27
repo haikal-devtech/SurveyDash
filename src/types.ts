@@ -7,6 +7,7 @@ export interface Respondent {
   answers: { [key: string]: string | number };
   documentation?: string | null;
   surveyor?: string | null;
+  location?: string | null;
 }
 
 export interface SurveyData {
@@ -30,6 +31,11 @@ export interface SurveyData {
   demographics: {
     gender: { [key: string]: number };
     education: { [key: string]: number };
+    umur?: { [key: string]: number };
+    pekerjaan?: { [key: string]: number };
+    suku?: { [key: string]: number };
+    layanan?: { [key: string]: number };
+    location?: { [key: string]: number };
   };
   open_ended: {
     general_opinion: string[];

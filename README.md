@@ -41,6 +41,7 @@ function doGet() {
   const COL_EXPECTATION = 20; // Kolom U: B2. Harapan...
   const COL_DOKUMENTASI = 21; // Kolom V: Dokumentasi (Link Foto)
   const COL_SURVEYOR = 22;  // Kolom W: Surveyor
+  const COL_LOKASI = 23;    // Kolom X: Lokasi Survei
   
   const labels = [
     "Persyaratan", "Sistem & Prosedur", "Waktu Pelayanan", 
@@ -58,7 +59,7 @@ function doGet() {
   }));
 
   let demoStats = {
-    gender: {}, umur: {}, pekerjaan: {}, pendidikan: {}, suku: {}, layanan: {}
+    gender: {}, umur: {}, pekerjaan: {}, pendidikan: {}, suku: {}, layanan: {}, location: {}
   };
 
   let openEnded = { general_opinion: [], expectations: [] };
@@ -74,6 +75,7 @@ function doGet() {
     let pendidikan = row[COL_PENDIDIKAN] || "Tidak Diketahui";
     let suku = row[COL_SUKU] || "Tidak Diketahui";
     let layanan = row[COL_LAYANAN] || "Tidak Diketahui";
+    let lokasi = row[COL_LOKASI] || "Tidak Diketahui";
 
     demoStats.gender[gender] = (demoStats.gender[gender] || 0) + 1;
     demoStats.umur[umur] = (demoStats.umur[umur] || 0) + 1;
@@ -81,6 +83,7 @@ function doGet() {
     demoStats.pendidikan[pendidikan] = (demoStats.pendidikan[pendidikan] || 0) + 1;
     demoStats.suku[suku] = (demoStats.suku[suku] || 0) + 1;
     demoStats.layanan[layanan] = (demoStats.layanan[layanan] || 0) + 1;
+    demoStats.location[lokasi] = (demoStats.location[lokasi] || 0) + 1;
 
     // 2. Indikator
     let rowScores = {};
@@ -110,7 +113,8 @@ function doGet() {
         education: pendidikan,
         answers: rowScores,
         documentation: row[COL_DOKUMENTASI] || null,
-        surveyor: row[COL_SURVEYOR] || "-"
+        surveyor: row[COL_SURVEYOR] || "-",
+        location: lokasi
       });
   });
 

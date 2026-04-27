@@ -175,7 +175,7 @@ export const DashboardPage: React.FC = () => {
           <h2 className="text-5xl font-black tracking-tighter text-gradient uppercase">Pusat Data Publik</h2>
           <p className="text-muted-foreground font-medium text-lg">Visualisasi hasil survei instansi secara real-time dan transparan.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Link to="/survey/demo">
              <Button variant="outline" className="gap-2 h-14 px-6 rounded-2xl glass border-white/20 hover:scale-105 transition-all font-bold">
                <BarChart3 className="w-5 h-5 text-primary" />

@@ -24,7 +24,7 @@ import {
 import { 
   ArrowLeft, RefreshCw, Users, TrendingUp, Info, Shield, Share2, Copy, Check,
   LayoutDashboard as LucideBarChart, MessageSquare, BriefcaseBusiness, GraduationCap, PieChart as PieChartIcon, 
-  Download, Bell, Timer, Play, Pause, Camera
+  Download, Bell, Timer, Play, Pause, Camera, MapPin
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import axios from "axios";
@@ -273,6 +273,10 @@ export const SurveyDetailPage: React.FC = () => {
   const demoLayananData = data?.demographics?.layanan
     ? Object.entries(data.demographics.layanan).map(([name, value]) => ({ name, value }))
     : [];
+    
+  const demoLokasiData = data?.demographics?.location
+    ? Object.entries(data.demographics.location).map(([name, value]) => ({ name, value }))
+    : [];
 
   // Color palettes — bright, works on both light & dark
   const COLORS_GENDER = ['#3b82f6', '#ec4899', '#8b5cf6', '#f97316']; // Blue/Pink
@@ -280,6 +284,7 @@ export const SurveyDetailPage: React.FC = () => {
   const COLORS_PEKERJAAN = ['#f97316', '#eab308', '#22c55e', '#06b6d4', '#8b5cf6', '#ec4899', '#ef4444', '#14b8a6', '#6366f1', '#f43f5e'];
   const COLORS_SUKU = ['#e11d48', '#f97316', '#eab308', '#10b981', '#06b6d4', '#8b5cf6']; // Vivid
   const COLORS_LAYANAN = ['#0ea5e9', '#06b6d4', '#10b981', '#8b5cf6', '#f97316', '#ec4899', '#ef4444', '#eab308', '#22c55e', '#3b82f6'];
+  const COLORS_LOKASI = ['#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#f97316'];
 
   // Custom tooltip for recharts — readable in dark mode
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -531,7 +536,7 @@ export const SurveyDetailPage: React.FC = () => {
       </div>
 
       <Tabs defaultValue="indicators" className="space-y-4">
-        <TabsList className="bg-muted p-1">
+        <TabsList className="bg-muted p-1 flex-wrap h-auto w-full md:w-auto justify-start">
           <TabsTrigger value="indicators" className="gap-2">
             <LucideBarChart className="w-4 h-4" />
             9 Indikator IKM
@@ -689,8 +694,6 @@ export const SurveyDetailPage: React.FC = () => {
                         outerRadius={65}
                         paddingAngle={4}
                         dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}
-                        labelLine={false}
                       >
                         {demoGenderData.map((entry, index) => {
                           const name = entry.name.toLowerCase();
@@ -872,6 +875,45 @@ export const SurveyDetailPage: React.FC = () => {
                  </ResponsiveContainer>
                </CardContent>
              </Card>
+
+             {/* LOKASI SURVEI */}
+             <Card id="chart-lokasi">
+               <CardHeader className="flex flex-row items-center justify-between">
+                 <CardTitle className="text-sm flex items-center gap-2">
+                   <MapPin className="w-4 h-4 text-purple-500" />
+                   Lokasi Survei
+                 </CardTitle>
+                 <div className="flex gap-1">
+                   <Button variant="ghost" size="icon" title="Download PNG" onClick={() => downloadPNG('chart-lokasi', `lokasi_chart_${config?.id}`)} className="h-6 w-6">
+                     <Camera className="w-3 h-3" />
+                   </Button>
+                   <Button variant="ghost" size="icon" title="Download CSV" onClick={() => exportToCSV(demoLokasiData, `lokasi_data_${config?.id}`)} className="h-6 w-6">
+                     <Download className="w-3 h-3" />
+                   </Button>
+                 </div>
+               </CardHeader>
+               <CardContent className="h-[250px] min-h-[250px]">
+                 <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={demoLokasiData}
+                        cx="50%"
+                        cy="45%"
+                        innerRadius={40}
+                        outerRadius={65}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {demoLokasiData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS_LOKASI[index % COLORS_LOKASI.length]} stroke="transparent" />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend wrapperStyle={{ fontSize: '9px', color: 'currentColor' }} iconSize={8} />
+                    </PieChart>
+                 </ResponsiveContainer>
+               </CardContent>
+             </Card>
           </div>
         </TabsContent>
 
@@ -1014,12 +1056,13 @@ export const SurveyDetailPage: React.FC = () => {
 
                 return (
                   <div className="space-y-4">
-                    <div className="border rounded-xl overflow-hidden">
+                    <div className="border rounded-xl overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead className="w-8">#</TableHead>
                             <TableHead>Nama</TableHead>
+                            <TableHead className="hidden md:table-cell">Lokasi</TableHead>
                             <TableHead className="hidden md:table-cell">Surveyor</TableHead>
                             <TableHead className="hidden lg:table-cell">Gender</TableHead>
                             <TableHead className="hidden lg:table-cell">Pendidikan</TableHead>
@@ -1032,6 +1075,7 @@ export const SurveyDetailPage: React.FC = () => {
                             <TableRow key={r.id} className="hover:bg-muted/30">
                               <TableCell className="text-muted-foreground text-xs">{(respPage - 1) * RESP_PER_PAGE + idx + 1}</TableCell>
                               <TableCell className="font-bold text-foreground">{r.name}</TableCell>
+                              <TableCell className="hidden md:table-cell text-foreground/80">{r.location || "-"}</TableCell>
                               <TableCell className="hidden md:table-cell font-medium text-foreground/80">{r.surveyor || "-"}</TableCell>
                               <TableCell className="hidden lg:table-cell text-foreground/80">{r.gender}</TableCell>
                               <TableCell className="hidden lg:table-cell text-foreground/80">{r.education}</TableCell>

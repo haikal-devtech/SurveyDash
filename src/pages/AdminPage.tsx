@@ -17,7 +17,7 @@ export const AdminPage: React.FC = () => {
   const [surveys, setSurveys] = useState<SurveyConfig[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // New Survey Form State
   const [newSurvey, setNewSurvey] = useState({
     name: "",
@@ -48,14 +48,14 @@ export const AdminPage: React.FC = () => {
 
   useEffect(() => {
     if (role !== "SUPER_ADMIN") return;
-    
+
     const fetchData = async () => {
       try {
         const [surveySnap, userSnap] = await Promise.all([
           getDocs(collection(db, "surveys")),
           getDocs(collection(db, "users"))
         ]);
-        
+
         setSurveys(surveySnap.docs.map(d => ({ id: d.id, ...(d.data() as any) } as SurveyConfig)));
         setUsers(userSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) } as UserProfile)));
       } catch (err) {
@@ -186,164 +186,164 @@ export const AdminPage: React.FC = () => {
         </TabsList>
 
         <TabsContent value="surveys" className="space-y-6">
-           <div className="flex justify-end">
-             <Dialog>
-               <DialogTrigger render={
-                 <Button className="gap-2">
-                   <Plus className="w-4 h-4" />
-                   Daftarkan Survei Baru
-                 </Button>
-               } />
-               <DialogContent>
-                 <DialogHeader>
-                   <DialogTitle>Survei Baru</DialogTitle>
-                   <DialogDescription>Masukkan detail survei dan URL Google Apps Script yang sudah dideploy.</DialogDescription>
-                 </DialogHeader>
-                 <form onSubmit={handleAddSurvey} className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Nama Survei</label>
-                      <Input placeholder="Contoh: SKM Layanan Kebencanaan" required value={newSurvey.name} onChange={e => setNewSurvey({...newSurvey, name: e.target.value})} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Instansi / Unit Kerja</label>
-                      <Input placeholder="BPBD Kota Tangerang Selatan" required value={newSurvey.agency} onChange={e => setNewSurvey({...newSurvey, agency: e.target.value})} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Periode</label>
-                      <Input placeholder="Triwulan I 2026" required value={newSurvey.period} onChange={e => setNewSurvey({...newSurvey, period: e.target.value})} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">URL Script (Web App)</label>
-                      <Input placeholder="https://script.google.com/macros/s/.../exec" required value={newSurvey.scriptUrl} onChange={e => setNewSurvey({...newSurvey, scriptUrl: e.target.value})} />
-                    </div>
-                    <DialogFooter className="pt-4">
-                      <Button type="submit" disabled={isAdding}>
-                        {isAdding ? "Menyimpan..." : "Simpan Survei"}
-                      </Button>
-                    </DialogFooter>
-                 </form>
-               </DialogContent>
-             </Dialog>
-           </div>
+          <div className="flex justify-end">
+            <Dialog>
+              <DialogTrigger render={
+                <Button className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Daftarkan Survei Baru
+                </Button>
+              } />
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Survei Baru</DialogTitle>
+                  <DialogDescription>Masukkan detail survei dan URL Google Apps Script yang sudah dideploy.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAddSurvey} className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Nama Survei</label>
+                    <Input placeholder="Contoh: SKM Layanan Kebencanaan" required value={newSurvey.name} onChange={e => setNewSurvey({ ...newSurvey, name: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Instansi / Unit Kerja</label>
+                    <Input placeholder="BPBD Kota Tangerang Selatan" required value={newSurvey.agency} onChange={e => setNewSurvey({ ...newSurvey, agency: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Periode</label>
+                    <Input placeholder="Triwulan I 2026" required value={newSurvey.period} onChange={e => setNewSurvey({ ...newSurvey, period: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">URL Script (Web App)</label>
+                    <Input placeholder="https://script.google.com/macros/s/.../exec" required value={newSurvey.scriptUrl} onChange={e => setNewSurvey({ ...newSurvey, scriptUrl: e.target.value })} />
+                  </div>
+                  <DialogFooter className="pt-4">
+                    <Button type="submit" disabled={isAdding}>
+                      {isAdding ? "Menyimpan..." : "Simpan Survei"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
 
-           <Card>
-             <Table>
-               <TableHeader>
-                 <TableRow>
-                   <TableHead>Nama Survei</TableHead>
-                   <TableHead>Instansi</TableHead>
-                   <TableHead>Periode</TableHead>
-                   <TableHead>Akses</TableHead>
-                   <TableHead>Status</TableHead>
-                   <TableHead className="text-right">Aksi</TableHead>
-                 </TableRow>
-               </TableHeader>
-               <TableBody>
-                 {surveys.map(s => (
-                   <TableRow key={s.id}>
-                     <TableCell className="font-medium">{s.name}</TableCell>
-                     <TableCell>{s.agency}</TableCell>
-                     <TableCell><Badge variant="outline">{s.period}</Badge></TableCell>
-                      <TableCell>
-                        {s.visibility === "PUBLIC" ? (
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 uppercase text-[10px] font-black">
-                            Publik
-                          </Badge>
-                        ) : s.visibility === "LINK_ONLY" ? (
-                          <Badge variant="outline" className="text-amber-600 border-amber-200 dark:text-amber-400 uppercase text-[10px] font-black">
-                            Link Sahaja
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-muted-foreground uppercase text-[10px] font-black">
-                            Privat
-                          </Badge>
-                        )}
-                      </TableCell>
-                     <TableCell>
-                        <Badge className={s.isActive ? "bg-emerald-500" : "bg-slate-400"}>
-                          {s.isActive ? "Aktif" : "Nonaktif"}
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nama Survei</TableHead>
+                  <TableHead>Instansi</TableHead>
+                  <TableHead>Periode</TableHead>
+                  <TableHead>Akses</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {surveys.map(s => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-medium">{s.name}</TableCell>
+                    <TableCell>{s.agency}</TableCell>
+                    <TableCell><Badge variant="outline">{s.period}</Badge></TableCell>
+                    <TableCell>
+                      {s.visibility === "PUBLIC" ? (
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 uppercase text-[10px] font-black">
+                          Publik
                         </Badge>
-                     </TableCell>
-                     <TableCell className="text-right space-x-2 whitespace-nowrap">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => setEditingSurvey(s)}>
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setSurveyToDelete(s)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                     </TableCell>
-                   </TableRow>
-                 ))}
-                 {surveys.length === 0 && (
-                   <TableRow>
-                     <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic">
-                       Belum ada survei terdaftar.
-                     </TableCell>
-                   </TableRow>
-                 )}
-               </TableBody>
-             </Table>
-           </Card>
+                      ) : s.visibility === "LINK_ONLY" ? (
+                        <Badge variant="outline" className="text-amber-600 border-amber-200 dark:text-amber-400 uppercase text-[10px] font-black">
+                          Link Sahaja
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground uppercase text-[10px] font-black">
+                          Privat
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={s.isActive ? "bg-emerald-500" : "bg-slate-400"}>
+                        {s.isActive ? "Aktif" : "Nonaktif"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right space-x-2 whitespace-nowrap">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => setEditingSurvey(s)}>
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setSurveyToDelete(s)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {surveys.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic">
+                      Belum ada survei terdaftar.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Card>
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">
-           <Card>
-             <CardHeader>
-                <CardTitle>Daftar Pengguna</CardTitle>
-                <CardDescription>Semua pengguna yang pernah masuk ke sistem SurveyDash.</CardDescription>
-             </CardHeader>
-             <Table>
-               <TableHeader>
-                 <TableRow>
-                   <TableHead>Email</TableHead>
-                   <TableHead>Role</TableHead>
-                   <TableHead>Status</TableHead>
-                   <TableHead className="text-right">Aksi</TableHead>
-                 </TableRow>
-               </TableHeader>
-               <TableBody>
-                 {users.map(u => (
-                   <TableRow key={u.id}>
-                     <TableCell className="font-medium flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                          <UserIcon className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                        {u.email}
-                     </TableCell>
-                     <TableCell>
-                        <Badge variant={u.role === "SUPER_ADMIN" ? "default" : u.role === "ADMIN" ? "secondary" : "outline"}>
-                          {u.role === "SUPER_ADMIN" ? <Shield className="w-3 h-3 mr-1" /> : null}
-                          {u.role}
-                        </Badge>
-                     </TableCell>
-                     <TableCell>
-                        {u.isActive ? (
-                          <span className="flex items-center text-emerald-600 text-xs font-bold gap-1">
-                            <Check className="w-3 h-3" /> Aktif
-                          </span>
-                        ) : (
-                          <span className="flex items-center text-destructive text-xs font-bold gap-1">
-                            <X className="w-3 h-3" /> Nonaktif
-                          </span>
-                        )}
-                     </TableCell>
-                     <TableCell className="text-right">
-                        <select
-                          className="text-[10px] font-black h-8 px-2 border rounded-xl bg-card dark:bg-slate-900 border-border shadow-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:opacity-50"
-                          value={u.role}
-                          disabled={!!isUpdatingUser || (u.role === "SUPER_ADMIN" && u.email === "gamingjre7@gmail.com")}
-                          onChange={(e) => handlePromoteUser(u.id, e.target.value as any)}
-                        >
-                          <option value="VIEWER">VIEWER</option>
-                          <option value="ADMIN">ADMIN</option>
-                          <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-                        </select>
-                     </TableCell>
-                   </TableRow>
-                 ))}
-               </TableBody>
-             </Table>
-           </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Daftar Pengguna</CardTitle>
+              <CardDescription>Semua pengguna yang pernah masuk ke sistem SurveyDash.</CardDescription>
+            </CardHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map(u => (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                        <UserIcon className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      {u.email}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={u.role === "SUPER_ADMIN" ? "default" : u.role === "ADMIN" ? "secondary" : "outline"}>
+                        {u.role === "SUPER_ADMIN" ? <Shield className="w-3 h-3 mr-1" /> : null}
+                        {u.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {u.isActive ? (
+                        <span className="flex items-center text-emerald-600 text-xs font-bold gap-1">
+                          <Check className="w-3 h-3" /> Aktif
+                        </span>
+                      ) : (
+                        <span className="flex items-center text-destructive text-xs font-bold gap-1">
+                          <X className="w-3 h-3" /> Nonaktif
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <select
+                        className="text-[10px] font-black h-8 px-2 border rounded-xl bg-card dark:bg-slate-900 border-border shadow-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:opacity-50"
+                        value={u.role}
+                        disabled={!!isUpdatingUser || (u.role === "SUPER_ADMIN" && u.email === "gamingjre7@gmail.com")}
+                        onChange={(e) => handlePromoteUser(u.id, e.target.value as any)}
+                      >
+                        <option value="VIEWER">VIEWER</option>
+                        <option value="ADMIN">ADMIN</option>
+                        <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                      </select>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
         </TabsContent>
       </Tabs>
 
@@ -355,7 +355,7 @@ export const AdminPage: React.FC = () => {
               KONFIRMASI HAPUS
             </DialogTitle>
             <DialogDescription className="text-muted-foreground dark:text-gray-400">
-              Hapus survei <span className="font-black text-foreground dark:text-white underline decoration-destructive/30">"{surveyToDelete?.name}"</span>? 
+              Hapus survei <span className="font-black text-foreground dark:text-white underline decoration-destructive/30">"{surveyToDelete?.name}"</span>?
               Tindakan ini tidak bisa dibatalkan secara manual.
             </DialogDescription>
           </DialogHeader>
@@ -380,19 +380,19 @@ export const AdminPage: React.FC = () => {
             <form onSubmit={handleEditSurvey} className="space-y-4 pt-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Nama Survei</label>
-                <Input placeholder="Contoh: SKM Layanan Kebencanaan" required value={editingSurvey.name} onChange={e => setEditingSurvey({...editingSurvey, name: e.target.value})} />
+                <Input placeholder="Contoh: SKM Layanan Kebencanaan" required value={editingSurvey.name} onChange={e => setEditingSurvey({ ...editingSurvey, name: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Instansi / Unit Kerja</label>
-                <Input placeholder="BPBD Kota Tangerang Selatan" required value={editingSurvey.agency} onChange={e => setEditingSurvey({...editingSurvey, agency: e.target.value})} />
+                <Input placeholder="BPBD Kota Tangerang Selatan" required value={editingSurvey.agency} onChange={e => setEditingSurvey({ ...editingSurvey, agency: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Periode</label>
-                <Input placeholder="Triwulan I 2026" required value={editingSurvey.period} onChange={e => setEditingSurvey({...editingSurvey, period: e.target.value})} />
+                <Input placeholder="Triwulan I 2026" required value={editingSurvey.period} onChange={e => setEditingSurvey({ ...editingSurvey, period: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">URL Script (Web App)</label>
-                <Input placeholder="https://script.google.com/macros/s/.../exec" required value={editingSurvey.scriptUrl} onChange={e => setEditingSurvey({...editingSurvey, scriptUrl: e.target.value})} />
+                <Input placeholder="https://script.google.com/macros/s/.../exec" required value={editingSurvey.scriptUrl} onChange={e => setEditingSurvey({ ...editingSurvey, scriptUrl: e.target.value })} />
               </div>
               <DialogFooter className="pt-4">
                 <Button type="button" variant="outline" onClick={() => setEditingSurvey(null)}>Batal</Button>
