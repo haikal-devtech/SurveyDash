@@ -998,13 +998,13 @@ export const SurveyDetailPage: React.FC = () => {
                                    <DialogTrigger render={
                                      <Button variant="outline" size="sm" className="h-7 text-xs font-bold">Detail Jawaban</Button>
                                    } />
-                                   <DialogContent className="max-w-md">
-                                     <DialogHeader>
-                                       <DialogTitle>Detail Kuesioner: {r.name}</DialogTitle>
-                                       <DialogDescription>Transkrip lengkap jawaban survey.</DialogDescription>
+                                   <DialogContent className="max-w-[380px] p-4">
+                                     <DialogHeader className="space-y-1">
+                                       <DialogTitle className="text-sm font-bold">Detail: {r.name}</DialogTitle>
+                                       <DialogDescription className="text-[10px]">Transkrip lengkap jawaban survey.</DialogDescription>
                                      </DialogHeader>
-                                     <div className="space-y-4 pt-4">
-                                       <div className="grid grid-cols-2 gap-y-1.5 text-xs p-3 bg-primary/5 dark:bg-primary/20 rounded-xl border border-primary/10">
+                                     <div className="space-y-3 pt-2">
+                                       <div className="grid grid-cols-2 gap-y-1 text-[10px] p-2 bg-primary/5 dark:bg-primary/20 rounded-lg border border-primary/10">
                                           <div className="text-muted-foreground">Jenis Kelamin</div>
                                           <div className="font-bold text-right text-foreground">{r.gender}</div>
                                           <div className="text-muted-foreground">Pendidikan Terakhir</div>
@@ -1019,25 +1019,25 @@ export const SurveyDetailPage: React.FC = () => {
                                             })()}
                                           </div>
                                           <div className="text-muted-foreground">Waktu Pengisian</div>
-                                          <div className="font-bold text-right text-[10px] text-foreground">{new Date(r.timestamp).toLocaleString("id-ID")}</div>
+                                          <div className="font-bold text-right text-[9px] text-foreground">{new Date(r.timestamp).toLocaleString("id-ID")}</div>
                                        </div>
-                                       <div className="space-y-2">
-                                          <h4 className="text-[10px] font-black uppercase text-primary tracking-widest px-1">Dokumentasi</h4>
+                                       <div className="space-y-1">
+                                          <h4 className="text-[9px] font-black uppercase text-primary tracking-widest px-1">Dokumentasi</h4>
                                           {r.documentation && r.documentation.startsWith("http") ? (
                                             <a href={r.documentation} target="_blank" rel="noreferrer" className="block w-full hover:opacity-80 transition-opacity">
-                                              <img src={r.documentation} alt="Dokumentasi" className="w-full h-auto max-h-32 object-cover rounded-lg border shadow-sm" />
+                                              <img src={r.documentation} alt="Dokumentasi" className="w-full h-auto max-h-24 object-cover rounded-md border shadow-sm" />
                                             </a>
                                           ) : (
-                                            <div className="p-3 bg-muted/50 rounded-lg text-center text-[10px] text-muted-foreground border border-dashed">Tidak ada foto dokumentasi</div>
+                                            <div className="p-2 bg-muted/50 rounded-md text-center text-[9px] text-muted-foreground border border-dashed">Tidak ada foto</div>
                                           )}
                                        </div>
-                                       <div className="space-y-2">
-                                          <h4 className="text-[10px] font-black uppercase text-primary tracking-widest px-1">Indikator Kepuasan</h4>
+                                       <div className="space-y-1">
+                                          <h4 className="text-[9px] font-black uppercase text-primary tracking-widest px-1">Indikator Kepuasan</h4>
                                           <div className="space-y-0.5">
                                             {Object.entries(r.answers).map(([key, val]) => (
-                                              <div key={key} className="flex justify-between items-center px-2 py-1.5 hover:bg-muted/50 rounded-lg transition-colors">
-                                                <span className="text-xs font-medium text-foreground">{key}</span>
-                                                <Badge className="font-black h-5 w-5 text-[10px] flex items-center justify-center p-0 rounded-full">{val}</Badge>
+                                              <div key={key} className="flex justify-between items-center px-2 py-1 hover:bg-muted/50 rounded-md transition-colors">
+                                                <span className="text-[9px] font-medium text-foreground leading-tight">{key}</span>
+                                                <Badge className="font-black h-4 w-4 text-[8px] flex shrink-0 items-center justify-center p-0 rounded-full">{val}</Badge>
                                               </div>
                                             ))}
                                           </div>
