@@ -30,6 +30,8 @@ export const AdminPage: React.FC = () => {
   const [isUpdatingUser, setIsUpdatingUser] = useState<string | null>(null);
   const [surveyToDelete, setSurveyToDelete] = useState<SurveyConfig | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editingSurvey, setEditingSurvey] = useState<SurveyConfig | null>(null);
+  const [isUpdatingSurvey, setIsUpdatingSurvey] = useState(false);
 
   const handlePromoteUser = async (uId: string, newRole: "SUPER_ADMIN" | "ADMIN" | "VIEWER") => {
     setIsUpdatingUser(uId);
@@ -115,6 +117,30 @@ export const AdminPage: React.FC = () => {
       alert(`Gagal menghapus: ${err.message}. Pastikan Anda memiliki izin Super Admin.`);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleEditSurvey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSurvey) return;
+    setIsUpdatingSurvey(true);
+    try {
+      const docRef = doc(db, "surveys", editingSurvey.id);
+      await updateDoc(docRef, {
+        name: editingSurvey.name,
+        agency: editingSurvey.agency,
+        period: editingSurvey.period,
+        scriptUrl: editingSurvey.scriptUrl,
+        visibility: editingSurvey.visibility
+      });
+      setSurveys(surveys.map(s => s.id === editingSurvey.id ? editingSurvey : s));
+      setEditingSurvey(null);
+      alert("Survei berhasil diperbarui!");
+    } catch (err) {
+      console.error(err);
+      alert("Gagal memperbarui survei.");
+    } finally {
+      setIsUpdatingSurvey(false);
     }
   };
 
@@ -238,7 +264,10 @@ export const AdminPage: React.FC = () => {
                           {s.isActive ? "Aktif" : "Nonaktif"}
                         </Badge>
                      </TableCell>
-                     <TableCell className="text-right space-x-2">
+                     <TableCell className="text-right space-x-2 whitespace-nowrap">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => setEditingSurvey(s)}>
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setSurveyToDelete(s)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -338,6 +367,41 @@ export const AdminPage: React.FC = () => {
               {isDeleting ? "HAPUS..." : "YA, HAPUS"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingSurvey} onOpenChange={(open) => !open && setEditingSurvey(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Survei</DialogTitle>
+            <DialogDescription>Perbarui data survei yang sudah ada.</DialogDescription>
+          </DialogHeader>
+          {editingSurvey && (
+            <form onSubmit={handleEditSurvey} className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nama Survei</label>
+                <Input placeholder="Contoh: SKM Layanan Kebencanaan" required value={editingSurvey.name} onChange={e => setEditingSurvey({...editingSurvey, name: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Instansi / Unit Kerja</label>
+                <Input placeholder="BPBD Kota Tangerang Selatan" required value={editingSurvey.agency} onChange={e => setEditingSurvey({...editingSurvey, agency: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Periode</label>
+                <Input placeholder="Triwulan I 2026" required value={editingSurvey.period} onChange={e => setEditingSurvey({...editingSurvey, period: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">URL Script (Web App)</label>
+                <Input placeholder="https://script.google.com/macros/s/.../exec" required value={editingSurvey.scriptUrl} onChange={e => setEditingSurvey({...editingSurvey, scriptUrl: e.target.value})} />
+              </div>
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={() => setEditingSurvey(null)}>Batal</Button>
+                <Button type="submit" disabled={isUpdatingSurvey}>
+                  {isUpdatingSurvey ? "Menyimpan..." : "Simpan Perubahan"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>
