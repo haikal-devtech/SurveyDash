@@ -24,10 +24,23 @@ import {
 import { 
   ArrowLeft, RefreshCw, Users, TrendingUp, Info, Shield, Share2, Copy, Check,
   LayoutDashboard as LucideBarChart, MessageSquare, BriefcaseBusiness, GraduationCap, PieChart as PieChartIcon, 
-  Download, Bell, Timer, Play, Pause
+  Download, Bell, Timer, Play, Pause, Camera
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import axios from "axios";
+import html2canvas from "html2canvas";
+
+// Helper for PNG Export
+const downloadPNG = async (elementId: string, filename: string) => {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  const canvas = await html2canvas(element, { backgroundColor: '#020617' });
+  const dataURL = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = dataURL;
+  a.download = `${filename}.png`;
+  a.click();
+};
 
 // Helper for CSV Export
 const exportToCSV = (data: any[], filename: string) => {
@@ -648,25 +661,30 @@ export const SurveyDetailPage: React.FC = () => {
         <TabsContent value="demographics" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {/* GENDER */}
-             <Card>
+             <Card id="chart-gender">
                <CardHeader className="flex flex-row items-center justify-between">
                  <CardTitle className="text-sm flex items-center gap-2">
                    <Users className="w-4 h-4 text-slate-700" />
                    Jenis Kelamin
                  </CardTitle>
-                 <Button variant="ghost" size="icon" onClick={() => exportToCSV(demoGenderData, `gender_data_${config?.id}`)} className="h-6 w-6">
-                    <Download className="w-3 h-3" />
-                  </Button>
+                 <div className="flex gap-1">
+                   <Button variant="ghost" size="icon" title="Download PNG" onClick={() => downloadPNG('chart-gender', `gender_chart_${config?.id}`)} className="h-6 w-6">
+                     <Camera className="w-3 h-3" />
+                   </Button>
+                   <Button variant="ghost" size="icon" title="Download CSV" onClick={() => exportToCSV(demoGenderData, `gender_data_${config?.id}`)} className="h-6 w-6">
+                     <Download className="w-3 h-3" />
+                   </Button>
+                 </div>
                </CardHeader>
-               <CardContent className="h-[200px] min-h-[200px]">
+               <CardContent className="h-[250px] min-h-[250px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={demoGenderData}
                         cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={75}
+                        cy="45%"
+                        innerRadius={40}
+                        outerRadius={65}
                         paddingAngle={4}
                         dataKey="value"
                         label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}
@@ -689,17 +707,22 @@ export const SurveyDetailPage: React.FC = () => {
              </Card>
 
              {/* UMUR */}
-             <Card>
+             <Card id="chart-umur">
                <CardHeader className="flex flex-row items-center justify-between">
                  <CardTitle className="text-sm flex items-center gap-2">
                    <Timer className="w-4 h-4 text-emerald-600" />
                    Kelompok Umur
                  </CardTitle>
-                 <Button variant="ghost" size="icon" onClick={() => exportToCSV(demoUmurData, `umur_data_${config?.id}`)} className="h-6 w-6">
-                    <Download className="w-3 h-3" />
-                  </Button>
+                 <div className="flex gap-1">
+                   <Button variant="ghost" size="icon" title="Download PNG" onClick={() => downloadPNG('chart-umur', `umur_chart_${config?.id}`)} className="h-6 w-6">
+                     <Camera className="w-3 h-3" />
+                   </Button>
+                   <Button variant="ghost" size="icon" title="Download CSV" onClick={() => exportToCSV(demoUmurData, `umur_data_${config?.id}`)} className="h-6 w-6">
+                     <Download className="w-3 h-3" />
+                   </Button>
+                 </div>
                </CardHeader>
-               <CardContent className="h-[200px] min-h-[200px]">
+               <CardContent className="h-[250px] min-h-[250px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={demoUmurData} margin={{ left: -20, right: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
@@ -717,17 +740,22 @@ export const SurveyDetailPage: React.FC = () => {
              </Card>
 
              {/* PENDIDIKAN */}
-             <Card>
+             <Card id="chart-edu">
                <CardHeader className="flex flex-row items-center justify-between">
                  <CardTitle className="text-sm flex items-center gap-2">
-                   <GraduationCap className="w-4 h-4 text-indigo-600" />
+                   <GraduationCap className="w-4 h-4 text-indigo-500" />
                    Pendidikan Terakhir
                  </CardTitle>
-                 <Button variant="ghost" size="icon" onClick={() => exportToCSV(demoEduData, `education_data_${config?.id}`)} className="h-6 w-6">
-                    <Download className="w-3 h-3" />
-                  </Button>
+                 <div className="flex gap-1">
+                   <Button variant="ghost" size="icon" title="Download PNG" onClick={() => downloadPNG('chart-edu', `edu_chart_${config?.id}`)} className="h-6 w-6">
+                     <Camera className="w-3 h-3" />
+                   </Button>
+                   <Button variant="ghost" size="icon" title="Download CSV" onClick={() => exportToCSV(demoEduData, `edu_data_${config?.id}`)} className="h-6 w-6">
+                     <Download className="w-3 h-3" />
+                   </Button>
+                 </div>
                </CardHeader>
-               <CardContent className="h-[200px] min-h-[200px]">
+               <CardContent className="h-[250px] min-h-[250px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={demoEduData} layout="vertical" margin={{ left: 10, right: 10 }}>
                       <XAxis type="number" hide />
@@ -740,24 +768,29 @@ export const SurveyDetailPage: React.FC = () => {
              </Card>
 
              {/* PEKERJAAN */}
-             <Card>
+             <Card id="chart-pekerjaan">
                <CardHeader className="flex flex-row items-center justify-between">
                  <CardTitle className="text-sm flex items-center gap-2">
-                   <BriefcaseBusiness className="w-4 h-4 text-amber-500" />
+                   <BriefcaseBusiness className="w-4 h-4 text-orange-500" />
                    Profesi / Pekerjaan
                  </CardTitle>
-                 <Button variant="ghost" size="icon" onClick={() => exportToCSV(demoPekerjaanData, `pekerjaan_data_${config?.id}`)} className="h-6 w-6">
-                    <Download className="w-3 h-3" />
-                  </Button>
+                 <div className="flex gap-1">
+                   <Button variant="ghost" size="icon" title="Download PNG" onClick={() => downloadPNG('chart-pekerjaan', `pekerjaan_chart_${config?.id}`)} className="h-6 w-6">
+                     <Camera className="w-3 h-3" />
+                   </Button>
+                   <Button variant="ghost" size="icon" title="Download CSV" onClick={() => exportToCSV(demoPekerjaanData, `pekerjaan_data_${config?.id}`)} className="h-6 w-6">
+                     <Download className="w-3 h-3" />
+                   </Button>
+                 </div>
                </CardHeader>
-               <CardContent className="h-[200px] min-h-[200px]">
+               <CardContent className="h-[250px] min-h-[250px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={demoPekerjaanData}
                         cx="50%"
-                        cy="40%"
-                        innerRadius={35}
+                        cy="45%"
+                        innerRadius={40}
                         outerRadius={65}
                         paddingAngle={2}
                         dataKey="value"
@@ -774,17 +807,22 @@ export const SurveyDetailPage: React.FC = () => {
              </Card>
 
              {/* SUKU ETNIS */}
-             <Card>
+             <Card id="chart-suku">
                <CardHeader className="flex flex-row items-center justify-between">
                  <CardTitle className="text-sm flex items-center gap-2">
-                   <Users className="w-4 h-4 text-rose-500" />
+                   <Users className="w-4 h-4 text-pink-500" />
                    Suku Etnis
                  </CardTitle>
-                 <Button variant="ghost" size="icon" onClick={() => exportToCSV(demoSukuData, `suku_data_${config?.id}`)} className="h-6 w-6">
-                    <Download className="w-3 h-3" />
-                  </Button>
+                 <div className="flex gap-1">
+                   <Button variant="ghost" size="icon" title="Download PNG" onClick={() => downloadPNG('chart-suku', `suku_chart_${config?.id}`)} className="h-6 w-6">
+                     <Camera className="w-3 h-3" />
+                   </Button>
+                   <Button variant="ghost" size="icon" title="Download CSV" onClick={() => exportToCSV(demoSukuData, `suku_data_${config?.id}`)} className="h-6 w-6">
+                     <Download className="w-3 h-3" />
+                   </Button>
+                 </div>
                </CardHeader>
-               <CardContent className="h-[200px] min-h-[200px]">
+               <CardContent className="h-[250px] min-h-[250px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={demoSukuData} margin={{ left: -20, right: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
@@ -802,17 +840,22 @@ export const SurveyDetailPage: React.FC = () => {
              </Card>
 
              {/* JENIS LAYANAN */}
-             <Card>
+             <Card id="chart-layanan">
                <CardHeader className="flex flex-row items-center justify-between">
                  <CardTitle className="text-sm flex items-center gap-2">
                    <Info className="w-4 h-4 text-sky-500" />
                    Jenis Layanan
                  </CardTitle>
-                 <Button variant="ghost" size="icon" onClick={() => exportToCSV(demoLayananData, `layanan_data_${config?.id}`)} className="h-6 w-6">
-                    <Download className="w-3 h-3" />
-                  </Button>
+                 <div className="flex gap-1">
+                   <Button variant="ghost" size="icon" title="Download PNG" onClick={() => downloadPNG('chart-layanan', `layanan_chart_${config?.id}`)} className="h-6 w-6">
+                     <Camera className="w-3 h-3" />
+                   </Button>
+                   <Button variant="ghost" size="icon" title="Download CSV" onClick={() => exportToCSV(demoLayananData, `layanan_data_${config?.id}`)} className="h-6 w-6">
+                     <Download className="w-3 h-3" />
+                   </Button>
+                 </div>
                </CardHeader>
-               <CardContent className="h-[200px] min-h-[200px]">
+               <CardContent className="h-[250px] min-h-[250px]">
                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={demoLayananData} layout="vertical" margin={{ left: 10, right: 10 }}>
                       <XAxis type="number" hide />
