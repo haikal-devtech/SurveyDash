@@ -509,8 +509,6 @@ export const PresentationPage: React.FC = () => {
           </div>
         )}
 
-      </div>
-      
       {/* Print Mode Global Styles */}
       <style>{`
         @media print {
