@@ -703,6 +703,14 @@ export const PresentationPage: React.FC = () => {
                   const avg: number = ind?.avg ?? 0;
                   const dist = ind?.distribution ?? {};
                   return (
+                  <div className="flex-1 flex flex-col p-12 bg-white">
+                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>{slide.title}</h2>
+                     <div className="grid grid-cols-2 gap-10 flex-1">
+                        <div className="flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-3xl p-10 text-center">
+                           <p className="text-xl font-bold text-slate-500 uppercase tracking-widest mb-4">Nilai Rata-Rata Unsur</p>
+                           <p className="text-[7rem] font-black leading-none mb-6" style={{ color: activeTheme.primaryHex }}>{avg.toFixed(2)}</p>
+                           <p className="text-2xl font-bold text-slate-600">Skala 1 - 4</p>
+                        </div>
                         <div className="flex flex-col bg-white border border-slate-200 rounded-3xl p-10">
                            <p className="text-xl font-bold text-slate-500 uppercase tracking-widest mb-8 text-center">Distribusi Jawaban Responden</p>
                            <div className="flex-1">
