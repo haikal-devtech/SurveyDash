@@ -295,7 +295,7 @@ export const SurveyDetailPage: React.FC = () => {
     );
   };
 
-  const GoogleFormChartCard = ({ id, title, data }: { id: string, title: string, data: any[] }) => {
+  const GoogleFormChartCard = ({ id, title, data, type = "pie" }: { id: string, title: string, data: any[], type?: "pie" | "bar" | "bar-horizontal" }) => {
     const totalResponses = data.reduce((acc, curr) => acc + (curr.value || 0), 0);
     return (
       <Card id={id} className="overflow-hidden border border-border/60 shadow-sm rounded-xl bg-card">
@@ -317,38 +317,64 @@ export const SurveyDetailPage: React.FC = () => {
         <CardContent className="h-[320px] min-h-[320px] flex items-center justify-center p-0 pb-4 relative">
           {data.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="40%"
-                  cy="50%"
-                  innerRadius={0}
-                  outerRadius={110}
-                  dataKey="value"
-                  labelLine={false}
-                  label={renderCustomizedLabel}
-                  stroke="hsl(var(--background))"
-                  strokeWidth={2}
-                >
-                  {data.map((entry, index) => {
-                    let color = COLORS_GOOGLE[index % COLORS_GOOGLE.length];
-                    const name = entry.name.toLowerCase();
-                    if (title === "Jenis Kelamin") {
-                      if (name.includes('laki') || name.includes('pria')) color = COLORS_GOOGLE[0]; 
-                      else if (name.includes('perempuan') || name.includes('wanita')) color = COLORS_GOOGLE[1];
-                    }
-                    return <Cell key={`cell-${index}`} fill={color} />;
-                  })}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend 
-                  layout="vertical" 
-                  verticalAlign="middle" 
-                  align="right" 
-                  iconType="circle" 
-                  wrapperStyle={{ fontSize: '13px', color: 'currentColor', right: '5%', width: '30%' }} 
-                />
-              </PieChart>
+              {type === "pie" ? (
+                <PieChart>
+                  <Pie
+                    data={data}
+                    cx="40%"
+                    cy="50%"
+                    innerRadius={0}
+                    outerRadius={110}
+                    dataKey="value"
+                    labelLine={false}
+                    label={renderCustomizedLabel}
+                    stroke="hsl(var(--background))"
+                    strokeWidth={2}
+                  >
+                    {data.map((entry, index) => {
+                      let color = COLORS_GOOGLE[index % COLORS_GOOGLE.length];
+                      const name = entry.name.toLowerCase();
+                      if (title === "Jenis Kelamin") {
+                        if (name.includes('laki') || name.includes('pria')) color = COLORS_GOOGLE[0]; 
+                        else if (name.includes('perempuan') || name.includes('wanita')) color = COLORS_GOOGLE[1];
+                      }
+                      return <Cell key={`cell-${index}`} fill={color} />;
+                    })}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    layout="vertical" 
+                    verticalAlign="middle" 
+                    align="right" 
+                    iconType="circle" 
+                    wrapperStyle={{ fontSize: '13px', color: 'currentColor', right: '5%', width: '30%' }} 
+                  />
+                </PieChart>
+              ) : type === "bar" ? (
+                <BarChart data={data} margin={{ left: 0, right: 30, top: 20, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                  <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} />
+                  <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} />
+                  <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(128,128,128,0.1)'}} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={60}>
+                    {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS_GOOGLE[index % COLORS_GOOGLE.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              ) : (
+                <BarChart data={data} layout="vertical" margin={{ left: 10, right: 30, top: 20, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.15} />
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="name" type="category" fontSize={11} axisLine={false} tickLine={false} width={110} tick={{ fill: 'currentColor' }} />
+                  <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(128,128,128,0.1)'}} />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
+                    {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS_GOOGLE[index % COLORS_GOOGLE.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              )}
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm italic">
@@ -741,13 +767,13 @@ export const SurveyDetailPage: React.FC = () => {
 
         <TabsContent value="demographics" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
-             <GoogleFormChartCard id="chart-gender" title="Jenis Kelamin" data={demoGenderData} />
-             <GoogleFormChartCard id="chart-umur" title="Kelompok Umur" data={demoUmurData} />
-             <GoogleFormChartCard id="chart-edu" title="Pendidikan Terakhir" data={demoEduData} />
-             <GoogleFormChartCard id="chart-pekerjaan" title="Profesi / Pekerjaan" data={demoPekerjaanData} />
-             <GoogleFormChartCard id="chart-suku" title="Suku Etnis" data={demoSukuData} />
-             <GoogleFormChartCard id="chart-layanan" title="Jenis Layanan" data={demoLayananData} />
-             <GoogleFormChartCard id="chart-lokasi" title="Lokasi Survei" data={demoLokasiData} />
+             <GoogleFormChartCard id="chart-gender" title="Jenis Kelamin" data={demoGenderData} type="pie" />
+             <GoogleFormChartCard id="chart-umur" title="Kelompok Umur" data={demoUmurData} type="bar" />
+             <GoogleFormChartCard id="chart-edu" title="Pendidikan Terakhir" data={demoEduData} type="pie" />
+             <GoogleFormChartCard id="chart-pekerjaan" title="Profesi / Pekerjaan" data={demoPekerjaanData} type="bar-horizontal" />
+             <GoogleFormChartCard id="chart-suku" title="Suku Etnis" data={demoSukuData} type="pie" />
+             <GoogleFormChartCard id="chart-layanan" title="Jenis Layanan" data={demoLayananData} type="bar-horizontal" />
+             <GoogleFormChartCard id="chart-lokasi" title="Lokasi Survei" data={demoLokasiData} type="bar" />
           </div>
         </TabsContent>
 
