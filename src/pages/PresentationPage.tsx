@@ -82,9 +82,51 @@ export const PresentationPage: React.FC = () => {
         }
         
         if (cfg) {
+          const agency = cfg.agency || 'Instansi';
+          const period = cfg.period || '';
+          const surveyName = cfg.name || 'Survei Kepuasan Masyarakat';
           setPresentationData(prev => ({
             ...prev,
-            subtitle: `${cfg.agency}\nPeriode: ${cfg.period}`
+            subtitle: `${agency}\nPeriode: ${period}`,
+            kataPengantar: prev.kataPengantar
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
+            latarBelakang: prev.latarBelakang
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
+            maksudTujuan: prev.maksudTujuan
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
+            ruangLingkup: prev.ruangLingkup
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
+            metodologi: prev.metodologi
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
+            lokasiWaktu: prev.lokasiWaktu
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
+            kesimpulan: prev.kesimpulan
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
+            rekomendasi: prev.rekomendasi
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
+            landasanHukum: prev.landasanHukum
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
+            profilInstansi: prev.profilInstansi
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
+            tupoksi: prev.tupoksi
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
+            populasiSampel: prev.populasiSampel
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
+            daftarPustaka: prev.daftarPustaka
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
           }));
         }
       } catch (err) {
@@ -401,18 +443,42 @@ export const PresentationPage: React.FC = () => {
                   </div>
                 )}
 
-                {slide.type === "toc" && (
-                  <div className="flex-1 flex flex-col p-12">
-                     <h2 className="text-4xl font-black text-slate-900 uppercase border-l-8 border-primary pl-6 mb-12">Daftar Isi</h2>
-                     <div className="grid grid-cols-2 gap-x-16 gap-y-4 text-lg font-medium text-slate-700 pl-6">
-                        {slides.filter(s => s.type === "chapter" || s.type === "text" || s.id === "bab4-ikm").map((s, idx) => (
-                           <div key={idx} className={`flex justify-between border-b border-slate-200 pb-2 ${s.type === 'chapter' ? 'col-span-2 font-bold text-xl mt-4 border-slate-400' : 'pl-4'}`}>
-                             <span>{s.title?.replace('\n', ' ')}</span>
-                           </div>
-                        ))}
+                {slide.type === "toc" && (() => {
+                  // Only show chapter headings + key content slides (not indicators to keep TOC compact)
+                  const tocItems = slides.filter(s =>
+                    s.type === 'chapter' ||
+                    (s.type === 'text' && !s.id.startsWith('ind-')) ||
+                    s.type === 'demo1' || s.type === 'demo2' ||
+                    s.id === 'bab4-ikm' || s.id === 'bab4-tabel' || s.id === 'bab4-kategori' ||
+                    s.id === 'bab5-all'
+                  );
+                  return (
+                  <div className="flex-1 flex flex-col pt-6 px-10 pb-2 overflow-hidden">
+                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 border-primary pl-5 mb-5 flex-shrink-0">Daftar Isi</h2>
+                     <div className="flex-1 overflow-auto">
+                       <div className="grid grid-cols-2 gap-x-10 gap-y-1 text-sm font-medium text-slate-700">
+                         {tocItems.map((s, idx) => {
+                           const isChapter = s.type === 'chapter';
+                           return (
+                             <div
+                               key={idx}
+                               className={`flex justify-between items-end pb-1 ${
+                                 isChapter
+                                   ? 'col-span-2 font-black text-base text-slate-900 mt-3 border-b-2 border-slate-400'
+                                   : 'pl-3 border-b border-slate-200'
+                               }`}
+                             >
+                               <span className={isChapter ? 'text-primary' : 'text-slate-600 hover:text-primary'}>
+                                 {s.title?.replace('\n', ' ')}
+                               </span>
+                             </div>
+                           );
+                         })}
+                       </div>
                      </div>
                   </div>
-                )}
+                  );
+                })()}
 
                 {slide.type === "chapter" && (
                   <div className="flex-1 flex flex-col items-center justify-center p-12 text-center" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)' }}>
