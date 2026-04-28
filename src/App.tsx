@@ -14,7 +14,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean 
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Memuat...</div>;
   if (!user) return <Navigate to="/login" />;
-  if (adminOnly && role !== "SUPER_ADMIN") return <Navigate to="/dashboard" />;
+  if (adminOnly && role !== "SUPER_ADMIN" && role !== "ADMIN") return <Navigate to="/dashboard" />;
 
   return <Layout>{children}</Layout>;
 };

@@ -47,7 +47,7 @@ export const AdminPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (role !== "SUPER_ADMIN") return;
+    if (role !== "SUPER_ADMIN" && role !== "ADMIN") return;
 
     const fetchData = async () => {
       try {
@@ -144,8 +144,8 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  if (role !== "SUPER_ADMIN") {
-    return <div className="p-20 text-center">Akses ditolak. Hanya Super Admin.</div>;
+  if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
+    return <div className="p-20 text-center">Akses ditolak. Hanya Admin.</div>;
   }
 
   return (
@@ -154,7 +154,7 @@ export const AdminPage: React.FC = () => {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest mb-1">
             <Shield className="w-3 h-3" />
-            Super Admin Access
+            Admin Console
           </div>
           <h2 className="text-3xl font-bold tracking-tight text-foreground">Management Console</h2>
           <p className="text-muted-foreground">Kelola survei, pengguna, dan hak akses dashboard.</p>
@@ -331,7 +331,7 @@ export const AdminPage: React.FC = () => {
                       <select
                         className="text-[10px] font-black h-8 px-2 border rounded-xl bg-card dark:bg-slate-900 border-border shadow-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:opacity-50"
                         value={u.role}
-                        disabled={!!isUpdatingUser || (u.role === "SUPER_ADMIN" && u.email === "gamingjre7@gmail.com")}
+                        disabled={role !== "SUPER_ADMIN" || !!isUpdatingUser || (u.role === "SUPER_ADMIN" && u.email === "gamingjre7@gmail.com")}
                         onChange={(e) => handlePromoteUser(u.id, e.target.value as any)}
                       >
                         <option value="VIEWER">VIEWER</option>
