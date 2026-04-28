@@ -24,7 +24,7 @@ import {
 import { 
   ArrowLeft, RefreshCw, Users, TrendingUp, Info, Shield, Share2, Copy, Check,
   LayoutDashboard as LucideBarChart, MessageSquare, BriefcaseBusiness, GraduationCap, PieChart as PieChartIcon, 
-  Download, Bell, Timer, Play, Pause, Camera, MapPin
+  Download, Bell, Timer, Play, Pause, Camera, MapPin, MonitorPlay
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import axios from "axios";
@@ -491,6 +491,18 @@ export const SurveyDetailPage: React.FC = () => {
                 </div>
               </DialogContent>
             </Dialog>
+          )}
+
+          {/* Only Admin / Super Admin can see presentation mode */}
+          {(role === "SUPER_ADMIN" || role === "ADMIN") && (
+            <Link to={`/survey/${id}/presentation`}>
+              <Button 
+                className="gap-2 font-bold text-[10px] md:text-xs h-9 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white transition-all shadow-lg shadow-purple-600/20"
+              >
+                <MonitorPlay className="w-4 h-4" />
+                Mode Presentasi
+              </Button>
+            </Link>
           )}
 
           <Button 

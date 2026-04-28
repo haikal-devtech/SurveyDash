@@ -7,6 +7,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { SurveyDetailPage } from "@/pages/SurveyDetailPage";
 import { AdminPage } from "@/pages/AdminPage";
+import { PresentationPage } from "@/pages/PresentationPage";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({ children, adminOnly }) => {
   const { user, role, loading } = useAuth();
@@ -36,6 +37,10 @@ export default function App() {
             <ProtectedRoute>
               <SurveyDetailPage />
             </ProtectedRoute>
+          } />
+
+          <Route path="/survey/:id/presentation" element={
+            <PresentationPage />
           } />
 
           <Route path="/admin" element={
