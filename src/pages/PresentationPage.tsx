@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { SurveyConfig, SurveyData } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import axios from "axios";
-import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Download, Edit3, Save } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Download, Edit3, Save, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +27,10 @@ export const PresentationPage: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedFont, setSelectedFont] = useState('Inter');
+  const [showFontMenu, setShowFontMenu] = useState(false);
+
+  const totalSlidesRef = useRef(0); // kept for legacy, primary nav uses useMemo below
   
   // Editable Comprehensive Content State
   const [presentationData, setPresentationData] = useState({
@@ -41,7 +45,13 @@ export const PresentationPage: React.FC = () => {
     metodologi: "1. Pendekatan dan Metode:\nPenelitian ini menggunakan pendekatan kuantitatif dengan metode deskriptif. Pengumpulan data dilakukan melalui kuesioner mandiri yang diisi oleh responden.\n\n2. Populasi dan Sampel:\nPopulasi adalah seluruh masyarakat yang menerima layanan pada periode survei. Penarikan sampel menggunakan metode accidental sampling, di mana responden yang kebetulan ditemui atau sedang menerima layanan diminta untuk mengisi kuesioner.\n\n3. Teknik Pengumpulan Data:\nPengumpulan data dilakukan secara digital (E-Survey) yang terintegrasi secara real-time ke dalam sistem database.",
     lokasiWaktu: "Lokasi Survei:\nSurvei dilakukan di lingkungan unit pelayanan instansi kami secara langsung maupun daring (online).\n\nWaktu Pelaksanaan:\nPengumpulan data dilakukan selama periode [Periode] dengan melibatkan masyarakat yang secara langsung menerima layanan.",
     kesimpulan: "Berdasarkan hasil pengolahan data Survei Kepuasan Masyarakat, dapat disimpulkan bahwa:\n1. Kinerja pelayanan instansi secara umum berada pada kategori MUTU BAIK.\n2. Terdapat beberapa unsur pelayanan yang mendapatkan apresiasi tinggi dari masyarakat, menunjukkan komitmen kuat dalam menjaga kualitas layanan.\n3. Masih terdapat beberapa aspek yang perlu ditingkatkan, khususnya terkait dengan kecepatan respons dan fasilitas penunjang.",
-    rekomendasi: "Sebagai tindak lanjut dari hasil survei ini, direkomendasikan:\n1. Mempertahankan dan meningkatkan standar operasional prosedur yang sudah berjalan baik.\n2. Melakukan evaluasi berkala terhadap unsur layanan dengan nilai terendah.\n3. Mengadakan pelatihan capacity building bagi petugas layanan garda terdepan (frontliner).\n4. Meningkatkan kualitas sarana dan prasarana ruang tunggu dan fasilitas difabel."
+    rekomendasi: "Sebagai tindak lanjut dari hasil survei ini, direkomendasikan:\n1. Mempertahankan dan meningkatkan standar operasional prosedur yang sudah berjalan baik.\n2. Melakukan evaluasi berkala terhadap unsur layanan dengan nilai terendah.\n3. Mengadakan pelatihan capacity building bagi petugas layanan garda terdepan (frontliner).\n4. Meningkatkan kualitas sarana dan prasarana ruang tunggu dan fasilitas difabel.",
+    landasanHukum: "Pelaksanaan SKM ini berlandaskan:\n1. UU No. 25 Tahun 2009 tentang Pelayanan Publik.\n2. PP No. 96 Tahun 2012 tentang Pelaksanaan UU Pelayanan Publik.\n3. Permenpan RB No. 14 Tahun 2017 tentang Pedoman SKM Unit Penyelenggara Pelayanan Publik.\n4. Perda setempat tentang Penyelenggaraan Pelayanan Publik.",
+    profilInstansi: "[Nama Instansi] merupakan perangkat daerah yang menyelenggarakan sub urusan penanggulangan bencana.\n\nTugas pokok instansi adalah membantu Kepala Daerah dalam menyelenggarakan urusan pemerintahan di bidang kebencanaan, perlindungan masyarakat, dan pelayanan publik terkait kebencanaan.\n\nInstansi berkomitmen untuk terus meningkatkan kualitas pelayanan kepada masyarakat secara profesional, transparan, dan akuntabel.",
+    tupoksi: "TUGAS POKOK:\nMelaksanakan urusan pemerintahan daerah berdasarkan asas otonomi di bidang penanggulangan bencana dan perlindungan masyarakat.\n\nFUNGSI:\n1. Penyusunan kebijakan teknis di bidang kebencanaan.\n2. Pelaksanaan tugas dukungan teknis pencegahan dan penanggulangan bencana.\n3. Pemantauan, evaluasi, dan pelaporan hasil pelaksanaan tugas.\n4. Pembinaan teknis penyelenggaraan fungsi penunjang urusan pemerintahan daerah.",
+    populasiSampel: "POPULASI:\nSeluruh masyarakat yang menerima layanan pada unit pelayanan instansi selama periode survei.\n\nSAMPEL:\nPengambilan sampel menggunakan metode Accidental Sampling dengan formula Slovin. Jumlah sampel minimal ditetapkan sesuai Permenpan RB No. 14 Tahun 2017, yakni minimal 25 responden per jenis layanan.\n\nKRITERIA INKLUSI:\n- Warga Negara Indonesia berusia minimal 17 tahun.\n- Telah mendapatkan pelayanan pada periode survei.",
+    teknikAnalisis: "PENGOLAHAN DATA:\nData yang terkumpul diolah menggunakan sistem komputerisasi. Nilai Indeks Kepuasan Masyarakat (IKM) dihitung berdasarkan rata-rata tertimbang dari 9 unsur pelayanan.\n\nRUMUS IKM:\nNilai IKM = (Total Nilai Persepsi Per Unsur / Total Unsur yang Terisi) × Nilai Penimbang\nNilai Penimbang = 1/9 = 0,111\n\nKATEGORI MUTU:\n• A (Sangat Baik) : 88,31 – 100,00\n• B (Baik)        : 76,61 – 88,30\n• C (Kurang Baik) : 65,00 – 76,60\n• D (Tidak Baik)  : 25,00 – 64,99",
+    daftarPustaka: "1. Undang-Undang Nomor 25 Tahun 2009 tentang Pelayanan Publik.\n2. Peraturan Pemerintah Nomor 96 Tahun 2012.\n3. Permenpan RB Nomor 14 Tahun 2017 tentang Pedoman Penyusunan Survei Kepuasan Masyarakat.\n4. Sinambela, L.P. (2016). Reformasi Pelayanan Publik. Jakarta: Bumi Aksara.\n5. Tjiptono, F. (2014). Pemasaran Jasa. Yogyakarta: Penerbit Andi."
   });
 
   const presentationRef = useRef<HTMLDivElement>(null);
@@ -106,20 +116,73 @@ export const PresentationPage: React.FC = () => {
     window.print();
   };
 
-  const nextSlide = () => setCurrentSlide(prev => Math.min(prev + 1, currentTotalSlides - 1));
-  const prevSlide = () => setCurrentSlide(prev => Math.max(prev - 1, 0));
+  const FONTS = [
+    { name: 'Inter',            label: 'Inter — Modern' },
+    { name: 'Playfair Display', label: 'Playfair — Elegan' },
+    { name: 'Roboto Slab',      label: 'Roboto Slab — Formal' },
+    { name: 'Montserrat',       label: 'Montserrat — Bold' },
+    { name: 'Poppins',          label: 'Poppins — Bersih' },
+    { name: 'Lora',             label: 'Lora — Klasik' },
+  ];
 
+  // ── Slides (useMemo — must be before any early return) ───────────────────────
+  const slides = useMemo(() => {
+    if (!data) return [] as any[];
+    const s: any[] = [
+      { id: "cover",            type: "cover",          title: "Cover" },
+      { id: "kata-pengantar",   type: "text",           title: "Kata Pengantar",              field: "kataPengantar" },
+      { id: "daftar-isi",       type: "toc",            title: "Daftar Isi" },
+      { id: "bab1-title",       type: "chapter",        title: "BAB I\nPendahuluan" },
+      { id: "bab1-latar",       type: "text",           title: "Latar Belakang",              field: "latarBelakang" },
+      { id: "bab1-hukum",       type: "text",           title: "Landasan Hukum",              field: "landasanHukum" },
+      { id: "bab1-tujuan",      type: "text",           title: "Maksud dan Tujuan",           field: "maksudTujuan" },
+      { id: "bab1-ruang",       type: "text",           title: "Ruang Lingkup",               field: "ruangLingkup" },
+      { id: "bab2-title",       type: "chapter",        title: "BAB II\nGambaran Umum" },
+      { id: "bab2-profil",      type: "text",           title: "Profil Instansi",             field: "profilInstansi" },
+      { id: "bab2-visi",        type: "text",           title: "Visi dan Misi",               field: "visiMisi" },
+      { id: "bab2-tupoksi",     type: "text",           title: "Tugas Pokok dan Fungsi",      field: "tupoksi" },
+      { id: "bab2-maklumat",    type: "text",           title: "Maklumat Pelayanan",          field: "maklumat" },
+      { id: "bab3-title",       type: "chapter",        title: "BAB III\nMetodologi Penelitian" },
+      { id: "bab3-metod",       type: "text",           title: "Metode Penelitian",           field: "metodologi" },
+      { id: "bab3-populasi",    type: "text",           title: "Populasi dan Sampel",         field: "populasiSampel" },
+      { id: "bab3-lokasi",      type: "text",           title: "Lokasi dan Waktu Survei",     field: "lokasiWaktu" },
+      { id: "bab3-analisis",    type: "text",           title: "Teknik Analisis Data",        field: "teknikAnalisis" },
+      { id: "bab4-title",       type: "chapter",        title: "BAB IV\nHasil Survei" },
+      { id: "bab4-demo1",       type: "demo1",          title: "Profil Responden (1/2)" },
+      { id: "bab4-demo2",       type: "demo2",          title: "Profil Responden (2/2)" },
+      { id: "bab4-ikm",         type: "ikm",            title: "Nilai IKM" },
+      { id: "bab4-tabel",       type: "tabel-unsur",    title: "Tabel Nilai Per Unsur" },
+      { id: "bab4-kategori",    type: "kategori-mutu",  title: "Kategori Mutu Pelayanan" },
+      { id: "bab5-title",       type: "chapter",        title: "BAB V\nAnalisis Per Indikator" },
+      { id: "bab5-all",         type: "all-indicators", title: "Rekapitulasi 9 Indikator" },
+    ];
+    data.indicators.forEach((ind, i) => {
+      s.push({ id: `ind-${i}`, type: "indicator", title: `Analisis: ${ind.label}`, indicatorData: ind });
+    });
+    s.push({ id: "bab6-title",       type: "chapter", title: "BAB VI\nKesimpulan & Rekomendasi" });
+    s.push({ id: "bab6-kesimpulan",  type: "text",    title: "Kesimpulan",            field: "kesimpulan" });
+    s.push({ id: "bab6-rekomendasi", type: "text",    title: "Rencana Tindak Lanjut", field: "rekomendasi" });
+    s.push({ id: "daftar-pustaka",   type: "text",    title: "Daftar Pustaka",        field: "daftarPustaka" });
+    s.push({ id: "penutup",          type: "closing", title: "Penutup" });
+    return s;
+  }, [data]);
+
+  const totalSlides = slides.length;
+  totalSlidesRef.current = totalSlides;
+
+  // ── Navigation callbacks (stable refs via totalSlidesRef) ────────────────────
+  const nextSlide = useCallback(() => setCurrentSlide(prev => Math.min(prev + 1, totalSlidesRef.current - 1)), []);
+  const prevSlide = useCallback(() => setCurrentSlide(prev => Math.max(prev - 1, 0)), []);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === "PageDown") nextSlide();
-      if (e.key === "ArrowLeft" || e.key === "PageUp") prevSlide();
+      if (e.key === "ArrowLeft"  || e.key === "PageUp")   prevSlide();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentSlide]);
-
-  // Placeholder total before slides array is built
-  const currentTotalSlides = 30; // approximate upper bound
+  }, [nextSlide, prevSlide]);
 
   if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
     return <div className="p-10 text-center text-xl font-bold">Akses Ditolak. Hanya untuk Admin.</div>;
@@ -135,41 +198,6 @@ export const PresentationPage: React.FC = () => {
       </div>
     );
   }
-
-  // Define Slide Structure mapping
-  const slides: any[] = [
-    { id: "cover", type: "cover", title: "Cover" },
-    { id: "kata-pengantar", type: "text", title: "Kata Pengantar", field: "kataPengantar" },
-    { id: "daftar-isi", type: "toc", title: "Daftar Isi" },
-    { id: "bab1-title", type: "chapter", title: "BAB I · Pendahuluan" },
-    { id: "bab1-latar", type: "text", title: "Latar Belakang", field: "latarBelakang" },
-    { id: "bab1-tujuan", type: "text", title: "Maksud dan Tujuan", field: "maksudTujuan" },
-    { id: "bab1-ruang", type: "text", title: "Ruang Lingkup", field: "ruangLingkup" },
-    { id: "bab2-title", type: "chapter", title: "BAB II · Gambaran Umum" },
-    { id: "bab2-visi", type: "text", title: "Visi dan Misi", field: "visiMisi" },
-    { id: "bab2-maklumat", type: "text", title: "Maklumat Pelayanan", field: "maklumat" },
-    { id: "bab3-title", type: "chapter", title: "BAB III · Metodologi" },
-    { id: "bab3-metod", type: "text", title: "Metodologi", field: "metodologi" },
-    { id: "bab3-lokasi", type: "text", title: "Lokasi & Waktu", field: "lokasiWaktu" },
-    { id: "bab4-title", type: "chapter", title: "BAB IV · Hasil Survei" },
-    { id: "bab4-demo1", type: "demo1", title: "Profil Responden (1/2)" },
-    { id: "bab4-demo2", type: "demo2", title: "Profil Responden (2/2)" },
-    { id: "bab4-ikm", type: "ikm", title: "Nilai IKM" },
-    { id: "bab5-title", type: "chapter", title: "BAB V · Analisis Indikator" },
-    { id: "bab5-all-indicators", type: "all-indicators", title: "Rekapitulasi 9 Indikator" },
-  ];
-
-  // Append a slide for each indicator
-  data.indicators.forEach((ind, i) => {
-    slides.push({ id: `ind-${i}`, type: "indicator", title: `Analisis Unsur: ${ind.label}`, indicatorData: ind });
-  });
-
-  slides.push({ id: "bab6-title", type: "chapter", title: "BAB VI · Kesimpulan & Rekomendasi" });
-  slides.push({ id: "bab6-kesimpulan", type: "text", title: "Kesimpulan", field: "kesimpulan" });
-  slides.push({ id: "bab6-rekomendasi", type: "text", title: "Rencana Tindak Lanjut", field: "rekomendasi" });
-  slides.push({ id: "penutup", type: "closing", title: "Penutup" });
-
-  const totalSlides = slides.length;
 
   const renderPieChart = (chartData: any[], cx="50%") => (
     <ResponsiveContainer width="100%" height="100%">
@@ -203,7 +231,7 @@ export const PresentationPage: React.FC = () => {
     <div className="min-h-screen bg-slate-950 flex flex-col print:bg-white print:block">
       
       {/* Top Bar */}
-      <div className="flex items-center justify-between p-3 bg-slate-900 border-b border-white/10 print:hidden text-white">
+      <div className="flex items-center justify-between p-3 print:hidden" style={{ background: '#0f172a', borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' }}>
         <div className="flex items-center gap-3">
           <Link to={`/survey/${id}`}>
             <Button variant="ghost" size="icon" className="hover:bg-white/10 text-white rounded-full">
@@ -214,6 +242,23 @@ export const PresentationPage: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Font Selector */}
+          <div className="relative">
+            <Button variant="outline" className="gap-2 text-xs font-bold border-white/20 hover:bg-white/10 text-white" onClick={() => setShowFontMenu(v => !v)}>
+              <Type className="w-4 h-4" /> {selectedFont.split(' ')[0]}
+            </Button>
+            {showFontMenu && (
+              <div className="absolute right-0 top-full mt-1 w-52 bg-slate-800 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+                {FONTS.map(f => (
+                  <button key={f.name} onClick={() => { setSelectedFont(f.name); setShowFontMenu(false); }}
+                    className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors ${selectedFont === f.name ? 'bg-primary text-white' : 'text-slate-200 hover:bg-white/10'}`}
+                    style={{ fontFamily: `'${f.name}', sans-serif` }}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <Button 
             variant={isEditing ? "default" : "outline"} 
             className={`gap-2 text-xs font-bold border-white/20 hover:bg-white/10 text-white ${isEditing ? 'bg-primary text-white border-none hover:bg-primary/90' : ''}`}
@@ -265,7 +310,7 @@ export const PresentationPage: React.FC = () => {
           className={`relative bg-white text-slate-900 overflow-hidden print:overflow-visible print:shadow-none print:w-[297mm] print:border-none
             ${isFullscreen ? 'w-screen h-screen max-w-none max-h-none' : 'w-full max-w-5xl aspect-video shadow-2xl rounded-xl border border-border'}
           `}
-          style={{ pageBreakAfter: 'always' }}
+          style={{ fontFamily: `'${selectedFont}', sans-serif`, pageBreakAfter: 'always' }}
         >
           {slides.map((slide, index) => {
             const isVisible = currentSlide === index;
@@ -319,10 +364,12 @@ export const PresentationPage: React.FC = () => {
                 )}
 
                 {slide.type === "chapter" && (
-                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-primary text-white">
-                     <h1 className="text-6xl font-black uppercase tracking-widest leading-snug whitespace-pre-wrap">
+                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)' }}>
+                     <div className="mb-6 text-blue-300 text-sm font-bold uppercase tracking-[0.3em]">Survei Kepuasan Masyarakat</div>
+                     <h1 className="text-5xl font-black uppercase tracking-widest leading-snug whitespace-pre-wrap" style={{ color: '#ffffff', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
                        {slide.title}
                      </h1>
+                     <div className="mt-8 w-24 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.4)' }} />
                   </div>
                 )}
 
@@ -427,13 +474,76 @@ export const PresentationPage: React.FC = () => {
                   </div>
                 )}
 
-                {slide.type === "indicator" && (
+                {slide.type === "kategori-mutu" && (
+                  <div className="flex-1 flex flex-col p-10 bg-white">
+                    <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 border-primary pl-5 mb-8">Kategori Mutu Pelayanan</h2>
+                    <div className="grid grid-cols-2 gap-6 flex-1">
+                      {[
+                        { label: 'A – Sangat Baik', range: '88,31 – 100,00', ikm: '3,532 – 4,00', color: '#059669', bg: '#d1fae5' },
+                        { label: 'B – Baik',         range: '76,61 – 88,30',  ikm: '3,064 – 3,532', color: '#1d4ed8', bg: '#dbeafe' },
+                        { label: 'C – Kurang Baik',  range: '65,00 – 76,60',  ikm: '2,60 – 3,064',  color: '#d97706', bg: '#fef3c7' },
+                        { label: 'D – Tidak Baik',   range: '25,00 – 64,99',  ikm: '1,00 – 2,60',   color: '#dc2626', bg: '#fee2e2' },
+                      ].map(k => (
+                        <div key={k.label} className="rounded-2xl p-8 flex flex-col gap-3 border-2" style={{ background: k.bg, borderColor: k.color }}>
+                          <p className="text-2xl font-black" style={{ color: k.color }}>{k.label}</p>
+                          <p className="text-base font-bold text-slate-700">Nilai Interval: <span className="font-black text-slate-900">{k.range}</span></p>
+                          <p className="text-base font-bold text-slate-700">Nilai IKM: <span className="font-black text-slate-900">{k.ikm}</span></p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-6 p-5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-600 font-medium">
+                      ⓘ Berdasarkan Permenpan RB No. 14 Tahun 2017 — Nilai IKM Unit Pelayanan dihitung dari rata-rata tertimbang 9 unsur dengan bobot masing-masing 0,111.
+                    </div>
+                  </div>
+                )}
+
+                {slide.type === "tabel-unsur" && (
+                  <div className="flex-1 flex flex-col p-10 bg-white">
+                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 border-blue-700 pl-5 mb-6">Tabel Nilai Per Unsur Pelayanan</h2>
+                     <div className="flex-1 overflow-auto">
+                       <table className="w-full text-sm border-collapse">
+                         <thead>
+                           <tr style={{ background: '#1e40af', color: '#fff' }}>
+                             <th className="text-left p-3 font-bold">No</th>
+                             <th className="text-left p-3 font-bold">Unsur Pelayanan</th>
+                             <th className="text-center p-3 font-bold">Nilai Rata-Rata</th>
+                             <th className="text-center p-3 font-bold">Mutu</th>
+                             <th className="text-center p-3 font-bold">Kinerja</th>
+                           </tr>
+                         </thead>
+                         <tbody>
+                           {data.indicators.map((ind: any, i: number) => {
+                             const mutu = ind.avg >= 3.532 ? 'A' : ind.avg >= 3.064 ? 'B' : ind.avg >= 2.60 ? 'C' : 'D';
+                             const kat = ind.avg >= 3.532 ? 'Sangat Baik' : ind.avg >= 3.064 ? 'Baik' : ind.avg >= 2.60 ? 'Kurang Baik' : 'Tidak Baik';
+                             const col = ind.avg >= 3.532 ? '#059669' : ind.avg >= 3.064 ? '#1e40af' : ind.avg >= 2.60 ? '#d97706' : '#dc2626';
+                             return (
+                               <tr key={i} className={i % 2 === 0 ? 'bg-slate-50' : 'bg-white'}>
+                                 <td className="p-3 text-center font-bold text-slate-600">{i + 1}</td>
+                                 <td className="p-3 text-slate-800 font-medium">{ind.label}</td>
+                                 <td className="p-3 text-center font-black text-slate-900">{ind.avg.toFixed(3)}</td>
+                                 <td className="p-3 text-center"><span className="font-black text-white px-3 py-1 rounded-full text-xs" style={{ background: col }}>{mutu}</span></td>
+                                 <td className="p-3 text-center font-semibold" style={{ color: col }}>{kat}</td>
+                               </tr>
+                             );
+                           })}
+                         </tbody>
+                       </table>
+                     </div>
+                  </div>
+                )}
+
+
+                {slide.type === "indicator" && (() => {
+                  const ind = slide.indicatorData as any;
+                  const avg: number = ind?.avg ?? 0;
+                  const dist = ind?.distribution ?? {};
+                  return (
                   <div className="flex-1 flex flex-col p-12 bg-white">
                      <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 border-primary pl-6 mb-8">{slide.title}</h2>
                      <div className="grid grid-cols-2 gap-10 flex-1">
                         <div className="flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-3xl p-10 text-center">
                            <p className="text-xl font-bold text-slate-500 uppercase tracking-widest mb-4">Nilai Rata-Rata Unsur</p>
-                           <p className="text-[7rem] font-black text-slate-900 leading-none mb-6">{(slide.indicatorData as any).avg.toFixed(2)}</p>
+                           <p className="text-[7rem] font-black text-slate-900 leading-none mb-6">{avg.toFixed(2)}</p>
                            <p className="text-2xl font-bold text-slate-600">Skala 1 - 4</p>
                         </div>
                         <div className="flex flex-col bg-white border border-slate-200 rounded-3xl p-10">
@@ -441,20 +551,18 @@ export const PresentationPage: React.FC = () => {
                            <div className="flex-1">
                              <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={[
-                                  { name: 'Opsi 1 (Buruk)', value: (slide.indicatorData as any).distribution?.['1'] || 0 },
-                                  { name: 'Opsi 2 (Cukup)', value: (slide.indicatorData as any).distribution?.['2'] || 0 },
-                                  { name: 'Opsi 3 (Baik)', value: (slide.indicatorData as any).distribution?.['3'] || 0 },
-                                  { name: 'Opsi 4 (Sangat Baik)', value: (slide.indicatorData as any).distribution?.['4'] || 0 }
+                                  { name: 'Buruk', value: Number(dist['1'] ?? 0) },
+                                  { name: 'Cukup', value: Number(dist['2'] ?? 0) },
+                                  { name: 'Baik',  value: Number(dist['3'] ?? 0) },
+                                  { name: 'Sangat Baik', value: Number(dist['4'] ?? 0) }
                                 ]} margin={{ top: 20, right: 30, left: -20, bottom: 0 }}>
                                    <XAxis dataKey="name" fontSize={12} fontWeight="bold" tickLine={false} axisLine={false} />
                                    <YAxis fontSize={12} tickLine={false} axisLine={false} />
                                    <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} />
                                    <Bar dataKey="value" fill="#4285F4" radius={[6, 6, 0, 0]} maxBarSize={80}>
-                                     {
-                                       [0, 1, 2, 3].map((_, idx) => (
-                                         <Cell key={`c-${idx}`} fill={idx === 0 ? '#ef4444' : idx === 1 ? '#f59e0b' : idx === 2 ? '#3b82f6' : '#10b981'} />
-                                       ))
-                                     }
+                                     {[0, 1, 2, 3].map((_, idx) => (
+                                       <Cell key={`c-${idx}`} fill={idx === 0 ? '#ef4444' : idx === 1 ? '#f59e0b' : idx === 2 ? '#3b82f6' : '#10b981'} />
+                                     ))}
                                    </Bar>
                                 </BarChart>
                              </ResponsiveContainer>
@@ -462,7 +570,8 @@ export const PresentationPage: React.FC = () => {
                         </div>
                      </div>
                   </div>
-                )}
+                  );
+                })()}
 
                 {slide.type === "closing" && (
                   <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-slate-900 text-white">
@@ -497,15 +606,17 @@ export const PresentationPage: React.FC = () => {
         {/* Floating Navigation Controls (Hidden in Print) */}
         {!isEditing && (
           <div className="fixed bottom-10 right-10 flex gap-3 print:hidden z-50">
-            <Button size="icon" className="w-12 h-12 rounded-full shadow-2xl bg-white/90 text-slate-900 hover:bg-white hover:scale-105 transition-all" onClick={() => setCurrentSlide(prev => Math.max(prev - 1, 0))} disabled={currentSlide === 0}>
-              <ChevronLeft className="w-6 h-6" />
-            </Button>
-            <div className="flex items-center bg-slate-900/90 text-white text-sm font-bold px-4 rounded-full shadow-2xl border border-white/10">
+            <button
+              onClick={prevSlide} disabled={currentSlide === 0}
+              style={{ width:48,height:48,borderRadius:'50%',background:'#ffffff',color:'#0f172a',border:'none',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 8px 32px rgba(0,0,0,0.3)',cursor:currentSlide===0?'not-allowed':'pointer',opacity:currentSlide===0?0.4:1,transition:'all 0.2s' }}
+            ><ChevronLeft style={{width:24,height:24}} /></button>
+            <div style={{ display:'flex',alignItems:'center',background:'rgba(15,23,42,0.92)',color:'#ffffff',fontSize:14,fontWeight:700,padding:'0 16px',borderRadius:999,boxShadow:'0 8px 32px rgba(0,0,0,0.3)',border:'1px solid rgba(255,255,255,0.15)',minWidth:80,justifyContent:'center' }}>
               {currentSlide + 1} / {totalSlides}
             </div>
-            <Button size="icon" className="w-12 h-12 rounded-full shadow-2xl bg-white/90 text-slate-900 hover:bg-white hover:scale-105 transition-all" onClick={() => setCurrentSlide(prev => Math.min(prev + 1, totalSlides - 1))} disabled={currentSlide === totalSlides - 1}>
-              <ChevronRight className="w-6 h-6" />
-            </Button>
+            <button
+              onClick={nextSlide} disabled={currentSlide === totalSlides - 1}
+              style={{ width:48,height:48,borderRadius:'50%',background:'#ffffff',color:'#0f172a',border:'none',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 8px 32px rgba(0,0,0,0.3)',cursor:currentSlide===totalSlides-1?'not-allowed':'pointer',opacity:currentSlide===totalSlides-1?0.4:1,transition:'all 0.2s' }}
+            ><ChevronRight style={{width:24,height:24}} /></button>
           </div>
         )}
 
