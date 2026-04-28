@@ -5,7 +5,7 @@ import { db } from "@/lib/firebase";
 import { SurveyConfig, SurveyData } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import axios from "axios";
-import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Download, Edit3, Save, Type } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Download, Edit3, Save, Type, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +29,8 @@ export const PresentationPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedFont, setSelectedFont] = useState('Inter');
   const [showFontMenu, setShowFontMenu] = useState(false);
+  const [customSlides, setCustomSlides] = useState<{id:string,type:string,title:string,content:string}[]>([]);
+  const [deletedSlideIds, setDeletedSlideIds] = useState<Set<string>>(new Set());
 
   const totalSlidesRef = useRef(0); // kept for legacy, primary nav uses useMemo below
   
@@ -125,10 +127,30 @@ export const PresentationPage: React.FC = () => {
     { name: 'Lora',             label: 'Lora — Klasik' },
   ];
 
+  const addCustomSlide = () => {
+    const newId = `custom-${Date.now()}`;
+    setCustomSlides(prev => [...prev, { id: newId, type: 'custom-text', title: 'Halaman Baru', content: 'Tulis konten halaman ini...' }]);
+    // navigate to the new slide after state updates
+    setTimeout(() => setCurrentSlide(totalSlidesRef.current - 2), 50);
+  };
+
+  const deleteSlide = (slideId: string) => {
+    if (slideId.startsWith('custom-')) {
+      setCustomSlides(prev => prev.filter(s => s.id !== slideId));
+    } else {
+      setDeletedSlideIds(prev => new Set([...prev, slideId]));
+    }
+    setCurrentSlide(prev => Math.max(0, prev - 1));
+  };
+
+  const updateCustomSlide = (slideId: string, field: 'title' | 'content', value: string) => {
+    setCustomSlides(prev => prev.map(s => s.id === slideId ? { ...s, [field]: value } : s));
+  };
+
   // ── Slides (useMemo — must be before any early return) ───────────────────────
   const slides = useMemo(() => {
     if (!data) return [] as any[];
-    const s: any[] = [
+    const base: any[] = [
       { id: "cover",            type: "cover",          title: "Cover" },
       { id: "kata-pengantar",   type: "text",           title: "Kata Pengantar",              field: "kataPengantar" },
       { id: "daftar-isi",       type: "toc",            title: "Daftar Isi" },
@@ -157,15 +179,17 @@ export const PresentationPage: React.FC = () => {
       { id: "bab5-all",         type: "all-indicators", title: "Rekapitulasi 9 Indikator" },
     ];
     data.indicators.forEach((ind, i) => {
-      s.push({ id: `ind-${i}`, type: "indicator", title: `Analisis: ${ind.label}`, indicatorData: ind });
+      base.push({ id: `ind-${i}`, type: "indicator", title: `Analisis: ${ind.label}`, indicatorData: ind });
     });
-    s.push({ id: "bab6-title",       type: "chapter", title: "BAB VI\nKesimpulan & Rekomendasi" });
-    s.push({ id: "bab6-kesimpulan",  type: "text",    title: "Kesimpulan",            field: "kesimpulan" });
-    s.push({ id: "bab6-rekomendasi", type: "text",    title: "Rencana Tindak Lanjut", field: "rekomendasi" });
-    s.push({ id: "daftar-pustaka",   type: "text",    title: "Daftar Pustaka",        field: "daftarPustaka" });
-    s.push({ id: "penutup",          type: "closing", title: "Penutup" });
-    return s;
-  }, [data]);
+    base.push({ id: "bab6-title",       type: "chapter", title: "BAB VI\nKesimpulan & Rekomendasi" });
+    base.push({ id: "bab6-kesimpulan",  type: "text",    title: "Kesimpulan",            field: "kesimpulan" });
+    base.push({ id: "bab6-rekomendasi", type: "text",    title: "Rencana Tindak Lanjut", field: "rekomendasi" });
+    base.push({ id: "daftar-pustaka",   type: "text",    title: "Daftar Pustaka",        field: "daftarPustaka" });
+    // insert custom slides before penutup
+    customSlides.forEach(cs => base.push(cs));
+    base.push({ id: "penutup",          type: "closing", title: "Penutup" });
+    return base.filter(s => !deletedSlideIds.has(s.id));
+  }, [data, customSlides, deletedSlideIds]);
 
   const totalSlides = slides.length;
   totalSlidesRef.current = totalSlides;
@@ -280,26 +304,53 @@ export const PresentationPage: React.FC = () => {
 
         {/* Left Slide Navigator Panel (hidden in print/fullscreen) */}
         {!isFullscreen && (
-          <div className="w-56 bg-slate-900 border-r border-white/10 overflow-y-auto flex-shrink-0 print:hidden">
-            <p className="text-xs font-black text-slate-500 uppercase tracking-widest px-4 pt-4 pb-2">Slide ({totalSlides})</p>
-            {slides.map((slide, index) => (
+          <div className="w-64 bg-slate-900 border-r border-white/10 overflow-y-auto flex-shrink-0 print:hidden flex flex-col">
+            <div className="flex items-center justify-between px-4 pt-4 pb-2">
+              <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Slide ({totalSlides})</p>
+            </div>
+            <div className="flex-1">
+              {slides.map((slide, index) => (
+                <div
+                  key={slide.id}
+                  className={`group flex items-center gap-2 pr-2 transition-all border-l-4 ${
+                    currentSlide === index
+                      ? 'bg-primary/20 border-primary'
+                      : 'border-transparent hover:bg-white/5'
+                  }`}
+                >
+                  <button
+                    onClick={() => setCurrentSlide(index)}
+                    className={`flex-1 text-left px-3 py-2.5 flex items-center gap-2 min-w-0 ${
+                      currentSlide === index ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className={`text-xs font-black min-w-[22px] rounded px-1 py-0.5 text-center flex-shrink-0 ${
+                      currentSlide === index ? 'bg-primary text-white' : 'bg-white/10 text-slate-400'
+                    }`}>{index + 1}</span>
+                    <span className="text-xs font-semibold leading-tight truncate">
+                      {slide.type === 'chapter' ? <span className="font-black text-primary/90">{slide.title}</span> : slide.title}
+                    </span>
+                  </button>
+                  {slide.id !== 'cover' && slide.id !== 'penutup' && (
+                    <button
+                      onClick={() => deleteSlide(slide.id)}
+                      className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                      title="Hapus slide"
+                    >
+                      <Trash2 style={{width:12,height:12}} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="p-3 border-t border-white/10 flex-shrink-0">
               <button
-                key={slide.id}
-                onClick={() => setCurrentSlide(index)}
-                className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-all border-l-4 ${
-                  currentSlide === index
-                    ? 'bg-primary/20 border-primary text-white'
-                    : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200'
-                }`}
+                onClick={addCustomSlide}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold text-slate-300 border border-dashed border-white/20 hover:border-primary hover:text-primary hover:bg-primary/10 transition-all"
               >
-                <span className={`text-xs font-black min-w-[24px] rounded-md px-1.5 py-0.5 text-center ${
-                  currentSlide === index ? 'bg-primary text-white' : 'bg-white/10 text-slate-400'
-                }`}>{index + 1}</span>
-                <span className="text-xs font-semibold leading-tight truncate">
-                  {slide.type === 'chapter' ? <span className="font-black text-primary/90">{slide.title}</span> : slide.title}
-                </span>
+                <Plus style={{width:14,height:14}} /> Tambah Halaman
               </button>
-            ))}
+            </div>
           </div>
         )}
 
@@ -374,14 +425,14 @@ export const PresentationPage: React.FC = () => {
                 )}
 
                 {slide.type === "text" && (
-                  <div className="flex-1 flex flex-col p-12 bg-white">
-                     <h2 className="text-4xl font-black text-slate-900 uppercase border-l-8 border-primary pl-6 mb-8">{slide.title}</h2>
-                     <div className="flex-1 p-8 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm text-lg text-slate-800 leading-loose whitespace-pre-wrap">
+                  <div className="flex-1 flex flex-col pt-8 px-10 pb-2 bg-white overflow-hidden">
+                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 border-primary pl-5 mb-5 flex-shrink-0">{slide.title}</h2>
+                     <div className="flex-1 overflow-auto px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm text-base text-slate-800 leading-loose whitespace-pre-wrap">
                        {isEditing ? (
-                         <Textarea 
-                            value={(presentationData as any)[slide.field!]} 
-                            onChange={e => setPresentationData({...presentationData, [slide.field!]: e.target.value})} 
-                            className="w-full h-full min-h-[300px] text-lg leading-loose" 
+                         <Textarea
+                            value={(presentationData as any)[slide.field!]}
+                            onChange={e => setPresentationData({...presentationData, [slide.field!]: e.target.value})}
+                            className="w-full h-full min-h-[200px] text-base leading-loose bg-transparent border-none resize-none focus:ring-0"
                          />
                        ) : (
                          (presentationData as any)[slide.field!]
@@ -389,6 +440,34 @@ export const PresentationPage: React.FC = () => {
                      </div>
                   </div>
                 )}
+
+                {slide.type === "custom-text" && (() => {
+                  const cs = slide as {id:string,type:string,title:string,content:string};
+                  return (
+                  <div className="flex-1 flex flex-col pt-8 px-10 pb-2 bg-white overflow-hidden">
+                    <div className="flex items-center gap-3 mb-5 flex-shrink-0">
+                      {isEditing ? (
+                        <input
+                          value={cs.title}
+                          onChange={e => updateCustomSlide(cs.id, 'title', e.target.value)}
+                          className="flex-1 text-3xl font-black text-slate-900 uppercase border-b-4 border-primary bg-transparent outline-none pl-2"
+                        />
+                      ) : (
+                        <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 border-primary pl-5">{cs.title}</h2>
+                      )}
+                    </div>
+                    <div className="flex-1 overflow-auto px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm text-base text-slate-800 leading-loose whitespace-pre-wrap">
+                      {isEditing ? (
+                        <Textarea
+                          value={cs.content}
+                          onChange={e => updateCustomSlide(cs.id, 'content', e.target.value)}
+                          className="w-full h-full min-h-[200px] text-base leading-loose bg-transparent border-none resize-none focus:ring-0"
+                        />
+                      ) : cs.content}
+                    </div>
+                  </div>
+                  );
+                })()}
 
                 {slide.type === "demo1" && (
                   <div className="flex-1 flex flex-col p-12 bg-white">
@@ -586,11 +665,11 @@ export const PresentationPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Footer on each slide (except cover/closing) */}
+                {/* Footer on each slide (except cover/closing/chapter) — normal flow, not absolute */}
                 {slide.type !== "cover" && slide.type !== "closing" && slide.type !== "chapter" && (
-                  <div className="absolute bottom-6 left-12 right-12 flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest border-t border-slate-100 pt-4 print:bottom-4 print:text-black">
+                  <div className="flex-shrink-0 mx-10 flex justify-between items-center text-xs font-bold text-slate-300 uppercase tracking-widest border-t border-slate-200 pt-2 pb-3 print:text-black">
                      <span>{presentationData.subtitle.split('\n')[0]}</span>
-                     <span>Hal. {index}</span>
+                     <span>Hal. {index + 1}</span>
                   </div>
                 )}
 
