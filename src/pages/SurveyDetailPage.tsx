@@ -278,13 +278,87 @@ export const SurveyDetailPage: React.FC = () => {
     ? Object.entries(data.demographics.location).map(([name, value]) => ({ name, value }))
     : [];
 
-  // Color palettes — bright, works on both light & dark
-  const COLORS_GENDER = ['#3b82f6', '#ec4899', '#8b5cf6', '#f97316']; // Blue/Pink
-  const COLORS_UMUR = ['#10b981', '#34d399', '#f59e0b', '#f97316', '#ef4444', '#8b5cf6']; // Multi
-  const COLORS_PEKERJAAN = ['#f97316', '#eab308', '#22c55e', '#06b6d4', '#8b5cf6', '#ec4899', '#ef4444', '#14b8a6', '#6366f1', '#f43f5e'];
-  const COLORS_SUKU = ['#e11d48', '#f97316', '#eab308', '#10b981', '#06b6d4', '#8b5cf6']; // Vivid
-  const COLORS_LAYANAN = ['#0ea5e9', '#06b6d4', '#10b981', '#8b5cf6', '#f97316', '#ec4899', '#ef4444', '#eab308', '#22c55e', '#3b82f6'];
-  const COLORS_LOKASI = ['#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#f97316'];
+  const COLORS_GOOGLE = ['#4285F4', '#DB4437', '#F4B400', '#0F9D58', '#AB47BC', '#00ACC1', '#FF7043', '#9E9D24', '#5C6BC0'];
+
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  
+    if (percent * 100 < 4) return null;
+  
+    return (
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight="bold">
+        {`${(percent * 100).toFixed(1)}%`}
+      </text>
+    );
+  };
+
+  const GoogleFormChartCard = ({ id, title, data }: { id: string, title: string, data: any[] }) => {
+    const totalResponses = data.reduce((acc, curr) => acc + (curr.value || 0), 0);
+    return (
+      <Card id={id} className="overflow-hidden border border-border/60 shadow-sm rounded-xl bg-card">
+        <CardHeader className="flex flex-row items-start justify-between pb-0 pt-6 px-6 sm:px-8">
+          <div className="space-y-1.5">
+            <CardTitle className="text-base md:text-lg font-normal text-foreground">{title}</CardTitle>
+            <CardDescription className="text-xs md:text-sm">{totalResponses} responses</CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" className="h-9 px-3 gap-2 text-[#4285F4] hover:text-[#4285F4] hover:bg-blue-50 dark:hover:bg-blue-950/50 font-medium" onClick={() => downloadPNG(id, `${id}_${config?.id}`)}>
+              <Copy className="w-4 h-4" />
+              <span className="hidden sm:inline">Copy chart</span>
+            </Button>
+            <Button variant="ghost" size="sm" title="Download CSV" className="h-9 w-9 p-0 text-muted-foreground" onClick={() => exportToCSV(data, `${id}_data_${config?.id}`)}>
+              <Download className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="h-[320px] min-h-[320px] flex items-center justify-center p-0 pb-4 relative">
+          {data.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="40%"
+                  cy="50%"
+                  innerRadius={0}
+                  outerRadius={110}
+                  dataKey="value"
+                  labelLine={false}
+                  label={renderCustomizedLabel}
+                  stroke="hsl(var(--background))"
+                  strokeWidth={2}
+                >
+                  {data.map((entry, index) => {
+                    let color = COLORS_GOOGLE[index % COLORS_GOOGLE.length];
+                    const name = entry.name.toLowerCase();
+                    if (title === "Jenis Kelamin") {
+                      if (name.includes('laki') || name.includes('pria')) color = COLORS_GOOGLE[0]; 
+                      else if (name.includes('perempuan') || name.includes('wanita')) color = COLORS_GOOGLE[1];
+                    }
+                    return <Cell key={`cell-${index}`} fill={color} />;
+                  })}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+                <Legend 
+                  layout="vertical" 
+                  verticalAlign="middle" 
+                  align="right" 
+                  iconType="circle" 
+                  wrapperStyle={{ fontSize: '13px', color: 'currentColor', right: '5%', width: '30%' }} 
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full text-muted-foreground text-sm italic">
+              Tidak ada data
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   // Custom tooltip for recharts — readable in dark mode
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -666,254 +740,14 @@ export const SurveyDetailPage: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="demographics" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             {/* GENDER */}
-             <Card id="chart-gender">
-               <CardHeader className="flex flex-row items-center justify-between">
-                 <CardTitle className="text-sm flex items-center gap-2">
-                   <Users className="w-4 h-4 text-slate-700" />
-                   Jenis Kelamin
-                 </CardTitle>
-                 <div className="flex gap-1">
-                   <Button variant="ghost" size="icon" title="Download PNG" onClick={() => downloadPNG('chart-gender', `gender_chart_${config?.id}`)} className="h-6 w-6">
-                     <Camera className="w-3 h-3" />
-                   </Button>
-                   <Button variant="ghost" size="icon" title="Download CSV" onClick={() => exportToCSV(demoGenderData, `gender_data_${config?.id}`)} className="h-6 w-6">
-                     <Download className="w-3 h-3" />
-                   </Button>
-                 </div>
-               </CardHeader>
-               <CardContent className="h-[250px] min-h-[250px]">
-                 <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={demoGenderData}
-                        cx="50%"
-                        cy="45%"
-                        innerRadius={40}
-                        outerRadius={65}
-                        paddingAngle={4}
-                        dataKey="value"
-                      >
-                        {demoGenderData.map((entry, index) => {
-                          const name = entry.name.toLowerCase();
-                          let color = COLORS_GENDER[index % COLORS_GENDER.length];
-                          if (name.includes('laki') || name.includes('pria')) color = '#3b82f6'; // Blue
-                          else if (name.includes('perempuan') || name.includes('wanita')) color = '#ec4899'; // Pink
-                          
-                          return <Cell key={`cell-${index}`} fill={color} stroke="transparent" />;
-                        })}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend wrapperStyle={{ fontSize: '11px', color: 'currentColor' }} />
-                    </PieChart>
-                 </ResponsiveContainer>
-               </CardContent>
-             </Card>
-
-             {/* UMUR */}
-             <Card id="chart-umur">
-               <CardHeader className="flex flex-row items-center justify-between">
-                 <CardTitle className="text-sm flex items-center gap-2">
-                   <Timer className="w-4 h-4 text-emerald-600" />
-                   Kelompok Umur
-                 </CardTitle>
-                 <div className="flex gap-1">
-                   <Button variant="ghost" size="icon" title="Download PNG" onClick={() => downloadPNG('chart-umur', `umur_chart_${config?.id}`)} className="h-6 w-6">
-                     <Camera className="w-3 h-3" />
-                   </Button>
-                   <Button variant="ghost" size="icon" title="Download CSV" onClick={() => exportToCSV(demoUmurData, `umur_data_${config?.id}`)} className="h-6 w-6">
-                     <Download className="w-3 h-3" />
-                   </Button>
-                 </div>
-               </CardHeader>
-               <CardContent className="h-[250px] min-h-[250px]">
-                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={demoUmurData} margin={{ left: -20, right: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
-                      <XAxis dataKey="name" fontSize={9} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} />
-                      <YAxis fontSize={9} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} />
-                      <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(128,128,128,0.1)'}} />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                        {demoUmurData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS_UMUR[index % COLORS_UMUR.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                 </ResponsiveContainer>
-               </CardContent>
-             </Card>
-
-             {/* PENDIDIKAN */}
-             <Card id="chart-edu">
-               <CardHeader className="flex flex-row items-center justify-between">
-                 <CardTitle className="text-sm flex items-center gap-2">
-                   <GraduationCap className="w-4 h-4 text-indigo-500" />
-                   Pendidikan Terakhir
-                 </CardTitle>
-                 <div className="flex gap-1">
-                   <Button variant="ghost" size="icon" title="Download PNG" onClick={() => downloadPNG('chart-edu', `edu_chart_${config?.id}`)} className="h-6 w-6">
-                     <Camera className="w-3 h-3" />
-                   </Button>
-                   <Button variant="ghost" size="icon" title="Download CSV" onClick={() => exportToCSV(demoEduData, `edu_data_${config?.id}`)} className="h-6 w-6">
-                     <Download className="w-3 h-3" />
-                   </Button>
-                 </div>
-               </CardHeader>
-               <CardContent className="h-[250px] min-h-[250px]">
-                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={demoEduData} layout="vertical" margin={{ left: 10, right: 10 }}>
-                      <XAxis type="number" hide />
-                      <YAxis dataKey="name" type="category" fontSize={9} axisLine={false} tickLine={false} width={85} tick={{ fill: 'currentColor' }} />
-                      <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(128,128,128,0.1)'}} />
-                      <Bar dataKey="value" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={14} />
-                    </BarChart>
-                 </ResponsiveContainer>
-               </CardContent>
-             </Card>
-
-             {/* PEKERJAAN */}
-             <Card id="chart-pekerjaan">
-               <CardHeader className="flex flex-row items-center justify-between">
-                 <CardTitle className="text-sm flex items-center gap-2">
-                   <BriefcaseBusiness className="w-4 h-4 text-orange-500" />
-                   Profesi / Pekerjaan
-                 </CardTitle>
-                 <div className="flex gap-1">
-                   <Button variant="ghost" size="icon" title="Download PNG" onClick={() => downloadPNG('chart-pekerjaan', `pekerjaan_chart_${config?.id}`)} className="h-6 w-6">
-                     <Camera className="w-3 h-3" />
-                   </Button>
-                   <Button variant="ghost" size="icon" title="Download CSV" onClick={() => exportToCSV(demoPekerjaanData, `pekerjaan_data_${config?.id}`)} className="h-6 w-6">
-                     <Download className="w-3 h-3" />
-                   </Button>
-                 </div>
-               </CardHeader>
-               <CardContent className="h-[250px] min-h-[250px]">
-                 <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={demoPekerjaanData}
-                        cx="50%"
-                        cy="45%"
-                        innerRadius={40}
-                        outerRadius={65}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {demoPekerjaanData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS_PEKERJAAN[index % COLORS_PEKERJAAN.length]} stroke="transparent" />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend wrapperStyle={{ fontSize: '9px', color: 'currentColor' }} iconSize={8} />
-                    </PieChart>
-                 </ResponsiveContainer>
-               </CardContent>
-             </Card>
-
-             {/* SUKU ETNIS */}
-             <Card id="chart-suku">
-               <CardHeader className="flex flex-row items-center justify-between">
-                 <CardTitle className="text-sm flex items-center gap-2">
-                   <Users className="w-4 h-4 text-pink-500" />
-                   Suku Etnis
-                 </CardTitle>
-                 <div className="flex gap-1">
-                   <Button variant="ghost" size="icon" title="Download PNG" onClick={() => downloadPNG('chart-suku', `suku_chart_${config?.id}`)} className="h-6 w-6">
-                     <Camera className="w-3 h-3" />
-                   </Button>
-                   <Button variant="ghost" size="icon" title="Download CSV" onClick={() => exportToCSV(demoSukuData, `suku_data_${config?.id}`)} className="h-6 w-6">
-                     <Download className="w-3 h-3" />
-                   </Button>
-                 </div>
-               </CardHeader>
-               <CardContent className="h-[250px] min-h-[250px]">
-                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={demoSukuData} margin={{ left: -20, right: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
-                      <XAxis dataKey="name" fontSize={9} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} />
-                      <YAxis fontSize={9} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} />
-                      <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(128,128,128,0.1)'}} />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={28}>
-                        {demoSukuData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS_SUKU[index % COLORS_SUKU.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                 </ResponsiveContainer>
-               </CardContent>
-             </Card>
-
-             {/* JENIS LAYANAN */}
-             <Card id="chart-layanan">
-               <CardHeader className="flex flex-row items-center justify-between">
-                 <CardTitle className="text-sm flex items-center gap-2">
-                   <Info className="w-4 h-4 text-sky-500" />
-                   Jenis Layanan
-                 </CardTitle>
-                 <div className="flex gap-1">
-                   <Button variant="ghost" size="icon" title="Download PNG" onClick={() => downloadPNG('chart-layanan', `layanan_chart_${config?.id}`)} className="h-6 w-6">
-                     <Camera className="w-3 h-3" />
-                   </Button>
-                   <Button variant="ghost" size="icon" title="Download CSV" onClick={() => exportToCSV(demoLayananData, `layanan_data_${config?.id}`)} className="h-6 w-6">
-                     <Download className="w-3 h-3" />
-                   </Button>
-                 </div>
-               </CardHeader>
-               <CardContent className="h-[250px] min-h-[250px]">
-                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={demoLayananData} layout="vertical" margin={{ left: 10, right: 10 }}>
-                      <XAxis type="number" hide />
-                      <YAxis dataKey="name" type="category" fontSize={8} axisLine={false} tickLine={false} width={110} tick={{ fill: 'currentColor' }} />
-                      <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(128,128,128,0.1)'}} />
-                      <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={14}>
-                        {demoLayananData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS_LAYANAN[index % COLORS_LAYANAN.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                 </ResponsiveContainer>
-               </CardContent>
-             </Card>
-
-             {/* LOKASI SURVEI */}
-             <Card id="chart-lokasi">
-               <CardHeader className="flex flex-row items-center justify-between">
-                 <CardTitle className="text-sm flex items-center gap-2">
-                   <MapPin className="w-4 h-4 text-purple-500" />
-                   Lokasi Survei
-                 </CardTitle>
-                 <div className="flex gap-1">
-                   <Button variant="ghost" size="icon" title="Download PNG" onClick={() => downloadPNG('chart-lokasi', `lokasi_chart_${config?.id}`)} className="h-6 w-6">
-                     <Camera className="w-3 h-3" />
-                   </Button>
-                   <Button variant="ghost" size="icon" title="Download CSV" onClick={() => exportToCSV(demoLokasiData, `lokasi_data_${config?.id}`)} className="h-6 w-6">
-                     <Download className="w-3 h-3" />
-                   </Button>
-                 </div>
-               </CardHeader>
-               <CardContent className="h-[250px] min-h-[250px]">
-                 <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={demoLokasiData}
-                        cx="50%"
-                        cy="45%"
-                        innerRadius={40}
-                        outerRadius={65}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {demoLokasiData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS_LOKASI[index % COLORS_LOKASI.length]} stroke="transparent" />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend wrapperStyle={{ fontSize: '9px', color: 'currentColor' }} iconSize={8} />
-                    </PieChart>
-                 </ResponsiveContainer>
-               </CardContent>
-             </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
+             <GoogleFormChartCard id="chart-gender" title="Jenis Kelamin" data={demoGenderData} />
+             <GoogleFormChartCard id="chart-umur" title="Kelompok Umur" data={demoUmurData} />
+             <GoogleFormChartCard id="chart-edu" title="Pendidikan Terakhir" data={demoEduData} />
+             <GoogleFormChartCard id="chart-pekerjaan" title="Profesi / Pekerjaan" data={demoPekerjaanData} />
+             <GoogleFormChartCard id="chart-suku" title="Suku Etnis" data={demoSukuData} />
+             <GoogleFormChartCard id="chart-layanan" title="Jenis Layanan" data={demoLayananData} />
+             <GoogleFormChartCard id="chart-lokasi" title="Lokasi Survei" data={demoLokasiData} />
           </div>
         </TabsContent>
 
