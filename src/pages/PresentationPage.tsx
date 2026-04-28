@@ -106,44 +106,57 @@ export const PresentationPage: React.FC = () => {
     window.print();
   };
 
+  const nextSlide = () => setCurrentSlide(prev => Math.min(prev + 1, currentTotalSlides - 1));
+  const prevSlide = () => setCurrentSlide(prev => Math.max(prev - 1, 0));
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") nextSlide();
+      if (e.key === "ArrowRight" || e.key === "PageDown") nextSlide();
       if (e.key === "ArrowLeft" || e.key === "PageUp") prevSlide();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentSlide]); 
+  }, [currentSlide]);
+
+  // Placeholder total before slides array is built
+  const currentTotalSlides = 30; // approximate upper bound
 
   if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
     return <div className="p-10 text-center text-xl font-bold">Akses Ditolak. Hanya untuk Admin.</div>;
   }
 
   if (loading || !data || !config) {
-    return <div className="p-10 text-center">Memuat Presentasi...</div>;
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-white text-center space-y-4">
+          <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
+          <p className="text-xl font-bold">Memuat Presentasi...</p>
+        </div>
+      </div>
+    );
   }
 
   // Define Slide Structure mapping
-  const slides = [
-    { id: "cover", type: "cover" },
+  const slides: any[] = [
+    { id: "cover", type: "cover", title: "Cover" },
     { id: "kata-pengantar", type: "text", title: "Kata Pengantar", field: "kataPengantar" },
-    { id: "daftar-isi", type: "toc" },
-    { id: "bab1-title", type: "chapter", title: "BAB I\nPENDAHULUAN" },
+    { id: "daftar-isi", type: "toc", title: "Daftar Isi" },
+    { id: "bab1-title", type: "chapter", title: "BAB I · Pendahuluan" },
     { id: "bab1-latar", type: "text", title: "Latar Belakang", field: "latarBelakang" },
     { id: "bab1-tujuan", type: "text", title: "Maksud dan Tujuan", field: "maksudTujuan" },
-    { id: "bab1-ruang", type: "text", title: "Ruang Lingkup dan Sasaran", field: "ruangLingkup" },
-    { id: "bab2-title", type: "chapter", title: "BAB II\nGAMBARAN UMUM INSTANSI" },
+    { id: "bab1-ruang", type: "text", title: "Ruang Lingkup", field: "ruangLingkup" },
+    { id: "bab2-title", type: "chapter", title: "BAB II · Gambaran Umum" },
     { id: "bab2-visi", type: "text", title: "Visi dan Misi", field: "visiMisi" },
-    { id: "bab2-maklumat", type: "text", title: "Motto dan Maklumat Pelayanan", field: "maklumat" },
-    { id: "bab3-title", type: "chapter", title: "BAB III\nMETODOLOGI SURVEI" },
-    { id: "bab3-metod", type: "text", title: "Metodologi Pengumpulan Data", field: "metodologi" },
-    { id: "bab3-lokasi", type: "text", title: "Lokasi dan Waktu Pelaksanaan", field: "lokasiWaktu" },
-    { id: "bab4-title", type: "chapter", title: "BAB IV\nHASIL SURVEI KEPUASAN MASYARAKAT" },
-    { id: "bab4-demo1", type: "demo1" },
-    { id: "bab4-demo2", type: "demo2" },
-    { id: "bab4-ikm", type: "ikm" },
-    { id: "bab5-title", type: "chapter", title: "BAB V\nANALISIS INDIKATOR PELAYANAN" },
-    { id: "bab5-all-indicators", type: "all-indicators" }
+    { id: "bab2-maklumat", type: "text", title: "Maklumat Pelayanan", field: "maklumat" },
+    { id: "bab3-title", type: "chapter", title: "BAB III · Metodologi" },
+    { id: "bab3-metod", type: "text", title: "Metodologi", field: "metodologi" },
+    { id: "bab3-lokasi", type: "text", title: "Lokasi & Waktu", field: "lokasiWaktu" },
+    { id: "bab4-title", type: "chapter", title: "BAB IV · Hasil Survei" },
+    { id: "bab4-demo1", type: "demo1", title: "Profil Responden (1/2)" },
+    { id: "bab4-demo2", type: "demo2", title: "Profil Responden (2/2)" },
+    { id: "bab4-ikm", type: "ikm", title: "Nilai IKM" },
+    { id: "bab5-title", type: "chapter", title: "BAB V · Analisis Indikator" },
+    { id: "bab5-all-indicators", type: "all-indicators", title: "Rekapitulasi 9 Indikator" },
   ];
 
   // Append a slide for each indicator
@@ -151,14 +164,12 @@ export const PresentationPage: React.FC = () => {
     slides.push({ id: `ind-${i}`, type: "indicator", title: `Analisis Unsur: ${ind.label}`, indicatorData: ind });
   });
 
-  slides.push({ id: "bab6-title", type: "chapter", title: "BAB VI\nKESIMPULAN DAN REKOMENDASI" });
+  slides.push({ id: "bab6-title", type: "chapter", title: "BAB VI · Kesimpulan & Rekomendasi" });
   slides.push({ id: "bab6-kesimpulan", type: "text", title: "Kesimpulan", field: "kesimpulan" });
   slides.push({ id: "bab6-rekomendasi", type: "text", title: "Rencana Tindak Lanjut", field: "rekomendasi" });
-  slides.push({ id: "penutup", type: "closing" });
+  slides.push({ id: "penutup", type: "closing", title: "Penutup" });
 
   const totalSlides = slides.length;
-  const nextSlide = () => setCurrentSlide(prev => Math.min(prev + 1, totalSlides - 1));
-  const prevSlide = () => setCurrentSlide(prev => Math.max(prev - 1, 0));
 
   const renderPieChart = (chartData: any[], cx="50%") => (
     <ResponsiveContainer width="100%" height="100%">
@@ -192,8 +203,8 @@ export const PresentationPage: React.FC = () => {
     <div className="min-h-screen bg-slate-950 flex flex-col print:bg-white print:block">
       
       {/* Top Bar */}
-      <div className="flex items-center justify-between p-4 bg-slate-900 border-b border-white/10 print:hidden text-white">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between p-3 bg-slate-900 border-b border-white/10 print:hidden text-white">
+        <div className="flex items-center gap-3">
           <Link to={`/survey/${id}`}>
             <Button variant="ghost" size="icon" className="hover:bg-white/10 text-white rounded-full">
               <ArrowLeft className="w-5 h-5" />
@@ -219,11 +230,39 @@ export const PresentationPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Area */}
-      <div className="flex-1 flex items-center justify-center p-4 md:p-8 print:p-0 overflow-hidden bg-slate-950 print:bg-white">
+      {/* Main Area - Slide Navigator + Slide View */}
+      <div className="flex-1 flex overflow-hidden bg-slate-950 print:bg-white print:block">
+
+        {/* Left Slide Navigator Panel (hidden in print/fullscreen) */}
+        {!isFullscreen && (
+          <div className="w-56 bg-slate-900 border-r border-white/10 overflow-y-auto flex-shrink-0 print:hidden">
+            <p className="text-xs font-black text-slate-500 uppercase tracking-widest px-4 pt-4 pb-2">Slide ({totalSlides})</p>
+            {slides.map((slide, index) => (
+              <button
+                key={slide.id}
+                onClick={() => setCurrentSlide(index)}
+                className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-all border-l-4 ${
+                  currentSlide === index
+                    ? 'bg-primary/20 border-primary text-white'
+                    : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                }`}
+              >
+                <span className={`text-xs font-black min-w-[24px] rounded-md px-1.5 py-0.5 text-center ${
+                  currentSlide === index ? 'bg-primary text-white' : 'bg-white/10 text-slate-400'
+                }`}>{index + 1}</span>
+                <span className="text-xs font-semibold leading-tight truncate">
+                  {slide.type === 'chapter' ? <span className="font-black text-primary/90">{slide.title}</span> : slide.title}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Slide Display Area */}
+        <div className="flex-1 flex items-center justify-center p-4 md:p-6 print:p-0 overflow-hidden print:block">
         <div 
           ref={presentationRef}
-          className={`relative bg-white text-slate-900 overflow-y-auto print:overflow-visible print:shadow-none print:w-[297mm] print:border-none
+          className={`relative bg-white text-slate-900 overflow-hidden print:overflow-visible print:shadow-none print:w-[297mm] print:border-none
             ${isFullscreen ? 'w-screen h-screen max-w-none max-h-none' : 'w-full max-w-5xl aspect-video shadow-2xl rounded-xl border border-border'}
           `}
           style={{ pageBreakAfter: 'always' }}
@@ -452,14 +491,20 @@ export const PresentationPage: React.FC = () => {
 
         </div>
 
+        </div>
+        </div>
+
         {/* Floating Navigation Controls (Hidden in Print) */}
         {!isEditing && (
-          <div className="fixed bottom-10 right-10 flex gap-4 print:hidden z-50">
-            <Button size="icon" className="w-14 h-14 rounded-full shadow-2xl bg-white text-slate-900 hover:bg-slate-100 hover:scale-105 transition-all" onClick={prevSlide} disabled={currentSlide === 0}>
-              <ChevronLeft className="w-8 h-8" />
+          <div className="fixed bottom-10 right-10 flex gap-3 print:hidden z-50">
+            <Button size="icon" className="w-12 h-12 rounded-full shadow-2xl bg-white/90 text-slate-900 hover:bg-white hover:scale-105 transition-all" onClick={() => setCurrentSlide(prev => Math.max(prev - 1, 0))} disabled={currentSlide === 0}>
+              <ChevronLeft className="w-6 h-6" />
             </Button>
-            <Button size="icon" className="w-14 h-14 rounded-full shadow-2xl bg-white text-slate-900 hover:bg-slate-100 hover:scale-105 transition-all" onClick={nextSlide} disabled={currentSlide === totalSlides - 1}>
-              <ChevronRight className="w-8 h-8" />
+            <div className="flex items-center bg-slate-900/90 text-white text-sm font-bold px-4 rounded-full shadow-2xl border border-white/10">
+              {currentSlide + 1} / {totalSlides}
+            </div>
+            <Button size="icon" className="w-12 h-12 rounded-full shadow-2xl bg-white/90 text-slate-900 hover:bg-white hover:scale-105 transition-all" onClick={() => setCurrentSlide(prev => Math.min(prev + 1, totalSlides - 1))} disabled={currentSlide === totalSlides - 1}>
+              <ChevronRight className="w-6 h-6" />
             </Button>
           </div>
         )}
