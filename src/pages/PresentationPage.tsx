@@ -29,6 +29,8 @@ export const PresentationPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedFont, setSelectedFont] = useState('Inter');
   const [showFontMenu, setShowFontMenu] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState('blue');
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [customSlides, setCustomSlides] = useState<{id:string,type:string,title:string,content:string}[]>([]);
   const [deletedSlideIds, setDeletedSlideIds] = useState<Set<string>>(new Set());
 
@@ -169,6 +171,13 @@ export const PresentationPage: React.FC = () => {
     { name: 'Lora',             label: 'Lora — Klasik' },
   ];
 
+  const THEMES = [
+    { id: 'blue', label: 'Corporate Blue', primaryHex: '#2563eb', coverBg: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', chapterBg: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)', chapterText: '#93c5fd', closingBg: '#0f172a' },
+    { id: 'emerald', label: 'Emerald Green', primaryHex: '#059669', coverBg: 'linear-gradient(135deg, #f0fdf4 0%, #d1fae5 100%)', chapterBg: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)', chapterText: '#6ee7b7', closingBg: '#022c22' },
+    { id: 'crimson', label: 'Royal Crimson', primaryHex: '#e11d48', coverBg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', chapterBg: 'linear-gradient(135deg, #4c0519 0%, #be123c 100%)', chapterText: '#fda4af', closingBg: '#4c0519' },
+  ];
+  const activeTheme = THEMES.find(t => t.id === selectedTheme) || THEMES[0];
+
   const addCustomSlide = () => {
     const newId = `custom-${Date.now()}`;
     setCustomSlides(prev => [...prev, { id: newId, type: 'custom-text', title: 'Halaman Baru', content: 'Tulis konten halaman ini...' }]);
@@ -308,7 +317,6 @@ export const PresentationPage: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Font Selector */}
           <div className="relative">
             <Button variant="outline" className="gap-2 text-xs font-bold border-white/20 hover:bg-white/10 text-white" onClick={() => setShowFontMenu(v => !v)}>
               <Type className="w-4 h-4" /> {selectedFont.split(' ')[0]}
@@ -320,6 +328,24 @@ export const PresentationPage: React.FC = () => {
                     className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors ${selectedFont === f.name ? 'bg-primary text-white' : 'text-slate-200 hover:bg-white/10'}`}
                     style={{ fontFamily: `'${f.name}', sans-serif` }}>
                     {f.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Theme Selector */}
+          <div className="relative">
+            <Button variant="outline" className="gap-2 text-xs font-bold border-white/20 hover:bg-white/10 text-white" onClick={() => setShowThemeMenu(v => !v)}>
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: activeTheme.primaryHex }} />
+              {activeTheme.label.split(' ')[0]}
+            </Button>
+            {showThemeMenu && (
+              <div className="absolute right-0 top-full mt-1 w-52 bg-slate-800 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+                {THEMES.map(th => (
+                  <button key={th.id} onClick={() => { setSelectedTheme(th.id); setShowThemeMenu(false); }}
+                    className={`w-full flex items-center gap-3 text-left px-4 py-3 text-sm font-semibold transition-colors ${selectedTheme === th.id ? 'bg-white/10 text-white' : 'text-slate-200 hover:bg-white/5'}`}>
+                    <div className="w-4 h-4 rounded-full border border-white/20" style={{ backgroundColor: th.primaryHex }} />
+                    {th.label}
                   </button>
                 ))}
               </div>
@@ -416,10 +442,10 @@ export const PresentationPage: React.FC = () => {
                 
                 {/* --- SLIDE RENDERERS --- */}
                 {slide.type === "cover" && (
-                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-gradient-to-br from-slate-50 to-slate-200">
+                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center" style={{ background: activeTheme.coverBg }}>
                     <div className="w-32 h-32 mb-10 flex items-center justify-center">
                       <div className="relative flex items-center justify-center w-full h-full rounded-3xl bg-white shadow-xl p-4 border border-slate-100">
-                        <svg className="w-full h-full text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="w-full h-full" style={{ color: activeTheme.primaryHex }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <rect width="18" height="18" x="3" y="3" rx="2" />
                           <path d="M3 9h18" />
                           <path d="M9 21V9" />
@@ -454,7 +480,7 @@ export const PresentationPage: React.FC = () => {
                   );
                   return (
                   <div className="flex-1 flex flex-col pt-6 px-10 pb-2 overflow-hidden">
-                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 border-primary pl-5 mb-5 flex-shrink-0">Daftar Isi</h2>
+                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 pl-5 mb-5 flex-shrink-0" style={{ borderColor: activeTheme.primaryHex }}>Daftar Isi</h2>
                      <div className="flex-1 overflow-auto">
                        <div className="grid grid-cols-2 gap-x-10 gap-y-1 text-sm font-medium text-slate-700">
                          {tocItems.map((s, idx) => {
@@ -468,7 +494,7 @@ export const PresentationPage: React.FC = () => {
                                    : 'pl-3 border-b border-slate-200'
                                }`}
                              >
-                               <span className={isChapter ? 'text-primary' : 'text-slate-600 hover:text-primary'}>
+                               <span style={{ color: isChapter ? activeTheme.primaryHex : undefined }} className={isChapter ? '' : 'text-slate-600'}>
                                  {s.title?.replace('\n', ' ')}
                                </span>
                              </div>
@@ -481,8 +507,8 @@ export const PresentationPage: React.FC = () => {
                 })()}
 
                 {slide.type === "chapter" && (
-                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)' }}>
-                     <div className="mb-6 text-blue-300 text-sm font-bold uppercase tracking-[0.3em]">Survei Kepuasan Masyarakat</div>
+                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center" style={{ background: activeTheme.chapterBg }}>
+                     <div className="mb-6 text-sm font-bold uppercase tracking-[0.3em]" style={{ color: activeTheme.chapterText }}>Survei Kepuasan Masyarakat</div>
                      <h1 className="text-5xl font-black uppercase tracking-widest leading-snug whitespace-pre-wrap" style={{ color: '#ffffff', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
                        {slide.title}
                      </h1>
@@ -492,7 +518,7 @@ export const PresentationPage: React.FC = () => {
 
                 {slide.type === "text" && (
                   <div className="flex-1 flex flex-col pt-8 px-10 pb-2 bg-white overflow-hidden">
-                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 border-primary pl-5 mb-5 flex-shrink-0">{slide.title}</h2>
+                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 pl-5 mb-5 flex-shrink-0" style={{ borderColor: activeTheme.primaryHex }}>{slide.title}</h2>
                      <div className="flex-1 overflow-auto px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm text-base text-slate-800 leading-loose whitespace-pre-wrap">
                        {isEditing ? (
                          <Textarea
@@ -516,10 +542,11 @@ export const PresentationPage: React.FC = () => {
                         <input
                           value={cs.title}
                           onChange={e => updateCustomSlide(cs.id, 'title', e.target.value)}
-                          className="flex-1 text-3xl font-black text-slate-900 uppercase border-b-4 border-primary bg-transparent outline-none pl-2"
+                          className="flex-1 text-3xl font-black text-slate-900 uppercase border-b-4 bg-transparent outline-none pl-2"
+                          style={{ borderColor: activeTheme.primaryHex }}
                         />
                       ) : (
-                        <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 border-primary pl-5">{cs.title}</h2>
+                        <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 pl-5" style={{ borderColor: activeTheme.primaryHex }}>{cs.title}</h2>
                       )}
                     </div>
                     <div className="flex-1 overflow-auto px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm text-base text-slate-800 leading-loose whitespace-pre-wrap">
@@ -537,7 +564,7 @@ export const PresentationPage: React.FC = () => {
 
                 {slide.type === "demo1" && (
                   <div className="flex-1 flex flex-col p-12 bg-white">
-                     <h2 className="text-4xl font-black text-slate-900 uppercase border-l-8 border-primary pl-6 mb-8">Profil Responden (1/2)</h2>
+                     <h2 className="text-4xl font-black text-slate-900 uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>Profil Responden (1/2)</h2>
                      <div className="grid grid-cols-2 gap-8 flex-1">
                         <div className="border border-slate-200 rounded-2xl p-6 flex flex-col bg-slate-50">
                            <h3 className="text-center font-black text-lg uppercase text-slate-700 mb-4 border-b pb-2">Jenis Kelamin</h3>
@@ -553,7 +580,7 @@ export const PresentationPage: React.FC = () => {
 
                 {slide.type === "demo2" && (
                   <div className="flex-1 flex flex-col p-12 bg-white">
-                     <h2 className="text-4xl font-black text-slate-900 uppercase border-l-8 border-primary pl-6 mb-8">Profil Responden (2/2)</h2>
+                     <h2 className="text-4xl font-black text-slate-900 uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>Profil Responden (2/2)</h2>
                      <div className="grid grid-cols-2 gap-8 flex-1">
                         <div className="border border-slate-200 rounded-2xl p-6 flex flex-col bg-slate-50">
                            <h3 className="text-center font-black text-lg uppercase text-slate-700 mb-4 border-b pb-2">Kelompok Umur</h3>
@@ -578,30 +605,23 @@ export const PresentationPage: React.FC = () => {
 
                 {slide.type === "ikm" && (
                   <div className="flex-1 flex flex-col p-12 bg-white">
-                     <h2 className="text-4xl font-black text-slate-900 uppercase border-l-8 border-primary pl-6 mb-12">Indeks Kepuasan Masyarakat (IKM)</h2>
-                     <div className="flex flex-1 items-center justify-center gap-12">
-                        <div className="bg-slate-50 border border-slate-200 rounded-3xl p-12 text-center shadow-lg w-1/2">
-                          <p className="text-xl font-bold text-slate-500 uppercase tracking-widest mb-6">Total Responden</p>
-                          <p className="text-[6rem] font-black text-slate-900 leading-none">{data.meta.total_respondents}</p>
-                          <p className="text-2xl font-bold text-slate-400 mt-2">Masyarakat</p>
-                        </div>
-                        <div className="bg-primary/5 border-2 border-primary/20 rounded-3xl p-12 text-center shadow-xl w-1/2 relative overflow-hidden">
-                          <div className="absolute top-0 right-0 p-8 opacity-5">
-                            <svg className="w-48 h-48" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 4l7.5 13h-15L12 6z"/></svg>
-                          </div>
-                          <p className="text-xl font-bold text-primary uppercase tracking-widest mb-6">Nilai IKM Unit Pelayanan</p>
-                          <p className="text-[8rem] font-black text-slate-900 leading-none mb-6">{data.ikm.score.toFixed(2)}</p>
-                          <div className="inline-block px-8 py-3 bg-slate-900 text-white rounded-full text-3xl font-black uppercase tracking-widest shadow-md">
-                            Mutu: {data.ikm.category}
-                          </div>
-                        </div>
+                     <h2 className="text-4xl font-black text-slate-900 uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>Nilai Indeks Kepuasan Masyarakat</h2>
+                     <div className="flex-1 flex items-center justify-center">
+                       <div className="text-center p-16 rounded-[3rem] shadow-2xl border border-slate-100 relative overflow-hidden" style={{ backgroundColor: activeTheme.primaryHex + '15' }}>
+                         <div className="absolute top-0 left-0 w-full h-4" style={{ backgroundColor: activeTheme.primaryHex }} />
+                         <p className="text-2xl font-bold text-slate-500 mb-6 uppercase tracking-widest">Nilai IKM Unit Pelayanan</p>
+                         <h1 className="text-9xl font-black tracking-tighter mb-4" style={{ color: activeTheme.primaryHex }}>{data.ikm?.score ?? "0.00"}</h1>
+                         <div className="inline-flex px-8 py-3 rounded-full text-2xl font-bold text-white shadow-lg" style={{ backgroundColor: activeTheme.primaryHex }}>
+                           MUTU: {data.ikm?.grade ?? "C"}
+                         </div>
+                       </div>
                      </div>
                   </div>
                 )}
 
                 {slide.type === "all-indicators" && (
                   <div className="flex-1 flex flex-col p-12 bg-white">
-                     <h2 className="text-4xl font-black text-slate-900 uppercase border-l-8 border-primary pl-6 mb-8">Rekapitulasi 9 Indikator</h2>
+                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 pl-5 mb-8" style={{ borderColor: activeTheme.primaryHex }}>Rekapitulasi 9 Indikator</h2>
                      <div className="flex-1 border border-slate-200 rounded-2xl p-8 bg-slate-50">
                        <ResponsiveContainer width="100%" height="100%">
                          <BarChart data={data.indicators} layout="vertical" margin={{ left: 220, right: 40, top: 20, bottom: 20 }}>
@@ -620,8 +640,8 @@ export const PresentationPage: React.FC = () => {
                 )}
 
                 {slide.type === "kategori-mutu" && (
-                  <div className="flex-1 flex flex-col p-10 bg-white">
-                    <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 border-primary pl-5 mb-8">Kategori Mutu Pelayanan</h2>
+                  <div className="flex-1 flex flex-col p-12 bg-white">
+                    <h2 className="text-4xl font-black text-slate-900 uppercase border-l-8 pl-6 mb-12" style={{ borderColor: activeTheme.primaryHex }}>Kategori Mutu Pelayanan</h2>
                     <div className="grid grid-cols-2 gap-6 flex-1">
                       {[
                         { label: 'A – Sangat Baik', range: '88,31 – 100,00', ikm: '3,532 – 4,00', color: '#059669', bg: '#d1fae5' },
@@ -644,11 +664,11 @@ export const PresentationPage: React.FC = () => {
 
                 {slide.type === "tabel-unsur" && (
                   <div className="flex-1 flex flex-col p-10 bg-white">
-                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 border-blue-700 pl-5 mb-6">Tabel Nilai Per Unsur Pelayanan</h2>
+                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 pl-5 mb-6" style={{ borderColor: activeTheme.primaryHex }}>Tabel Nilai Per Unsur Pelayanan</h2>
                      <div className="flex-1 overflow-auto">
                        <table className="w-full text-sm border-collapse">
                          <thead>
-                           <tr style={{ background: '#1e40af', color: '#fff' }}>
+                           <tr style={{ background: activeTheme.primaryHex, color: '#fff' }}>
                              <th className="text-left p-3 font-bold">No</th>
                              <th className="text-left p-3 font-bold">Unsur Pelayanan</th>
                              <th className="text-center p-3 font-bold">Nilai Rata-Rata</th>
@@ -683,14 +703,6 @@ export const PresentationPage: React.FC = () => {
                   const avg: number = ind?.avg ?? 0;
                   const dist = ind?.distribution ?? {};
                   return (
-                  <div className="flex-1 flex flex-col p-12 bg-white">
-                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 border-primary pl-6 mb-8">{slide.title}</h2>
-                     <div className="grid grid-cols-2 gap-10 flex-1">
-                        <div className="flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-3xl p-10 text-center">
-                           <p className="text-xl font-bold text-slate-500 uppercase tracking-widest mb-4">Nilai Rata-Rata Unsur</p>
-                           <p className="text-[7rem] font-black text-slate-900 leading-none mb-6">{avg.toFixed(2)}</p>
-                           <p className="text-2xl font-bold text-slate-600">Skala 1 - 4</p>
-                        </div>
                         <div className="flex flex-col bg-white border border-slate-200 rounded-3xl p-10">
                            <p className="text-xl font-bold text-slate-500 uppercase tracking-widest mb-8 text-center">Distribusi Jawaban Responden</p>
                            <div className="flex-1">
@@ -719,7 +731,7 @@ export const PresentationPage: React.FC = () => {
                 })()}
 
                 {slide.type === "closing" && (
-                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-slate-900 text-white">
+                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-white" style={{ backgroundColor: activeTheme.closingBg }}>
                      <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mb-10">
                        <svg className="w-12 h-12 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                      </div>
