@@ -451,18 +451,19 @@ export const PresentationPage: React.FC = () => {
       if (ind.avg < lowestInd.avg) lowestInd = ind;
     });
 
+    const calculateGrade = (s: number) => {
+      if (s >= 88.31) return { grade: "A", predikat: "SANGAT BAIK", color: "#059669" };
+      if (s >= 76.61) return { grade: "B", predikat: "BAIK", color: "#3b82f6" };
+      if (s >= 65.00) return { grade: "C", predikat: "KURANG BAIK", color: "#f59e0b" };
+      return { grade: "D", predikat: "TIDAK BAIK", color: "#ef4444" };
+    };
+
     const score = Number(data.ikm?.score ?? 0);
-    // Recalculate grade correctly based on Permenpan RB logic
-    let grade = "C";
-    if (score >= 88.31) grade = "A";
-    else if (score >= 76.61) grade = "B";
-    else if (score >= 65.00) grade = "C";
-    else grade = "D";
+    const { grade, predikat } = calculateGrade(score);
 
     // Update the Mutu grade in state directly so the slide updates immediately
     setData(prev => prev ? ({ ...prev, ikm: { ...prev.ikm, grade, score: prev.ikm?.score ?? 0 } }) as any : prev);
 
-    const predikat = grade === "A" ? "SANGAT BAIK" : grade === "B" ? "BAIK" : grade === "C" ? "KURANG BAIK" : "TIDAK BAIK";
     const nrr = (score / 25).toFixed(3);
     const period = config.period || new Date().getFullYear().toString();
     const agency = config.agency || 'Instansi';
@@ -870,14 +871,25 @@ export const PresentationPage: React.FC = () => {
                   <div className="flex-1 flex flex-col p-12 bg-white dark:bg-slate-900">
                      <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>Nilai Indeks Kepuasan Masyarakat</h2>
                      <div className="flex-1 flex items-center justify-center">
-                       <div className="text-center p-16 rounded-[3rem] shadow-2xl border border-slate-100 dark:border-slate-800 relative overflow-hidden bg-white dark:bg-slate-800">
-                         <div className="absolute top-0 left-0 w-full h-4" style={{ backgroundColor: activeTheme.primaryHex }} />
-                         <p className="text-2xl font-bold text-slate-500 dark:text-slate-400 mb-6 uppercase tracking-widest">Nilai IKM Unit Pelayanan</p>
-                         <h1 className="text-9xl font-black tracking-tighter mb-4" style={{ color: activeTheme.primaryHex }}>{data.ikm?.score ?? "0.00"}</h1>
-                         <div className="inline-flex px-8 py-3 rounded-full text-2xl font-bold text-white shadow-lg" style={{ backgroundColor: activeTheme.primaryHex }}>
-                           MUTU: {data.ikm?.grade ?? "C"}
-                         </div>
-                       </div>
+                       {(() => {
+                         const score = Number(data.ikm?.score ?? 0);
+                         let grade = "D";
+                         let color = "#ef4444";
+                         if (score >= 88.31) { grade = "A"; color = "#059669"; }
+                         else if (score >= 76.61) { grade = "B"; color = "#3b82f6"; }
+                         else if (score >= 65.00) { grade = "C"; color = "#f59e0b"; }
+                         
+                         return (
+                          <div className="text-center p-16 rounded-[3rem] shadow-2xl border border-slate-100 dark:border-slate-800 relative overflow-hidden bg-white dark:bg-slate-800">
+                            <div className="absolute top-0 left-0 w-full h-4" style={{ backgroundColor: color }} />
+                            <p className="text-2xl font-bold text-slate-500 dark:text-slate-400 mb-6 uppercase tracking-widest">Nilai IKM Unit Pelayanan</p>
+                            <h1 className="text-9xl font-black tracking-tighter mb-4" style={{ color: color }}>{score.toFixed(2)}</h1>
+                            <div className="inline-flex px-8 py-3 rounded-full text-2xl font-bold text-white shadow-lg" style={{ backgroundColor: color }}>
+                              MUTU: {grade}
+                            </div>
+                          </div>
+                         );
+                       })()}
                      </div>
                   </div>
                 )}
