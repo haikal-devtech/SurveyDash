@@ -272,7 +272,8 @@ export const PresentationPage: React.FC = () => {
     const base: any[] = [
       { id: "cover",            type: "cover",          title: "Cover" },
       { id: "kata-pengantar",   type: "text",           title: "Kata Pengantar",              field: "kataPengantar" },
-      { id: "daftar-isi",       type: "toc",            title: "Daftar Isi" },
+      { id: "daftar-isi-1",     type: "toc",            title: "Daftar Isi (1/2)",            part: 1 },
+      { id: "daftar-isi-2",     type: "toc",            title: "Daftar Isi (2/2)",            part: 2 },
       { id: "bab1-title",       type: "chapter",        title: "BAB I\nPendahuluan" },
       { id: "bab1-latar",       type: "text",           title: "Latar Belakang",              field: "latarBelakang" },
       { id: "bab1-hukum",       type: "text",           title: "Landasan Hukum",              field: "landasanHukum" },
@@ -695,16 +696,23 @@ export const PresentationPage: React.FC = () => {
                 )}
 
                 {slide.type === "toc" && (() => {
-                  const tocItems = slides.filter(s =>
+                  const allItems = slides.filter(s =>
                     s.type === 'chapter' ||
                     (s.type === 'text' && !s.id.startsWith('ind-')) ||
                     s.type === 'demo1' || s.type === 'demo2' ||
                     s.id === 'bab4-ikm' || s.id === 'bab4-tabel' || s.id === 'bab4-kategori' ||
                     s.id === 'bab5-all'
                   );
+                  
+                  const half = Math.ceil(allItems.length / 2);
+                  const part = (slide as any).part || 1;
+                  const tocItems = part === 1 ? allItems.slice(0, half) : allItems.slice(half);
+
                   return (
                   <div className="flex-1 flex flex-col pt-6 px-10 pb-2 overflow-hidden">
-                     <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-5 mb-5 flex-shrink-0" style={{ borderColor: activeTheme.primaryHex }}>Daftar Isi</h2>
+                     <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-5 mb-5 flex-shrink-0" style={{ borderColor: activeTheme.primaryHex }}>
+                       Daftar Isi ({part}/2)
+                     </h2>
                      <div className="flex-1 overflow-auto">
                        <div className="grid grid-cols-2 gap-x-10 gap-y-1 text-sm font-medium text-slate-700 dark:text-slate-300">
                          {tocItems.map((s, idx) => {
