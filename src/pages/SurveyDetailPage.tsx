@@ -143,8 +143,8 @@ export const SurveyDetailPage: React.FC = () => {
         const demoConfig: SurveyConfig = {
           id: "demo",
           name: "DEMO: Survei Kepuasan Masyarakat",
-          agency: "BPBD Kota Tangerang Selatan",
-          period: "April 2026",
+          agency: "Instansi Pelayanan Publik",
+          period: "2026",
           scriptUrl: "demo",
           isActive: true,
           createdAt: new Date(),
@@ -279,6 +279,18 @@ export const SurveyDetailPage: React.FC = () => {
     : [];
 
   const COLORS_GOOGLE = ['#4285F4', '#DB4437', '#F4B400', '#0F9D58', '#AB47BC', '#00ACC1', '#FF7043', '#9E9D24', '#5C6BC0'];
+
+  const INDIKATOR_OPTIONS = [
+    ["Tidak Sesuai", "Kurang Sesuai", "Sesuai", "Sangat Sesuai"],
+    ["Tidak Mudah", "Kurang Mudah", "Mudah", "Sangat Mudah"],
+    ["Tidak Cepat", "Kurang Cepat", "Cepat", "Sangat Cepat"],
+    ["Sangat Mahal", "Cukup Mahal", "Murah", "Gratis"],
+    ["Tidak Sesuai", "Kurang Sesuai", "Sesuai", "Sangat Sesuai"],
+    ["Tidak Kompeten", "Kurang", "Kompeten", "Sangat Kompeten"],
+    ["Tidak Sopan", "Kurang Sopan", "Sopan", "Sangat Sopan"],
+    ["Tidak Ada", "Kurang Berfungsi", "Berfungsi", "Dikelola Baik"],
+    ["Buruk", "Cukup", "Baik", "Sangat Baik"]
+  ];
 
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     const RADIAN = Math.PI / 180;
@@ -729,7 +741,7 @@ export const SurveyDetailPage: React.FC = () => {
                       <CardContent className="pb-6 pt-0">
                         <div className="space-y-3">
                           <div className="grid grid-cols-4 gap-3">
-                             {["SK", "K", "B", "SB"].map((label, i) => {
+                             {(INDIKATOR_OPTIONS[idx] || ["1", "2", "3", "4"]).map((label, i) => {
                                const count = indicator.distribution[i];
                                const percentage = ((count / total) * 100).toFixed(1);
                                const isDominant = i === maxIdx;

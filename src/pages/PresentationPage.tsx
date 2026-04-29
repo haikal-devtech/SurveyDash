@@ -36,6 +36,18 @@ export const PresentationPage: React.FC = () => {
   const [config, setConfig] = useState<SurveyConfig | null>(null);
   const [data, setData] = useState<SurveyData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const INDIKATOR_OPTIONS = [
+    ["Tidak Sesuai", "Kurang Sesuai", "Sesuai", "Sangat Sesuai"],
+    ["Tidak Mudah", "Kurang Mudah", "Mudah", "Sangat Mudah"],
+    ["Tidak Cepat", "Kurang Cepat", "Cepat", "Sangat Cepat"],
+    ["Sangat Mahal", "Cukup Mahal", "Murah", "Gratis"],
+    ["Tidak Sesuai", "Kurang Sesuai", "Sesuai", "Sangat Sesuai"],
+    ["Tidak Kompeten", "Kurang Kompeten", "Kompeten", "Sangat Kompeten"],
+    ["Tidak Sopan", "Kurang Sopan", "Sopan", "Sangat Sopan"],
+    ["Tidak Ada", "Kurang Berfungsi", "Berfungsi", "Dikelola Baik"],
+    ["Buruk", "Cukup", "Baik", "Sangat Baik"]
+  ];
   
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -53,22 +65,22 @@ export const PresentationPage: React.FC = () => {
   const [presentationData, setPresentationData] = useState({
     title: "LAPORAN HASIL SURVEI KEPUASAN MASYARAKAT",
     subtitle: "", // auto-filled from config
-    kataPengantar: "Puji syukur ke hadirat Tuhan Yang Maha Esa atas rahmat dan karunia-Nya, sehingga Laporan Hasil Survei Kepuasan Masyarakat (SKM) Badan Penanggulangan Bencana Daerah (BPBD) Kota Tangerang Selatan Tahun 2025 ini dapat diselesaikan dengan baik.\n\nPelaksanaan Survei Kepuasan Masyarakat ini merupakan wujud nyata komitmen BPBD Kota Tangerang Selatan dalam meningkatkan kualitas pelayanan publik di bidang penanggulangan bencana, sejalan dengan Permenpan RB No. 14 Tahun 2017. Laporan ini merangkum hasil evaluasi persepsi masyarakat terhadap 9 unsur pelayanan yang telah diberikan sepanjang periode survei.\n\nHasil survei ini diharapkan dapat menjadi bahan evaluasi dan dasar perbaikan berkelanjutan bagi seluruh jajaran BPBD Kota Tangerang Selatan dalam memberikan pelayanan yang lebih prima, responsif, dan berorientasi pada kepuasan masyarakat.",
-    latarBelakang: "Pelayanan publik yang dilakukan oleh aparatur pemerintah masih dirasakan belum sepenuhnya memenuhi harapan masyarakat. Aparatur pemerintah selalu dituntut untuk memberikan pelayanan terbaik kepada masyarakat.\n\nBPBD Kota Tangerang Selatan merupakan salah satu Organisasi Pemerintah Daerah yang memberikan pelayanan publik di bidang penanggulangan bencana, perlindungan masyarakat, serta penanganan kedaruratan dan logistik bencana.\n\nSalah satu upaya yang harus dilakukan untuk melakukan perbaikan layanan publik adalah melaksanakan Survei Kepuasan Masyarakat (SKM) kepada pengguna layanan secara berkala. Kepuasan yang diperoleh masyarakat sebagai pengguna layanan dapat dijadikan sebagai salah satu indikator keberhasilan penyelenggaraan pelayanan publik. Oleh karena itu, BPBD Kota Tangerang Selatan melaksanakan SKM pada Tahun 2025 ini.",
-    maksudTujuan: "TUJUAN SURVEI:\n1. Untuk mengetahui tingkat kepuasan masyarakat terhadap pelayanan yang diberikan oleh BPBD Kota Tangerang Selatan.\n2. Mengukur persepsi publik terhadap kinerja pelayanan BPBD Kota Tangerang Selatan.\n3. Mendorong penyelenggara pelayanan untuk meningkatkan kualitas pelayanan publik secara berkelanjutan.\n\nTAHAPAN SURVEI & OUTPUT:\n• Desk Study : Penyusunan instrumen, penentuan sampel, pembekalan surveyor.\n• Survei      : Pengumpulan data lapangan (wawancara tatap muka).\n• Entri & Analisis Data : Mengelola dan mengolah hasil survei.\n• Penyusunan Laporan : Menyajikan dokumen hasil indeks kepuasan masyarakat terhadap BPBD.",
-    ruangLingkup: "Ruang lingkup survei mencakup seluruh layanan yang diselenggarakan BPBD Kota Tangerang Selatan, meliputi:\n\n• Layanan Penyelamatan & Evakuasi Korban Bencana (Kedaruratan & Logistik) — 43%\n• Layanan Informasi Rawan Bencana (Pencegahan & Kesiapsiagaan) — 33%\n• Layanan Penanganan Pasca Bencana (Rehabilitasi & Rekonstruksi) — 24%\n• Layanan Pencegahan dan Kesiapan Terhadap Bencana — 21%\n\nPengukuran dilakukan terhadap 9 unsur pelayanan sesuai Permenpan RB No. 14 Tahun 2017:\n1. Persyaratan\n2. Sistem, Mekanisme, dan Prosedur\n3. Waktu Penyelesaian\n4. Biaya/Tarif\n5. Produk Spesifikasi Jenis Pelayanan\n6. Kompetensi Pelaksana\n7. Perilaku Pelaksana\n8. Penanganan Pengaduan, Saran, dan Masukan\n9. Sarana dan Prasarana",
-    visiMisi: "VISI:\n[Silakan isi dengan Visi BPBD Kota Tangerang Selatan]\n\nMISI:\n1. [Misi 1 BPBD Kota Tangerang Selatan]\n2. [Misi 2 BPBD Kota Tangerang Selatan]\n3. [Misi 3 BPBD Kota Tangerang Selatan]\n\n(Edit bagian ini sesuai dokumen resmi BPBD Kota Tangerang Selatan)",
-    maklumat: "MAKLUMAT PELAYANAN BPBD KOTA TANGERANG SELATAN:\n\n\"Kami menyatakan sanggup menyelenggarakan pelayanan penanggulangan bencana dan perlindungan masyarakat sesuai standar pelayanan yang telah ditetapkan dan apabila tidak menepati janji ini, kami siap menerima sanksi sesuai peraturan perundang-undangan yang berlaku.\"",
+    kataPengantar: "Puji syukur ke hadirat Tuhan Yang Maha Esa atas rahmat dan karunia-Nya, sehingga Laporan Hasil Survei Kepuasan Masyarakat (SKM) [NAMA INSTANSI] Tahun 2025 ini dapat diselesaikan dengan baik.\n\nPelaksanaan Survei Kepuasan Masyarakat ini merupakan wujud nyata komitmen [NAMA INSTANSI] dalam meningkatkan kualitas pelayanan publik, sejalan dengan Permenpan RB No. 14 Tahun 2017. Laporan ini merangkum hasil evaluasi persepsi masyarakat terhadap 9 unsur pelayanan yang telah diberikan sepanjang periode survei.\n\nHasil survei ini diharapkan dapat menjadi bahan evaluasi dan dasar perbaikan berkelanjutan bagi seluruh jajaran [NAMA INSTANSI] dalam memberikan pelayanan yang lebih prima, responsif, and berorientasi pada kepuasan masyarakat.",
+    latarBelakang: "Pelayanan publik yang dilakukan oleh aparatur pemerintah masih dirasakan belum sepenuhnya memenuhi harapan masyarakat. Aparatur pemerintah selalu dituntut untuk memberikan pelayanan terbaik kepada masyarakat.\n\n[NAMA INSTANSI] merupakan salah satu unit kerja yang memberikan pelayanan publik kepada masyarakat.\n\nSalah satu upaya yang harus dilakukan untuk melakukan perbaikan layanan publik adalah melaksanakan Survei Kepuasan Masyarakat (SKM) kepada pengguna layanan secara berkala. Kepuasan yang diperoleh masyarakat sebagai pengguna layanan dapat dijadikan sebagai salah satu indikator keberhasilan penyelenggaraan pelayanan publik. Oleh karena itu, [NAMA INSTANSI] melaksanakan SKM pada Tahun 2025 ini.",
+    maksudTujuan: "TUJUAN SURVEI:\n1. Untuk mengetahui tingkat kepuasan masyarakat terhadap pelayanan yang diberikan oleh [NAMA INSTANSI].\n2. Mengukur persepsi publik terhadap kinerja pelayanan [NAMA INSTANSI].\n3. Mendorong penyelenggara pelayanan untuk meningkatkan kualitas pelayanan publik secara berkelanjutan.\n\nTAHAPAN SURVEI & OUTPUT:\n• Desk Study : Penyusunan instrumen, penentuan sampel, pembekalan surveyor.\n• Survei      : Pengumpulan data lapangan (wawancara tatap muka).\n• Entri & Analisis Data : Mengelola dan mengolah hasil survei.\n• Penyusunan Laporan : Menyajikan dokumen hasil indeks kepuasan masyarakat terhadap [NAMA INSTANSI].",
+    ruangLingkup: "Ruang lingkup survei mencakup seluruh layanan yang diselenggarakan [NAMA INSTANSI].\n\nPengukuran dilakukan terhadap 9 unsur pelayanan sesuai Permenpan RB No. 14 Tahun 2017:\n1. Persyaratan\n2. Sistem, Mekanisme, dan Prosedur\n3. Waktu Penyelesaian\n4. Biaya/Tarif\n5. Produk Spesifikasi Jenis Pelayanan\n6. Kompetensi Pelaksana\n7. Perilaku Pelaksana\n8. Penanganan Pengaduan, Saran, dan Masukan\n9. Sarana dan Prasarana",
+    visiMisi: "VISI:\n[Silakan isi dengan Visi [NAMA INSTANSI]]\n\nMISI:\n1. [Misi 1 [NAMA INSTANSI]]\n2. [Misi 2 [NAMA INSTANSI]]\n3. [Misi 3 [NAMA INSTANSI]]\n\n(Edit bagian ini sesuai dokumen resmi [NAMA INSTANSI])",
+    maklumat: "MAKLUMAT PELAYANAN [NAMA INSTANSI]:\n\n\"Kami menyatakan sanggup menyelenggarakan pelayanan sesuai standar pelayanan yang telah ditetapkan dan apabila tidak menepati janji ini, kami siap menerima sanksi sesuai peraturan perundang-undangan yang berlaku.\"",
     metodologi: "JENIS PENELITIAN:\nPenelitian ini menggunakan pendekatan Kuantitatif Deskriptif.\n\nPENGUMPULAN DATA:\nPengumpulan data dilakukan melalui wawancara tatap muka (door to door) oleh surveyor terlatih menggunakan kuesioner terstruktur berbasis 9 unsur SKM Permenpan RB No. 14 Tahun 2017.\n\nPENGOLAHAN DATA:\n• Tentukan nilai rata-rata tertimbang: Bobot = 1/9 = 0,111\n• Nilai SKM/IKM = (Total Nilai Per Unsur / Total Unsur Terisi) × Nilai Penimbang\n• Konversi: SKM × 25 (untuk mendapatkan nilai interval 25–100)\n\nQUALITY CONTROL:\nDilakukan pembersihan data sampah (non-sampling error) sebelum analisis final.",
-    lokasiWaktu: "LOKASI SURVEI:\nSurvei dilakukan di lingkungan kantor BPBD Kota Tangerang Selatan dan pada lokasi penerima layanan secara langsung (lapangan).\n\nWAKTU PELAKSANAAN:\nSurvei Kepuasan Masyarakat BPBD Kota Tangerang Selatan dilaksanakan pada Tahun 2025.\n\nTARGET RESPONDEN:\n• Target awal : 400 responden\n• Total terkumpul : 388 responden\n• Setelah pembersihan data (non-sampling error 19 responden) : 369 responden valid",
-    kesimpulan: "Berdasarkan hasil pengolahan data Survei Kepuasan Masyarakat BPBD Kota Tangerang Selatan Tahun 2025:\n\n1. Nilai Rata-Rata (NRR) IKM sebesar 3,43 dengan Nilai Konversi SKM 85,76.\n2. Mutu Pelayanan berada pada kategori B — BAIK.\n3. Unsur dengan nilai tertinggi adalah Biaya/Tarif (3,93) — masyarakat menilai positif layanan yang sebagian besar bersifat gratis.\n4. Unsur Penanganan Pengaduan, Saran dan Masukan mendapat nilai 3,71 — dikelola dengan baik.\n5. Unsur dengan nilai terendah adalah Waktu Penyelesaian (3,29) dan Sarana & Prasarana (3,35).\n6. Terjadi PENURUNAN nilai dibanding Tahun 2024 (84,96 → 85,76 — terdapat fluktuasi pada beberapa unsur).",
-    rekomendasi: "Berdasarkan temuan survei, rekomendasi tindak lanjut yang perlu dilaksanakan BPBD Kota Tangerang Selatan:\n\n1. Melakukan peningkatan pelayanan pada SELURUH unsur karena adanya tren penurunan yang perlu diwaspadai.\n2. Prioritas perbaikan pada unsur dengan nilai terendah:\n   • Waktu Penyelesaian (3,29) — percepat SOP respons & waktu tanggap bencana.\n   • Sarana dan Prasarana (3,35) — tingkatkan kelengkapan fasilitas operasional dan ruang layanan.\n3. Pertahankan keunggulan pada unsur Biaya/Tarif dan Penanganan Pengaduan.\n4. Lakukan monitoring dan evaluasi berkala (minimal per semester) untuk memantau tren kepuasan masyarakat.",
-    landasanHukum: "Pelaksanaan SKM BPBD Kota Tangerang Selatan Tahun 2025 berlandaskan pada:\n\n1. Undang-Undang Republik Indonesia Nomor 25 Tahun 2009 tentang Pelayanan Publik.\n2. Permenpan RB RI Nomor 6 Tahun 2014 tentang Pedoman Pembangunan Zona Integritas Menuju Wilayah Bebas dari Korupsi (WBK) dan Wilayah Birokrasi Bersih dan Melayani (WBBM).\n3. Permenpan RB RI Nomor 14 Tahun 2017 tentang Pedoman Penyusunan Survei Kepuasan Masyarakat Unit Penyelenggara Pelayanan Publik.\n4. Peraturan Walikota Tangerang Selatan Nomor 44 Tahun 2020 tentang Survei Kepuasan Masyarakat Terhadap Pelayanan Publik.",
-    profilInstansi: "Badan Penanggulangan Bencana Daerah (BPBD) Kota Tangerang Selatan merupakan perangkat daerah yang menyelenggarakan sub urusan penanggulangan bencana di wilayah Kota Tangerang Selatan.\n\nBPBD Kota Tangerang Selatan memberikan pelayanan publik meliputi:\n• Layanan Penyelamatan & Evakuasi Korban Bencana\n• Layanan Informasi Rawan Bencana\n• Layanan Penanganan Pasca Bencana (Rehabilitasi & Rekonstruksi)\n• Layanan Pencegahan dan Kesiapan Terhadap Bencana\n\nBPBD berkomitmen untuk terus meningkatkan kualitas pelayanan kepada masyarakat secara profesional, transparan, cepat, dan akuntabel.",
-    tupoksi: "TUGAS POKOK:\nMembantu Walikota Tangerang Selatan dalam penyelenggaraan urusan pemerintahan di bidang penanggulangan bencana dan perlindungan masyarakat berdasarkan asas otonomi daerah.\n\nFUNGSI:\n1. Perumusan kebijakan penanggulangan bencana daerah.\n2. Pengkoordinasian pelaksanaan kegiatan penanggulangan bencana secara terencana, terpadu, dan menyeluruh.\n3. Penyelenggaraan kegiatan pencegahan, kesiapsiagaan, tanggap darurat, dan pemulihan pasca bencana.\n4. Pengelolaan logistik dan peralatan penanggulangan bencana.\n5. Pemantauan, evaluasi, dan pelaporan pelaksanaan tugas penanggulangan bencana.",
-    populasiSampel: "POPULASI:\nSeluruh masyarakat yang menerima layanan dari BPBD Kota Tangerang Selatan selama periode survei Tahun 2025.\n\nSAMPEL:\n• Target responden : 400 orang\n• Responden terkumpul : 388 orang\n• Data valid (setelah cleaning) : 369 responden\n• Metode sampling : Accidental Sampling (responden yang sedang/baru menerima layanan)\n\nPROFIL RESPONDEN:\n• Jenis Kelamin : Laki-laki 45% | Perempuan 55%\n• Usia dominan : 41–60 tahun (67%)\n• Pendidikan dominan : SMA/Sederajat (46%)\n• Pekerjaan dominan : Ibu Rumah Tangga (35%), Wirausaha (22%), PNS (16%)\n• Suku dominan : Jawa (42%), Sunda (18%), Betawi (16%)",
+    lokasiWaktu: "LOKASI SURVEI:\nSurvei dilakukan di lingkungan kantor [NAMA INSTANSI] dan pada lokasi penerima layanan secara langsung (lapangan).\n\nWAKTU PELAKSANAAN:\nSurvei Kepuasan Masyarakat [NAMA INSTANSI] dilaksanakan pada Tahun 2025.\n\nTARGET RESPONDEN:\n• Target awal : 400 responden\n• Total terkumpul : 388 responden\n• Setelah pembersihan data (non-sampling error 19 responden) : 369 responden valid",
+    kesimpulan: "Berdasarkan hasil pengolahan data Survei Kepuasan Masyarakat [NAMA INSTANSI] Tahun 2025:\n\n1. Nilai Rata-Rata (NRR) IKM dan Nilai Konversi SKM dihitung secara otomatis.\n2. Mutu Pelayanan berada pada kategori B — BAIK.\n3. Unsur dengan nilai tertinggi adalah Biaya/Tarif (3,93) — masyarakat menilai positif layanan yang bersifat gratis.\n4. Unsur Penanganan Pengaduan, Saran dan Masukan mendapat nilai 3,71 — dikelola dengan baik.\n5. Unsur dengan nilai terendah adalah Waktu Penyelesaian (3,29) dan Sarana & Prasarana (3,35).",
+    rekomendasi: "Berdasarkan temuan survei, rekomendasi tindak lanjut yang perlu dilaksanakan [NAMA INSTANSI]:\n\n1. Melakukan peningkatan pelayanan pada SELURUH unsur pelayanan.\n2. Prioritas perbaikan pada unsur dengan nilai terendah:\n   • Waktu Penyelesaian — percepat SOP respons dan waktu tanggap.\n   • Sarana dan Prasarana — tingkatkan kelengkapan fasilitas operasional dan ruang layanan.\n3. Pertahankan keunggulan pada unsur Biaya/Tarif dan Penanganan Pengaduan.\n4. Lakukan monitoring dan evaluasi berkala untuk memantau tren kepuasan masyarakat.",
+    landasanHukum: "Pelaksanaan SKM [NAMA INSTANSI] Tahun 2025 berlandaskan pada:\n\n1. Undang-Undang Republik Indonesia Nomor 25 Tahun 2009 tentang Pelayanan Publik.\n2. Permenpan RB RI Nomor 14 Tahun 2017 tentang Pedoman Penyusunan Survei Kepuasan Masyarakat Unit Penyelenggara Pelayanan Publik.\n3. Peraturan Daerah/Instansi terkait Survei Kepuasan Masyarakat.",
+    profilInstansi: "[NAMA INSTANSI] merupakan unit kerja yang menyelenggarakan pelayanan publik.\n\n[NAMA INSTANSI] berkomitmen untuk terus meningkatkan kualitas pelayanan kepada masyarakat secara profesional, transparan, cepat, dan akuntabel.",
+    tupoksi: "TUGAS POKOK:\nMenyelenggarakan urusan pemerintahan sesuai dengan bidang tugas and fungsi yang telah ditetapkan oleh [KEPALA DAERAH/INSTANSI].\n\nFUNGSI:\n1. Perumusan kebijakan teknis.\n2. Pengkoordinasian pelaksanaan kegiatan secara terencana, terpadu, and menyeluruh.\n3. Penyelenggaraan kegiatan sesuai standar pelayanan.\n4. Pemantauan, evaluasi, and pelaporan pelaksanaan tugas.",
+    populasiSampel: "POPULASI:\nSeluruh masyarakat yang menerima layanan dari [NAMA INSTANSI] selama periode survei Tahun 2025.\n\nSAMPEL:\n• Target responden disesuaikan dengan populasi.\n• Metode sampling : Accidental Sampling (responden yang sedang/baru menerima layanan).\n\nPROFIL RESPONDEN:\nData dirangkum berdasarkan Jenis Kelamin, Usia, Pendidikan, dan Pekerjaan responden.",
     teknikAnalisis: "PENGOLAHAN DATA:\nData diolah menggunakan sistem komputerisasi. Nilai IKM dihitung berdasarkan rata-rata tertimbang dari 9 unsur pelayanan.\n\nRUMUS IKM:\n• Nilai Penimbang = 1/9 = 0,111\n• Nilai IKM = (Total Nilai Per Unsur / 9) × 0,111\n• Nilai Konversi = IKM × 25\n\nKATEGORI MUTU (Permenpan RB No. 14/2017):\n• A (Sangat Baik) : Nilai Konversi 88,31 – 100,00 | NRR 3,532 – 4,00\n• B (Baik)         : Nilai Konversi 76,61 – 88,30  | NRR 3,064 – 3,532\n• C (Kurang Baik)  : Nilai Konversi 65,00 – 76,60  | NRR 2,60  – 3,064\n• D (Tidak Baik)   : Nilai Konversi 25,00 – 64,99  | NRR 1,00  – 2,60",
-    daftarPustaka: "1. Undang-Undang Nomor 25 Tahun 2009 tentang Pelayanan Publik.\n2. Peraturan Menteri PANRB Nomor 6 Tahun 2014 tentang Pedoman Pembangunan Zona Integritas (WBK/WBBM).\n3. Peraturan Menteri PANRB Nomor 14 Tahun 2017 tentang Pedoman Penyusunan Survei Kepuasan Masyarakat Unit Penyelenggara Pelayanan Publik.\n4. Peraturan Walikota Tangerang Selatan Nomor 44 Tahun 2020 tentang Survei Kepuasan Masyarakat.\n5. BPBD Kota Tangerang Selatan. (2025). Laporan Hasil Survei Kepuasan Masyarakat Tahun 2025. Tangerang Selatan: BPBD.\n6. Sinambela, L.P. (2016). Reformasi Pelayanan Publik. Jakarta: Bumi Aksara."
+    daftarPustaka: "1. Undang-Undang Nomor 25 Tahun 2009 tentang Pelayanan Publik.\n2. Peraturan Menteri PANRB Nomor 14 Tahun 2017 tentang Pedoman Penyusunan Survei Kepuasan Masyarakat Unit Penyelenggara Pelayanan Publik.\n3. Laporan Hasil Survei Kepuasan Masyarakat [NAMA INSTANSI].\n4. [Sumber Referensi Lokal Lainnya]"
   });
 
   const presentationRef = useRef<HTMLDivElement>(null);
@@ -105,36 +117,47 @@ export const PresentationPage: React.FC = () => {
             subtitle: `${agency}\nPeriode: ${period}`,
             kataPengantar: prev.kataPengantar
               .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
               .replace(/Tahun 2025/g, period),
             latarBelakang: prev.latarBelakang
               .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
               .replace(/Tahun 2025/g, period),
             maksudTujuan: prev.maksudTujuan
               .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
               .replace(/Tahun 2025/g, period),
             ruangLingkup: prev.ruangLingkup
               .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
               .replace(/Tahun 2025/g, period),
             metodologi: prev.metodologi
               .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
               .replace(/Tahun 2025/g, period),
             lokasiWaktu: prev.lokasiWaktu
               .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
               .replace(/Tahun 2025/g, period),
             kesimpulan: prev.kesimpulan
               .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
               .replace(/Tahun 2025/g, period),
             rekomendasi: prev.rekomendasi
               .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
               .replace(/Tahun 2025/g, period),
             landasanHukum: prev.landasanHukum
               .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
               .replace(/Tahun 2025/g, period),
             profilInstansi: prev.profilInstansi
               .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
               .replace(/Tahun 2025/g, period),
             tupoksi: prev.tupoksi
               .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
               .replace(/Tahun 2025/g, period),
             populasiSampel: prev.populasiSampel
               .replace(/BPBD Kota Tangerang Selatan/g, agency)
@@ -764,46 +787,46 @@ export const PresentationPage: React.FC = () => {
                        </table>
                      </div>
                   </div>
-                )}
+                 )}
 
-
-                {slide.type === "indicator" && (() => {
-                  const ind = slide.indicatorData as any;
-                  const avg: number = ind?.avg ?? 0;
-                  const dist = ind?.distribution ?? {};
-                  return (
-                  <div className="flex-1 flex flex-col p-12 bg-white dark:bg-slate-900">
-                     <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>{slide.title}</h2>
-                     <div className="grid grid-cols-2 gap-10 flex-1">
-                        <div className="flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-10 text-center">
-                           <p className="text-xl font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">Nilai Rata-Rata Unsur</p>
-                           <p className="text-[7rem] font-black leading-none mb-6" style={{ color: activeTheme.primaryHex }}>{avg.toFixed(2)}</p>
-                           <p className="text-2xl font-bold text-slate-600 dark:text-slate-300">Skala 1 - 4</p>
-                        </div>
-                        <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-10">
-                           <p className="text-xl font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-8 text-center">Distribusi Jawaban Responden</p>
-                           <div className="flex-1">
-                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={[
-                                  { name: 'Buruk', value: Number(dist['1'] ?? 0) },
-                                  { name: 'Cukup', value: Number(dist['2'] ?? 0) },
-                                  { name: 'Baik',  value: Number(dist['3'] ?? 0) },
-                                  { name: 'Sangat Baik', value: Number(dist['4'] ?? 0) }
-                                ]} margin={{ top: 20, right: 30, left: -20, bottom: 0 }}>
-                                   <XAxis dataKey="name" fontSize={12} fontWeight="bold" tickLine={false} axisLine={false} stroke="currentColor" className="text-slate-600 dark:text-slate-400" />
-                                   <YAxis fontSize={12} tickLine={false} axisLine={false} stroke="currentColor" className="text-slate-600 dark:text-slate-400" />
-                                   <Tooltip cursor={{fill: 'rgba(100,116,139,0.1)'}} contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', color: '#fff', borderRadius: '8px', border: 'none' }} itemStyle={{ color: '#fff' }} />
-                                   <Bar dataKey="value" fill="#4285F4" radius={[6, 6, 0, 0]} maxBarSize={80}>
-                                     {[0, 1, 2, 3].map((_, idx) => (
-                                       <Cell key={`c-${idx}`} fill={idx === 0 ? '#ef4444' : idx === 1 ? '#f59e0b' : idx === 2 ? '#3b82f6' : '#10b981'} />
-                                     ))}
-                                     <LabelList dataKey="value" position="top" formatter={(val: number) => {
-                                       const total = [Number(dist['1']??0), Number(dist['2']??0), Number(dist['3']??0), Number(dist['4']??0)].reduce((a,b)=>a+b,0);
-                                       return total > 0 ? `${val} (${((val/total)*100).toFixed(1)}%)` : val;
-                                     }} fontSize={12} fontWeight="bold" fill="currentColor" className="text-slate-700 dark:text-slate-300" />
-                                   </Bar>
-                                </BarChart>
-                             </ResponsiveContainer>
+                 {slide.type === "indicator" && (() => {
+                   const ind = slide.indicatorData as any;
+                   const avg: number = ind?.avg ?? 0;
+                   const dist = ind?.distribution ?? {};
+                   const options = INDIKATOR_OPTIONS[(ind?.id || 1) - 1] || ["Opsi 1", "Opsi 2", "Opsi 3", "Opsi 4"];
+                   return (
+                   <div className="flex-1 flex flex-col p-12 bg-white dark:bg-slate-900">
+                      <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>{slide.title}</h2>
+                      <div className="grid grid-cols-2 gap-10 flex-1">
+                         <div className="flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-10 text-center">
+                            <p className="text-xl font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">Nilai Rata-Rata Unsur</p>
+                            <p className="text-[7rem] font-black leading-none mb-6" style={{ color: activeTheme.primaryHex }}>{avg.toFixed(2)}</p>
+                            <p className="text-2xl font-bold text-slate-600 dark:text-slate-300">Skala 1 - 4</p>
+                         </div>
+                         <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-10">
+                            <p className="text-xl font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-8 text-center">Distribusi Jawaban Responden</p>
+                            <div className="flex-1">
+                              <ResponsiveContainer width="100%" height="100%">
+                                 <BarChart data={[
+                                   { name: options[0], value: Number(dist[0] ?? 0) },
+                                   { name: options[1], value: Number(dist[1] ?? 0) },
+                                   { name: options[2], value: Number(dist[2] ?? 0) },
+                                   { name: options[3], value: Number(dist[3] ?? 0) }
+                                 ]} margin={{ top: 20, right: 30, left: -20, bottom: 20 }}>
+                                    <XAxis dataKey="name" fontSize={12} fontWeight="bold" tickLine={false} axisLine={false} stroke="currentColor" className="text-slate-600 dark:text-slate-400" />
+                                    <YAxis fontSize={12} tickLine={false} axisLine={false} stroke="currentColor" className="text-slate-600 dark:text-slate-400" />
+                                    <Tooltip cursor={{fill: 'rgba(100,116,139,0.1)'}} contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', color: '#fff', borderRadius: '8px', border: 'none' }} itemStyle={{ color: '#fff' }} />
+                                    <Bar dataKey="value" fill="#4285F4" radius={[6, 6, 0, 0]} maxBarSize={80}>
+                                      {[0, 1, 2, 3].map((_, idx) => (
+                                        <Cell key={`c-${idx}`} fill={idx === 0 ? '#ef4444' : idx === 1 ? '#f59e0b' : idx === 2 ? '#3b82f6' : '#10b981'} />
+                                      ))}
+                                      <LabelList dataKey="value" position="top" formatter={(val: number) => {
+                                        const total = [Number(dist[0]??0), Number(dist[1]??0), Number(dist[2]??0), Number(dist[3]??0)].reduce((a,b)=>a+b,0);
+                                        return total > 0 ? `${val} (${((val/total)*100).toFixed(1)}%)` : val;
+                                      }} fontSize={12} fontWeight="bold" fill="currentColor" className="text-slate-700 dark:text-slate-300" />
+                                    </Bar>
+                                 </BarChart>
+                              </ResponsiveContainer>
                            </div>
                         </div>
                      </div>

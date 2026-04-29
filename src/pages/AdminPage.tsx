@@ -206,7 +206,7 @@ export const AdminPage: React.FC = () => {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Instansi / Unit Kerja</label>
-                    <Input placeholder="BPBD Kota Tangerang Selatan" required value={newSurvey.agency} onChange={e => setNewSurvey({ ...newSurvey, agency: e.target.value })} />
+                    <Input placeholder="Nama Instansi / Unit Kerja" required value={newSurvey.agency} onChange={e => setNewSurvey({ ...newSurvey, agency: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Periode</label>
@@ -276,7 +276,7 @@ export const AdminPage: React.FC = () => {
                 ))}
                 {surveys.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic">
+                    <TableCell colSpan={6} className="text-center py-10 text-muted-foreground italic">
                       Belum ada survei terdaftar.
                     </TableCell>
                   </TableRow>
@@ -384,7 +384,7 @@ export const AdminPage: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Instansi / Unit Kerja</label>
-                <Input placeholder="BPBD Kota Tangerang Selatan" required value={editingSurvey.agency} onChange={e => setEditingSurvey({ ...editingSurvey, agency: e.target.value })} />
+                <Input placeholder="Nama Instansi / Unit Kerja" required value={editingSurvey.agency} onChange={e => setEditingSurvey({ ...editingSurvey, agency: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Periode</label>

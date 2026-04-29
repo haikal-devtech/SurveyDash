@@ -56,7 +56,7 @@ export const LoginPage: React.FC = () => {
           </CardHeader>
           <CardContent className="pt-4 pb-8 text-center space-y-4">
              <div className="p-4 bg-accent/50 rounded-lg text-sm text-muted-foreground border border-border">
-               Hanya personil BPBD Kota Tangerang Selatan yang diizinkan mengakses dashboard ini.
+               Hanya personil instansi berwenang yang diizinkan mengakses dashboard ini.
              </div>
              
              <Button 
