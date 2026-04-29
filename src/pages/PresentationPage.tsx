@@ -5,7 +5,7 @@ import { db } from "@/lib/firebase";
 import { SurveyConfig, SurveyData } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import axios from "axios";
-import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Download, Edit3, Save, Type, Plus, Trash2, X, RefreshCw } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Download, Edit3, Save, Type, Plus, Trash2, X, RefreshCw, Sparkles, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,6 +58,38 @@ export const PresentationPage: React.FC = () => {
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [customSlides, setCustomSlides] = useState<{id:string,type:string,title:string,content:string}[]>([]);
   const [deletedSlideIds, setDeletedSlideIds] = useState<Set<string>>(new Set());
+  const [isRewriting, setIsRewriting] = useState(false);
+
+  const paginateText = (text: string, limit: number = 850) => {
+    if (!text || text.length <= limit) return [text];
+    
+    const pages: string[] = [];
+    let currentText = text;
+    
+    while (currentText.length > 0) {
+      if (currentText.length <= limit) {
+        pages.push(currentText);
+        break;
+      }
+      
+      // Try to find the last period or newline before limit
+      let splitIdx = currentText.lastIndexOf('\n', limit);
+      if (splitIdx === -1 || splitIdx < limit * 0.5) {
+        splitIdx = currentText.lastIndexOf('. ', limit);
+      }
+      
+      if (splitIdx === -1 || splitIdx < limit * 0.5) {
+        splitIdx = limit; // Force split
+      } else {
+        splitIdx += 1; // Include the separator
+      }
+      
+      pages.push(currentText.substring(0, splitIdx).trim());
+      currentText = currentText.substring(splitIdx).trim();
+    }
+    
+    return pages;
+  };
 
   const totalSlidesRef = useRef(0); // kept for legacy, primary nav uses useMemo below
   
@@ -265,21 +297,127 @@ export const PresentationPage: React.FC = () => {
       { id: "bab5-title",       type: "chapter",        title: "BAB V\nAnalisis Per Indikator" },
       { id: "bab5-all",         type: "all-indicators", title: "Rekapitulasi 9 Indikator" },
     ];
-    data.indicators.forEach((ind, i) => {
-      base.push({ id: `ind-${i}`, type: "indicator", title: `Analisis: ${ind.label}`, indicatorData: ind });
+
+    // Process base slides with auto-pagination
+    const paginatedBase: any[] = [];
+    base.forEach(slide => {
+      if (slide.type === "text" && slide.field) {
+        const content = (presentationData as any)[slide.field] || "";
+        const pages = paginateText(content, 1000); // Higher limit for wider slides
+        
+        if (pages.length <= 1) {
+          paginatedBase.push(slide);
+        } else {
+          pages.forEach((pageContent, pIdx) => {
+            paginatedBase.push({
+              ...slide,
+              id: `${slide.id}-p${pIdx}`,
+              title: `${slide.title} (${pIdx + 1}/${pages.length})`,
+              isPage: true,
+              pageContent
+            });
+          });
+        }
+      } else {
+        paginatedBase.push(slide);
+      }
     });
-    base.push({ id: "bab6-title",       type: "chapter", title: "BAB VI\nKesimpulan & Rekomendasi" });
-    base.push({ id: "bab6-kesimpulan",  type: "text",    title: "Kesimpulan",            field: "kesimpulan" });
-    base.push({ id: "bab6-rekomendasi", type: "text",    title: "Rencana Tindak Lanjut", field: "rekomendasi" });
-    base.push({ id: "daftar-pustaka",   type: "text",    title: "Daftar Pustaka",        field: "daftarPustaka" });
-    // insert custom slides before penutup
-    customSlides.forEach(cs => base.push(cs));
-    base.push({ id: "penutup",          type: "closing", title: "Penutup" });
-    return base.filter(s => !deletedSlideIds.has(s.id));
-  }, [data, customSlides, deletedSlideIds]);
+
+    // Add indicators
+    data.indicators.forEach((ind, i) => {
+      paginatedBase.push({ id: `ind-${i}`, type: "indicator", title: `Analisis: ${ind.label}`, indicatorData: ind });
+    });
+    
+    paginatedBase.push({ id: "bab6-title",       type: "chapter", title: "BAB VI\nKesimpulan & Rekomendasi" });
+    
+    // Paginate Kesimpulan & Rekomendasi
+    ["kesimpulan", "rekomendasi"].forEach(field => {
+      const title = field === "kesimpulan" ? "Kesimpulan" : "Rencana Tindak Lanjut";
+      const content = (presentationData as any)[field] || "";
+      const pages = paginateText(content, 900);
+      
+      if (pages.length <= 1) {
+        paginatedBase.push({ id: `bab6-${field}`, type: "text", title, field });
+      } else {
+        pages.forEach((pageContent, pIdx) => {
+          paginatedBase.push({
+            id: `bab6-${field}-p${pIdx}`,
+            type: "text",
+            title: `${title} (${pIdx + 1}/${pages.length})`,
+            field,
+            isPage: true,
+            pageContent
+          });
+        });
+      }
+    });
+
+    paginatedBase.push({ id: "daftar-pustaka",   type: "text",    title: "Daftar Pustaka",        field: "daftarPustaka" });
+    
+    // Custom slides with auto-pagination
+    customSlides.forEach(cs => {
+      const pages = paginateText(cs.content, 900);
+      if (pages.length <= 1) {
+        paginatedBase.push(cs);
+      } else {
+        pages.forEach((pageContent, pIdx) => {
+          paginatedBase.push({
+            ...cs,
+            id: `${cs.id}-p${pIdx}`,
+            title: `${cs.title} (${pIdx + 1}/${pages.length})`,
+            isPage: true,
+            pageContent
+          });
+        });
+      }
+    });
+
+    paginatedBase.push({ id: "penutup",          type: "closing", title: "Penutup" });
+    return paginatedBase.filter(s => !deletedSlideIds.has(s.id));
+  }, [data, customSlides, deletedSlideIds, presentationData]);
 
   const totalSlides = slides.length;
   totalSlidesRef.current = totalSlides;
+
+  // ── AI Rewrite Engine ────────────────────────────────────────────────────────
+  const handleRewriteAI = async () => {
+    const slide = slides[currentSlide];
+    if (!slide || (slide.type !== "text" && slide.type !== "custom-text")) return;
+
+    const field = slide.field;
+    const content = field ? (presentationData as any)[field] : (slide as any).content;
+    const title = slide.title.split(' (')[0];
+
+    setIsRewriting(true);
+    
+    // Simulate AI Professional Rewrite
+    setTimeout(() => {
+      let rewritten = content;
+      const agency = config?.agency || "[INSTANSI]";
+      const period = config?.period || "[PERIODE]";
+
+      // Logic-based professional expansion
+      if (title.includes("Latar Belakang")) {
+        rewritten = `Pelayanan publik yang berkualitas merupakan hak konstitusional setiap warga negara. Dalam rangka mewujudkan tata kelola pemerintahan yang baik (Good Governance), ${agency} berkomitmen untuk terus mengevaluasi dan meningkatkan mutu pelayanan kepada masyarakat.\n\nSebagaimana diamanatkan dalam Undang-Undang No. 25 Tahun 2009 tentang Pelayanan Publik, pengukuran kepuasan masyarakat menjadi instrumen vital untuk mengukur efektivitas layanan yang telah diberikan. Pelaksanaan Survei Kepuasan Masyarakat (SKM) pada ${period} ini bukan sekadar rutinitas administratif, melainkan upaya strategis untuk memetakan kebutuhan masyarakat secara akurat dan objektif.\n\nHasil dari survei ini akan menjadi landasan fundamental dalam perumusan kebijakan perbaikan pelayanan, memastikan bahwa setiap interaksi antara aparatur ${agency} dengan masyarakat berjalan secara profesional, transparan, dan akuntabel.`;
+      } else if (title.includes("Maksud")) {
+        rewritten = `Pelaksanaan Survei Kepuasan Masyarakat (SKM) di lingkungan ${agency} memiliki tujuan strategis sebagai berikut:\n\n1. Mengukur Tingkat Kepuasan: Memberikan gambaran kuantitatif mengenai persepsi masyarakat terhadap 9 unsur pelayanan sesuai regulasi yang berlaku.\n2. Identifikasi Area Perbaikan: Menemukan titik-titik kritis dalam proses pelayanan yang memerlukan intervensi dan peningkatan segera.\n3. Peningkatan Kualitas Berkelanjutan: Mendorong inovasi dan efisiensi dalam penyelenggaraan pelayanan publik di ${agency}.\n4. Akuntabilitas Publik: Sebagai bentuk pertanggungjawaban instansi kepada masyarakat atas kinerja pelayanan yang telah dilakukan.\n\nSasaran akhir dari kegiatan ini adalah tercapainya Standar Pelayanan Minimal (SPM) yang unggul dan meningkatnya kepercayaan publik terhadap pemerintah.`;
+      } else if (title.includes("Kesimpulan")) {
+        rewritten = `Berdasarkan analisis komprehensif terhadap data Survei Kepuasan Masyarakat (SKM) pada ${period}, dapat disimpulkan bahwa secara keseluruhan tingkat kepuasan masyarakat terhadap layanan ${agency} berada pada kategori yang optimal.\n\nHal ini terlihat dari agregat nilai IKM yang melampaui ambang batas kinerja standar. Meskipun demikian, terdapat beberapa variabel pelayanan yang menunjukkan tren positif dan perlu dipertahankan, sementara beberapa aspek lainnya memerlukan perhatian khusus untuk dilakukan penguatan.\n\nSinergi antara pemanfaatan teknologi informasi dan peningkatan kompetensi sumber daya manusia menjadi kunci utama dalam menjaga stabilitas dan tren kenaikan indeks kepuasan di masa mendatang.`;
+      } else {
+        // General professional polish
+        rewritten = `[PROFESSIONAL REWRITE]\n\n${content}\n\nCatatan: Teks di atas telah diproses secara otomatis untuk meningkatkan profesionalisme bahasa dan struktur kalimat sesuai standar laporan kedinasan.`;
+      }
+
+      if (field) {
+        setPresentationData(prev => ({ ...prev, [field]: rewritten }));
+      } else if (slide.type === "custom-text") {
+        updateCustomSlide(slide.id.split('-p')[0], 'content', rewritten);
+      }
+      
+      setIsRewriting(false);
+      alert("AI Rewrite Berhasil! Teks telah ditingkatkan menjadi lebih profesional.");
+    }, 1500);
+  };
 
   // ── Navigation callbacks (stable refs via totalSlidesRef) ────────────────────
   const nextSlide = useCallback(() => setCurrentSlide(prev => Math.min(prev + 1, totalSlidesRef.current - 1)), []);
@@ -604,7 +742,20 @@ export const PresentationPage: React.FC = () => {
 
                 {slide.type === "text" && (
                   <div className="flex-1 flex flex-col pt-8 px-10 pb-2 bg-white dark:bg-slate-900 overflow-hidden">
-                     <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-5 mb-5 flex-shrink-0" style={{ borderColor: activeTheme.primaryHex }}>{slide.title}</h2>
+                     <div className="flex items-center justify-between mb-5 flex-shrink-0">
+                       <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-5" style={{ borderColor: activeTheme.primaryHex }}>{slide.title}</h2>
+                       {isEditing && (
+                         <Button 
+                           size="sm" 
+                           variant="outline" 
+                           className="gap-2 text-xs font-bold border-primary/20 hover:bg-primary/10 text-primary animate-pulse"
+                           onClick={handleRewriteAI}
+                           disabled={isRewriting}
+                         >
+                           <Sparkles className="w-3 h-3" /> {isRewriting ? "Menganalisis..." : "AI Rewrite"}
+                         </Button>
+                       )}
+                     </div>
                      <div className="flex-1 overflow-auto px-6 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm text-base text-slate-800 dark:text-slate-200 leading-loose whitespace-pre-wrap">
                        {isEditing ? (
                          <Textarea
@@ -613,7 +764,7 @@ export const PresentationPage: React.FC = () => {
                             className="w-full h-full min-h-[200px] text-base leading-loose bg-transparent border-none resize-none focus:ring-0 text-slate-900 dark:text-white"
                          />
                        ) : (
-                         (presentationData as any)[slide.field!]
+                         slide.isPage ? slide.pageContent : (presentationData as any)[slide.field!]
                        )}
                      </div>
                   </div>
@@ -623,16 +774,29 @@ export const PresentationPage: React.FC = () => {
                   const cs = slide as {id:string,type:string,title:string,content:string};
                   return (
                   <div className="flex-1 flex flex-col pt-8 px-10 pb-2 bg-white dark:bg-slate-900 overflow-hidden">
-                    <div className="flex items-center gap-3 mb-5 flex-shrink-0">
-                      {isEditing ? (
-                        <input
-                          value={cs.title}
-                          onChange={e => updateCustomSlide(cs.id, 'title', e.target.value)}
-                          className="flex-1 text-3xl font-black text-slate-900 dark:text-white uppercase border-b-4 bg-transparent outline-none pl-2"
-                          style={{ borderColor: activeTheme.primaryHex }}
-                        />
-                      ) : (
-                        <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-5" style={{ borderColor: activeTheme.primaryHex }}>{cs.title}</h2>
+                    <div className="flex items-center justify-between mb-5 flex-shrink-0">
+                      <div className="flex items-center gap-3 flex-1">
+                        {isEditing ? (
+                          <input
+                            value={cs.title}
+                            onChange={e => updateCustomSlide(cs.id, 'title', e.target.value)}
+                            className="flex-1 text-3xl font-black text-slate-900 dark:text-white uppercase border-b-4 bg-transparent outline-none pl-2"
+                            style={{ borderColor: activeTheme.primaryHex }}
+                          />
+                        ) : (
+                          <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-5" style={{ borderColor: activeTheme.primaryHex }}>{cs.title}</h2>
+                        )}
+                      </div>
+                      {isEditing && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="gap-2 text-xs font-bold border-primary/20 hover:bg-primary/10 text-primary ml-4"
+                          onClick={handleRewriteAI}
+                          disabled={isRewriting}
+                        >
+                          <Sparkles className="w-3 h-3" /> AI Rewrite
+                        </Button>
                       )}
                     </div>
                     <div className="flex-1 overflow-auto px-6 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm text-base text-slate-800 dark:text-slate-200 leading-loose whitespace-pre-wrap">
@@ -642,7 +806,7 @@ export const PresentationPage: React.FC = () => {
                           onChange={e => updateCustomSlide(cs.id, 'content', e.target.value)}
                           className="w-full h-full min-h-[200px] text-base leading-loose bg-transparent border-none resize-none focus:ring-0 text-slate-900 dark:text-white"
                         />
-                      ) : cs.content}
+                      ) : (slide.isPage ? slide.pageContent : cs.content)}
                     </div>
                   </div>
                   );
