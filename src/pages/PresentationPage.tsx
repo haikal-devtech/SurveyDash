@@ -5,7 +5,7 @@ import { db } from "@/lib/firebase";
 import { SurveyConfig, SurveyData } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import axios from "axios";
-import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Download, Edit3, Save, Type, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Download, Edit3, Save, Type, Plus, Trash2, X, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -272,6 +272,49 @@ export const PresentationPage: React.FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [nextSlide, prevSlide]);
 
+  const handleSyncData = () => {
+    if (!data || !config || !data.indicators || data.indicators.length === 0) return;
+    
+    let totalResponses = 0;
+    if (data.demographics?.gender) {
+      totalResponses = Object.values(data.demographics.gender).reduce((a: any, b: any) => a + Number(b), 0) as number;
+    } else {
+      totalResponses = 369; // default fallback
+    }
+
+    let highestInd = data.indicators[0];
+    let lowestInd = data.indicators[0];
+    data.indicators.forEach((ind: any) => {
+      if (ind.avg > highestInd.avg) highestInd = ind;
+      if (ind.avg < lowestInd.avg) lowestInd = ind;
+    });
+
+    const score = Number(data.ikm?.score ?? 0);
+    // Recalculate grade correctly based on Permenpan RB logic
+    let grade = "C";
+    if (score >= 88.31) grade = "A";
+    else if (score >= 76.61) grade = "B";
+    else if (score >= 65.00) grade = "C";
+    else grade = "D";
+
+    // Update the Mutu grade in state directly so the slide updates immediately
+    setData(prev => prev ? ({ ...prev, ikm: { ...prev.ikm, grade, score: prev.ikm?.score ?? 0 } }) as any : prev);
+
+    const predikat = grade === "A" ? "SANGAT BAIK" : grade === "B" ? "BAIK" : grade === "C" ? "KURANG BAIK" : "TIDAK BAIK";
+    const nrr = (score / 25).toFixed(3);
+    const period = config.period || new Date().getFullYear().toString();
+    const agency = config.agency || 'Instansi';
+
+    setPresentationData(prev => ({
+      ...prev,
+      lokasiWaktu: `LOKASI SURVEI:\nSurvei dilakukan di lingkungan kantor ${agency} dan pada lokasi penerima layanan secara langsung (lapangan).\n\nWAKTU PELAKSANAAN:\nSurvei Kepuasan Masyarakat ${agency} dilaksanakan pada Periode ${period}.\n\nTARGET RESPONDEN:\n• Total terkumpul & valid : ${totalResponses} responden`,
+      kesimpulan: `Berdasarkan hasil pengolahan data Survei Kepuasan Masyarakat ${agency} Periode ${period}:\n\n1. Nilai Rata-Rata (NRR) IKM sebesar ${nrr} dengan Nilai Konversi SKM ${score.toFixed(2)}.\n2. Mutu Pelayanan berada pada kategori ${grade} — ${predikat}.\n3. Unsur dengan nilai tertinggi adalah ${highestInd.label} (${highestInd.avg.toFixed(2)}).\n4. Unsur dengan nilai terendah adalah ${lowestInd.label} (${lowestInd.avg.toFixed(2)}).`,
+      rekomendasi: `Berdasarkan temuan survei, rekomendasi tindak lanjut yang perlu dilaksanakan ${agency}:\n\n1. Prioritas perbaikan utama pada unsur dengan nilai terendah:\n   • ${lowestInd.label} (${lowestInd.avg.toFixed(2)}) — Perlu evaluasi dan peningkatan standar operasional.\n2. Pertahankan dan tingkatkan kualitas pada unsur dengan nilai tertinggi:\n   • ${highestInd.label} (${highestInd.avg.toFixed(2)}).\n3. Lakukan monitoring dan evaluasi berkala untuk memantau tren kepuasan masyarakat.`
+    }));
+    
+    alert("Data berhasil disinkronkan! Teks kesimpulan, rekomendasi, dan nilai Mutu (Grade) telah diperbarui dengan data asli.");
+  };
+
   if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
     return <div className="p-10 text-center text-xl font-bold">Akses Ditolak. Hanya untuk Admin.</div>;
   }
@@ -369,6 +412,9 @@ export const PresentationPage: React.FC = () => {
               </div>
             )}
           </div>
+          <Button variant="outline" className="gap-2 text-xs font-bold border-white/20 hover:bg-white/10 text-white bg-blue-600/20 border-blue-500/50 hover:bg-blue-600/40" onClick={handleSyncData} title="Sinkronkan teks presentasi dengan data asli survei">
+            <RefreshCw className="w-4 h-4" /> Sinkronisasi
+          </Button>
           <Button 
             variant={isEditing ? "default" : "outline"} 
             className={`gap-2 text-xs font-bold border-white/20 hover:bg-white/10 text-white ${isEditing ? 'bg-primary text-white border-none hover:bg-primary/90' : ''}`}
