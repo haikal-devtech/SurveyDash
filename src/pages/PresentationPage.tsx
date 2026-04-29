@@ -11,8 +11,21 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, LabelList
 } from "recharts";
+
+const RADIAN = Math.PI / 180;
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value }: any) => {
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  if (percent < 0.05) return null; // hide small labels
+  return (
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight="bold">
+      {`${value} (${(percent * 100).toFixed(0)}%)`}
+    </text>
+  );
+};
 
 const COLORS_GOOGLE = ['#4285F4', '#DB4437', '#F4B400', '#0F9D58', '#AB47BC', '#00ACC1', '#FF7043', '#9E9D24', '#5C6BC0'];
 
@@ -172,9 +185,9 @@ export const PresentationPage: React.FC = () => {
   ];
 
   const THEMES = [
-    { id: 'blue', label: 'Corporate Blue', primaryHex: '#2563eb', coverBg: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', chapterBg: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)', chapterText: '#93c5fd', closingBg: '#0f172a' },
-    { id: 'emerald', label: 'Emerald Green', primaryHex: '#059669', coverBg: 'linear-gradient(135deg, #f0fdf4 0%, #d1fae5 100%)', chapterBg: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)', chapterText: '#6ee7b7', closingBg: '#022c22' },
-    { id: 'crimson', label: 'Royal Crimson', primaryHex: '#e11d48', coverBg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', chapterBg: 'linear-gradient(135deg, #4c0519 0%, #be123c 100%)', chapterText: '#fda4af', closingBg: '#4c0519' },
+    { id: 'blue', label: 'Corporate Blue', primaryHex: '#2563eb', chapterBg: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)', chapterText: '#93c5fd', closingBg: '#0f172a' },
+    { id: 'emerald', label: 'Emerald Green', primaryHex: '#059669', chapterBg: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)', chapterText: '#6ee7b7', closingBg: '#022c22' },
+    { id: 'crimson', label: 'Royal Crimson', primaryHex: '#e11d48', chapterBg: 'linear-gradient(135deg, #4c0519 0%, #be123c 100%)', chapterText: '#fda4af', closingBg: '#4c0519' },
   ];
   const activeTheme = THEMES.find(t => t.id === selectedTheme) || THEMES[0];
 
@@ -277,25 +290,30 @@ export const PresentationPage: React.FC = () => {
   const renderPieChart = (chartData: any[], cx="50%") => (
     <ResponsiveContainer width="100%" height="100%">
       <PieChart>
-        <Pie data={chartData} cx={cx} cy="50%" outerRadius={110} dataKey="value" stroke="white" strokeWidth={2}>
+        <Pie data={chartData} cx={cx} cy="50%" outerRadius={110} dataKey="value" stroke="rgba(255,255,255,0.2)" strokeWidth={2} labelLine={false} label={renderCustomizedLabel}>
           {chartData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS_GOOGLE[index % COLORS_GOOGLE.length]} />)}
         </Pie>
-        <Tooltip />
+        <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', color: '#fff', borderRadius: '8px', border: 'none' }} itemStyle={{ color: '#fff' }} />
         <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '12px', right: 0 }} />
       </PieChart>
     </ResponsiveContainer>
   );
 
-  const renderBarChart = (chartData: any[], color: string) => (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={chartData} margin={{ top: 20, right: 30, left: -20, bottom: 0 }}>
-        <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} />
-        <YAxis fontSize={11} tickLine={false} axisLine={false} />
-        <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} />
-        <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} maxBarSize={60} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
+  const renderBarChart = (chartData: any[], color: string) => {
+    const total = chartData.reduce((acc, curr: any) => acc + (curr.value || 0), 0);
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartData} margin={{ top: 20, right: 30, left: -20, bottom: 0 }}>
+          <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} stroke="currentColor" className="text-slate-600 dark:text-slate-400" />
+          <YAxis fontSize={11} tickLine={false} axisLine={false} stroke="currentColor" className="text-slate-600 dark:text-slate-400" />
+          <Tooltip cursor={{fill: 'rgba(100,116,139,0.1)'}} contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', color: '#fff', borderRadius: '8px', border: 'none' }} itemStyle={{ color: '#fff' }} />
+          <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} maxBarSize={60}>
+            <LabelList dataKey="value" position="top" formatter={(val: number) => total > 0 ? `${val} (${((val/total)*100).toFixed(1)}%)` : val} fontSize={10} fontWeight="bold" fill="currentColor" className="text-slate-600 dark:text-slate-300" />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  };
 
   const demoGenderData = data?.demographics?.gender ? Object.entries(data.demographics.gender).map(([name, value]) => ({ name, value })) : [];
   const demoEduData = data?.demographics?.pendidikan || data?.demographics?.education ? Object.entries(data?.demographics?.pendidikan || data?.demographics?.education).map(([name, value]) => ({ name, value })) : [];
@@ -426,8 +444,8 @@ export const PresentationPage: React.FC = () => {
         <div className="flex-1 flex items-center justify-center p-4 md:p-6 print:p-0 overflow-hidden print:block">
         <div 
           ref={presentationRef}
-          className={`relative bg-white text-slate-900 overflow-hidden print:overflow-visible print:shadow-none print:w-[297mm] print:border-none
-            ${isFullscreen ? 'w-screen h-screen max-w-none max-h-none' : 'w-full max-w-5xl aspect-video shadow-2xl rounded-xl border border-border'}
+          className={`relative bg-white dark:bg-slate-900 text-slate-900 dark:text-white overflow-hidden print:overflow-visible print:shadow-none print:w-[297mm] print:border-none
+            ${isFullscreen ? 'w-screen h-screen max-w-none max-h-none' : 'w-full max-w-5xl aspect-video shadow-2xl rounded-xl border border-slate-200 dark:border-slate-800'}
           `}
           style={{ fontFamily: `'${selectedFont}', sans-serif`, pageBreakAfter: 'always' }}
         >
@@ -437,14 +455,14 @@ export const PresentationPage: React.FC = () => {
             return (
               <div 
                 key={slide.id}
-                className={`absolute inset-0 flex flex-col transition-opacity duration-300 bg-white ${isVisible ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none print:opacity-100 print:relative print:z-10 print:pointer-events-auto print:w-[297mm] print:h-[210mm] print:page-break-after-always'}`}
+                className={`absolute inset-0 flex flex-col transition-opacity duration-300 bg-white dark:bg-slate-900 ${isVisible ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none print:opacity-100 print:relative print:z-10 print:pointer-events-auto print:w-[297mm] print:h-[210mm] print:page-break-after-always'}`}
               >
                 
                 {/* --- SLIDE RENDERERS --- */}
                 {slide.type === "cover" && (
-                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center" style={{ background: activeTheme.coverBg }}>
+                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-slate-50 dark:bg-slate-900">
                     <div className="w-32 h-32 mb-10 flex items-center justify-center">
-                      <div className="relative flex items-center justify-center w-full h-full rounded-3xl bg-white shadow-xl p-4 border border-slate-100">
+                      <div className="relative flex items-center justify-center w-full h-full rounded-3xl bg-white dark:bg-slate-800 shadow-xl p-4 border border-slate-100 dark:border-slate-700">
                         <svg className="w-full h-full" style={{ color: activeTheme.primaryHex }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <rect width="18" height="18" x="3" y="3" rx="2" />
                           <path d="M3 9h18" />
@@ -454,23 +472,22 @@ export const PresentationPage: React.FC = () => {
                     </div>
                     {isEditing ? (
                       <div className="w-full max-w-4xl space-y-4">
-                        <Input value={presentationData.title} onChange={e => setPresentationData({...presentationData, title: e.target.value})} className="text-4xl font-black text-center h-16" />
-                        <Textarea value={presentationData.subtitle} onChange={e => setPresentationData({...presentationData, subtitle: e.target.value})} className="text-xl text-center h-24" />
+                        <Input value={presentationData.title} onChange={e => setPresentationData({...presentationData, title: e.target.value})} className="text-4xl font-black text-center h-16 bg-white dark:bg-slate-800" />
+                        <Textarea value={presentationData.subtitle} onChange={e => setPresentationData({...presentationData, subtitle: e.target.value})} className="text-xl text-center h-24 bg-white dark:bg-slate-800" />
                       </div>
                     ) : (
                       <>
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 uppercase tracking-tight mb-6">{presentationData.title}</h1>
-                        <p className="text-xl md:text-2xl font-bold text-slate-600 whitespace-pre-wrap">{presentationData.subtitle}</p>
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-6">{presentationData.title}</h1>
+                        <p className="text-xl md:text-2xl font-bold text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{presentationData.subtitle}</p>
                       </>
                     )}
-                    <div className="mt-20 text-sm font-bold text-slate-400 uppercase tracking-widest border-t-2 border-slate-200 pt-6 w-full max-w-sm">
+                    <div className="mt-20 text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-t-2 border-slate-200 dark:border-slate-800 pt-6 w-full max-w-sm">
                       Laporan Otomatis • SurveyDash
                     </div>
                   </div>
                 )}
 
                 {slide.type === "toc" && (() => {
-                  // Only show chapter headings + key content slides (not indicators to keep TOC compact)
                   const tocItems = slides.filter(s =>
                     s.type === 'chapter' ||
                     (s.type === 'text' && !s.id.startsWith('ind-')) ||
@@ -480,9 +497,9 @@ export const PresentationPage: React.FC = () => {
                   );
                   return (
                   <div className="flex-1 flex flex-col pt-6 px-10 pb-2 overflow-hidden">
-                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 pl-5 mb-5 flex-shrink-0" style={{ borderColor: activeTheme.primaryHex }}>Daftar Isi</h2>
+                     <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-5 mb-5 flex-shrink-0" style={{ borderColor: activeTheme.primaryHex }}>Daftar Isi</h2>
                      <div className="flex-1 overflow-auto">
-                       <div className="grid grid-cols-2 gap-x-10 gap-y-1 text-sm font-medium text-slate-700">
+                       <div className="grid grid-cols-2 gap-x-10 gap-y-1 text-sm font-medium text-slate-700 dark:text-slate-300">
                          {tocItems.map((s, idx) => {
                            const isChapter = s.type === 'chapter';
                            return (
@@ -490,11 +507,11 @@ export const PresentationPage: React.FC = () => {
                                key={idx}
                                className={`flex justify-between items-end pb-1 ${
                                  isChapter
-                                   ? 'col-span-2 font-black text-base text-slate-900 mt-3 border-b-2 border-slate-400'
-                                   : 'pl-3 border-b border-slate-200'
+                                   ? 'col-span-2 font-black text-base text-slate-900 dark:text-white mt-3 border-b-2 border-slate-400 dark:border-slate-600'
+                                   : 'pl-3 border-b border-slate-200 dark:border-slate-700'
                                }`}
                              >
-                               <span style={{ color: isChapter ? activeTheme.primaryHex : undefined }} className={isChapter ? '' : 'text-slate-600'}>
+                               <span style={{ color: isChapter ? activeTheme.primaryHex : undefined }} className={isChapter ? '' : 'text-slate-600 dark:text-slate-400'}>
                                  {s.title?.replace('\n', ' ')}
                                </span>
                              </div>
@@ -517,14 +534,14 @@ export const PresentationPage: React.FC = () => {
                 )}
 
                 {slide.type === "text" && (
-                  <div className="flex-1 flex flex-col pt-8 px-10 pb-2 bg-white overflow-hidden">
-                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 pl-5 mb-5 flex-shrink-0" style={{ borderColor: activeTheme.primaryHex }}>{slide.title}</h2>
-                     <div className="flex-1 overflow-auto px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm text-base text-slate-800 leading-loose whitespace-pre-wrap">
+                  <div className="flex-1 flex flex-col pt-8 px-10 pb-2 bg-white dark:bg-slate-900 overflow-hidden">
+                     <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-5 mb-5 flex-shrink-0" style={{ borderColor: activeTheme.primaryHex }}>{slide.title}</h2>
+                     <div className="flex-1 overflow-auto px-6 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm text-base text-slate-800 dark:text-slate-200 leading-loose whitespace-pre-wrap">
                        {isEditing ? (
                          <Textarea
                             value={(presentationData as any)[slide.field!]}
                             onChange={e => setPresentationData({...presentationData, [slide.field!]: e.target.value})}
-                            className="w-full h-full min-h-[200px] text-base leading-loose bg-transparent border-none resize-none focus:ring-0"
+                            className="w-full h-full min-h-[200px] text-base leading-loose bg-transparent border-none resize-none focus:ring-0 text-slate-900 dark:text-white"
                          />
                        ) : (
                          (presentationData as any)[slide.field!]
@@ -536,25 +553,25 @@ export const PresentationPage: React.FC = () => {
                 {slide.type === "custom-text" && (() => {
                   const cs = slide as {id:string,type:string,title:string,content:string};
                   return (
-                  <div className="flex-1 flex flex-col pt-8 px-10 pb-2 bg-white overflow-hidden">
+                  <div className="flex-1 flex flex-col pt-8 px-10 pb-2 bg-white dark:bg-slate-900 overflow-hidden">
                     <div className="flex items-center gap-3 mb-5 flex-shrink-0">
                       {isEditing ? (
                         <input
                           value={cs.title}
                           onChange={e => updateCustomSlide(cs.id, 'title', e.target.value)}
-                          className="flex-1 text-3xl font-black text-slate-900 uppercase border-b-4 bg-transparent outline-none pl-2"
+                          className="flex-1 text-3xl font-black text-slate-900 dark:text-white uppercase border-b-4 bg-transparent outline-none pl-2"
                           style={{ borderColor: activeTheme.primaryHex }}
                         />
                       ) : (
-                        <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 pl-5" style={{ borderColor: activeTheme.primaryHex }}>{cs.title}</h2>
+                        <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-5" style={{ borderColor: activeTheme.primaryHex }}>{cs.title}</h2>
                       )}
                     </div>
-                    <div className="flex-1 overflow-auto px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm text-base text-slate-800 leading-loose whitespace-pre-wrap">
+                    <div className="flex-1 overflow-auto px-6 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm text-base text-slate-800 dark:text-slate-200 leading-loose whitespace-pre-wrap">
                       {isEditing ? (
                         <Textarea
                           value={cs.content}
                           onChange={e => updateCustomSlide(cs.id, 'content', e.target.value)}
-                          className="w-full h-full min-h-[200px] text-base leading-loose bg-transparent border-none resize-none focus:ring-0"
+                          className="w-full h-full min-h-[200px] text-base leading-loose bg-transparent border-none resize-none focus:ring-0 text-slate-900 dark:text-white"
                         />
                       ) : cs.content}
                     </div>
@@ -563,15 +580,15 @@ export const PresentationPage: React.FC = () => {
                 })()}
 
                 {slide.type === "demo1" && (
-                  <div className="flex-1 flex flex-col p-12 bg-white">
-                     <h2 className="text-4xl font-black text-slate-900 uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>Profil Responden (1/2)</h2>
+                  <div className="flex-1 flex flex-col p-12 bg-white dark:bg-slate-900">
+                     <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>Profil Responden (1/2)</h2>
                      <div className="grid grid-cols-2 gap-8 flex-1">
-                        <div className="border border-slate-200 rounded-2xl p-6 flex flex-col bg-slate-50">
-                           <h3 className="text-center font-black text-lg uppercase text-slate-700 mb-4 border-b pb-2">Jenis Kelamin</h3>
+                        <div className="border border-slate-200 dark:border-slate-700 rounded-2xl p-6 flex flex-col bg-slate-50 dark:bg-slate-800">
+                           <h3 className="text-center font-black text-lg uppercase text-slate-700 dark:text-slate-300 mb-4 border-b dark:border-slate-700 pb-2">Jenis Kelamin</h3>
                            <div className="flex-1">{renderPieChart(demoGenderData)}</div>
                         </div>
-                        <div className="border border-slate-200 rounded-2xl p-6 flex flex-col bg-slate-50">
-                           <h3 className="text-center font-black text-lg uppercase text-slate-700 mb-4 border-b pb-2">Pendidikan Terakhir</h3>
+                        <div className="border border-slate-200 dark:border-slate-700 rounded-2xl p-6 flex flex-col bg-slate-50 dark:bg-slate-800">
+                           <h3 className="text-center font-black text-lg uppercase text-slate-700 dark:text-slate-300 mb-4 border-b dark:border-slate-700 pb-2">Pendidikan Terakhir</h3>
                            <div className="flex-1">{renderPieChart(demoEduData)}</div>
                         </div>
                      </div>
@@ -579,22 +596,27 @@ export const PresentationPage: React.FC = () => {
                 )}
 
                 {slide.type === "demo2" && (
-                  <div className="flex-1 flex flex-col p-12 bg-white">
-                     <h2 className="text-4xl font-black text-slate-900 uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>Profil Responden (2/2)</h2>
+                  <div className="flex-1 flex flex-col p-12 bg-white dark:bg-slate-900">
+                     <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>Profil Responden (2/2)</h2>
                      <div className="grid grid-cols-2 gap-8 flex-1">
-                        <div className="border border-slate-200 rounded-2xl p-6 flex flex-col bg-slate-50">
-                           <h3 className="text-center font-black text-lg uppercase text-slate-700 mb-4 border-b pb-2">Kelompok Umur</h3>
+                        <div className="border border-slate-200 dark:border-slate-700 rounded-2xl p-6 flex flex-col bg-slate-50 dark:bg-slate-800">
+                           <h3 className="text-center font-black text-lg uppercase text-slate-700 dark:text-slate-300 mb-4 border-b dark:border-slate-700 pb-2">Kelompok Umur</h3>
                            <div className="flex-1">{renderBarChart(demoUmurData, COLORS_GOOGLE[0])}</div>
                         </div>
-                        <div className="border border-slate-200 rounded-2xl p-6 flex flex-col bg-slate-50">
-                           <h3 className="text-center font-black text-lg uppercase text-slate-700 mb-4 border-b pb-2">Pekerjaan / Profesi</h3>
+                        <div className="border border-slate-200 dark:border-slate-700 rounded-2xl p-6 flex flex-col bg-slate-50 dark:bg-slate-800">
+                           <h3 className="text-center font-black text-lg uppercase text-slate-700 dark:text-slate-300 mb-4 border-b dark:border-slate-700 pb-2">Pekerjaan / Profesi</h3>
                            <div className="flex-1">
                              <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={demoPekerjaanData} layout="vertical" margin={{ top: 20, right: 30, left: 10, bottom: 0 }}>
+                                <BarChart data={demoPekerjaanData} layout="vertical" margin={{ top: 20, right: 50, left: 10, bottom: 0 }}>
                                    <XAxis type="number" hide />
-                                   <YAxis dataKey="name" type="category" fontSize={11} width={100} tickLine={false} axisLine={false} />
-                                   <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} />
-                                   <Bar dataKey="value" fill={COLORS_GOOGLE[1]} radius={[0, 4, 4, 0]} maxBarSize={40} />
+                                   <YAxis dataKey="name" type="category" fontSize={11} width={100} tickLine={false} axisLine={false} stroke="currentColor" className="text-slate-600 dark:text-slate-400" />
+                                   <Tooltip cursor={{fill: 'rgba(100,116,139,0.1)'}} contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', color: '#fff', borderRadius: '8px', border: 'none' }} itemStyle={{ color: '#fff' }} />
+                                   <Bar dataKey="value" fill={COLORS_GOOGLE[1]} radius={[0, 4, 4, 0]} maxBarSize={40}>
+                                     <LabelList dataKey="value" position="right" formatter={(val: number) => {
+                                       const total = demoPekerjaanData.reduce((acc, curr: any) => acc + (curr.value || 0), 0);
+                                       return total > 0 ? `${val} (${((val/total)*100).toFixed(1)}%)` : val;
+                                     }} fontSize={10} fontWeight="bold" fill="currentColor" className="text-slate-600 dark:text-slate-300" />
+                                   </Bar>
                                 </BarChart>
                              </ResponsiveContainer>
                            </div>
@@ -604,12 +626,12 @@ export const PresentationPage: React.FC = () => {
                 )}
 
                 {slide.type === "ikm" && (
-                  <div className="flex-1 flex flex-col p-12 bg-white">
-                     <h2 className="text-4xl font-black text-slate-900 uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>Nilai Indeks Kepuasan Masyarakat</h2>
+                  <div className="flex-1 flex flex-col p-12 bg-white dark:bg-slate-900">
+                     <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>Nilai Indeks Kepuasan Masyarakat</h2>
                      <div className="flex-1 flex items-center justify-center">
-                       <div className="text-center p-16 rounded-[3rem] shadow-2xl border border-slate-100 relative overflow-hidden" style={{ backgroundColor: activeTheme.primaryHex + '15' }}>
+                       <div className="text-center p-16 rounded-[3rem] shadow-2xl border border-slate-100 dark:border-slate-800 relative overflow-hidden bg-white dark:bg-slate-800">
                          <div className="absolute top-0 left-0 w-full h-4" style={{ backgroundColor: activeTheme.primaryHex }} />
-                         <p className="text-2xl font-bold text-slate-500 mb-6 uppercase tracking-widest">Nilai IKM Unit Pelayanan</p>
+                         <p className="text-2xl font-bold text-slate-500 dark:text-slate-400 mb-6 uppercase tracking-widest">Nilai IKM Unit Pelayanan</p>
                          <h1 className="text-9xl font-black tracking-tighter mb-4" style={{ color: activeTheme.primaryHex }}>{data.ikm?.score ?? "0.00"}</h1>
                          <div className="inline-flex px-8 py-3 rounded-full text-2xl font-bold text-white shadow-lg" style={{ backgroundColor: activeTheme.primaryHex }}>
                            MUTU: {data.ikm?.grade ?? "C"}
@@ -620,18 +642,19 @@ export const PresentationPage: React.FC = () => {
                 )}
 
                 {slide.type === "all-indicators" && (
-                  <div className="flex-1 flex flex-col p-12 bg-white">
-                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 pl-5 mb-8" style={{ borderColor: activeTheme.primaryHex }}>Rekapitulasi 9 Indikator</h2>
-                     <div className="flex-1 border border-slate-200 rounded-2xl p-8 bg-slate-50">
+                  <div className="flex-1 flex flex-col p-12 bg-white dark:bg-slate-900">
+                     <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-5 mb-8" style={{ borderColor: activeTheme.primaryHex }}>Rekapitulasi 9 Indikator</h2>
+                     <div className="flex-1 border border-slate-200 dark:border-slate-700 rounded-2xl p-8 bg-slate-50 dark:bg-slate-800">
                        <ResponsiveContainer width="100%" height="100%">
-                         <BarChart data={data.indicators} layout="vertical" margin={{ left: 220, right: 40, top: 20, bottom: 20 }}>
-                           <XAxis type="number" domain={[0, 4]} ticks={[1, 2, 3, 4]} stroke="#cbd5e1" fontSize={14} fontWeight="bold" />
-                           <YAxis dataKey="label" type="category" width={220} axisLine={false} tickLine={false} fontSize={14} fontWeight="bold" fill="#334155" />
-                           <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} />
+                         <BarChart data={data.indicators} layout="vertical" margin={{ left: 220, right: 60, top: 20, bottom: 20 }}>
+                           <XAxis type="number" domain={[0, 4]} ticks={[1, 2, 3, 4]} stroke="currentColor" className="text-slate-300 dark:text-slate-600" fontSize={14} fontWeight="bold" />
+                           <YAxis dataKey="label" type="category" width={220} axisLine={false} tickLine={false} fontSize={14} fontWeight="bold" stroke="currentColor" className="text-slate-800 dark:text-slate-300" />
+                           <Tooltip cursor={{fill: 'rgba(100,116,139,0.1)'}} contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', color: '#fff', borderRadius: '8px', border: 'none' }} itemStyle={{ color: '#fff' }} />
                            <Bar dataKey="avg" radius={[0, 4, 4, 0]} barSize={28}>
                               {data.indicators.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={entry.avg >= 3.532 ? '#10b981' : entry.avg >= 3.064 ? '#3b82f6' : entry.avg >= 2.60 ? '#f59e0b' : '#ef4444'} />
                               ))}
+                              <LabelList dataKey="avg" position="right" formatter={(val: number) => val.toFixed(2)} fontSize={12} fontWeight="bold" fill="currentColor" className="text-slate-700 dark:text-slate-300" />
                            </Bar>
                          </BarChart>
                        </ResponsiveContainer>
@@ -640,8 +663,8 @@ export const PresentationPage: React.FC = () => {
                 )}
 
                 {slide.type === "kategori-mutu" && (
-                  <div className="flex-1 flex flex-col p-12 bg-white">
-                    <h2 className="text-4xl font-black text-slate-900 uppercase border-l-8 pl-6 mb-12" style={{ borderColor: activeTheme.primaryHex }}>Kategori Mutu Pelayanan</h2>
+                  <div className="flex-1 flex flex-col p-12 bg-white dark:bg-slate-900">
+                    <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-6 mb-12" style={{ borderColor: activeTheme.primaryHex }}>Kategori Mutu Pelayanan</h2>
                     <div className="grid grid-cols-2 gap-6 flex-1">
                       {[
                         { label: 'A – Sangat Baik', range: '88,31 – 100,00', ikm: '3,532 – 4,00', color: '#059669', bg: '#d1fae5' },
@@ -649,45 +672,45 @@ export const PresentationPage: React.FC = () => {
                         { label: 'C – Kurang Baik',  range: '65,00 – 76,60',  ikm: '2,60 – 3,064',  color: '#d97706', bg: '#fef3c7' },
                         { label: 'D – Tidak Baik',   range: '25,00 – 64,99',  ikm: '1,00 – 2,60',   color: '#dc2626', bg: '#fee2e2' },
                       ].map(k => (
-                        <div key={k.label} className="rounded-2xl p-8 flex flex-col gap-3 border-2" style={{ background: k.bg, borderColor: k.color }}>
+                        <div key={k.label} className="rounded-2xl p-8 flex flex-col gap-3 border-2 shadow-sm" style={{ background: k.bg, borderColor: k.color }}>
                           <p className="text-2xl font-black" style={{ color: k.color }}>{k.label}</p>
-                          <p className="text-base font-bold text-slate-700">Nilai Interval: <span className="font-black text-slate-900">{k.range}</span></p>
-                          <p className="text-base font-bold text-slate-700">Nilai IKM: <span className="font-black text-slate-900">{k.ikm}</span></p>
+                          <p className="text-base font-bold text-slate-800">Nilai Interval: <span className="font-black text-slate-950">{k.range}</span></p>
+                          <p className="text-base font-bold text-slate-800">Nilai IKM: <span className="font-black text-slate-950">{k.ikm}</span></p>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-6 p-5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-600 font-medium">
+                    <div className="mt-6 p-5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 font-medium">
                       ⓘ Berdasarkan Permenpan RB No. 14 Tahun 2017 — Nilai IKM Unit Pelayanan dihitung dari rata-rata tertimbang 9 unsur dengan bobot masing-masing 0,111.
                     </div>
                   </div>
                 )}
 
                 {slide.type === "tabel-unsur" && (
-                  <div className="flex-1 flex flex-col p-10 bg-white">
-                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 pl-5 mb-6" style={{ borderColor: activeTheme.primaryHex }}>Tabel Nilai Per Unsur Pelayanan</h2>
-                     <div className="flex-1 overflow-auto">
+                  <div className="flex-1 flex flex-col p-10 bg-white dark:bg-slate-900">
+                     <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-5 mb-6" style={{ borderColor: activeTheme.primaryHex }}>Tabel Nilai Per Unsur Pelayanan</h2>
+                     <div className="flex-1 overflow-auto rounded-xl border border-slate-200 dark:border-slate-700">
                        <table className="w-full text-sm border-collapse">
                          <thead>
                            <tr style={{ background: activeTheme.primaryHex, color: '#fff' }}>
-                             <th className="text-left p-3 font-bold">No</th>
-                             <th className="text-left p-3 font-bold">Unsur Pelayanan</th>
-                             <th className="text-center p-3 font-bold">Nilai Rata-Rata</th>
-                             <th className="text-center p-3 font-bold">Mutu</th>
-                             <th className="text-center p-3 font-bold">Kinerja</th>
+                             <th className="text-left p-3 font-bold border-b border-slate-200 dark:border-slate-700">No</th>
+                             <th className="text-left p-3 font-bold border-b border-slate-200 dark:border-slate-700">Unsur Pelayanan</th>
+                             <th className="text-center p-3 font-bold border-b border-slate-200 dark:border-slate-700">Nilai Rata-Rata</th>
+                             <th className="text-center p-3 font-bold border-b border-slate-200 dark:border-slate-700">Mutu</th>
+                             <th className="text-center p-3 font-bold border-b border-slate-200 dark:border-slate-700">Kinerja</th>
                            </tr>
                          </thead>
                          <tbody>
                            {data.indicators.map((ind: any, i: number) => {
                              const mutu = ind.avg >= 3.532 ? 'A' : ind.avg >= 3.064 ? 'B' : ind.avg >= 2.60 ? 'C' : 'D';
                              const kat = ind.avg >= 3.532 ? 'Sangat Baik' : ind.avg >= 3.064 ? 'Baik' : ind.avg >= 2.60 ? 'Kurang Baik' : 'Tidak Baik';
-                             const col = ind.avg >= 3.532 ? '#059669' : ind.avg >= 3.064 ? '#1e40af' : ind.avg >= 2.60 ? '#d97706' : '#dc2626';
+                             const col = ind.avg >= 3.532 ? '#059669' : ind.avg >= 3.064 ? '#3b82f6' : ind.avg >= 2.60 ? '#f59e0b' : '#ef4444';
                              return (
-                               <tr key={i} className={i % 2 === 0 ? 'bg-slate-50' : 'bg-white'}>
-                                 <td className="p-3 text-center font-bold text-slate-600">{i + 1}</td>
-                                 <td className="p-3 text-slate-800 font-medium">{ind.label}</td>
-                                 <td className="p-3 text-center font-black text-slate-900">{ind.avg.toFixed(3)}</td>
-                                 <td className="p-3 text-center"><span className="font-black text-white px-3 py-1 rounded-full text-xs" style={{ background: col }}>{mutu}</span></td>
-                                 <td className="p-3 text-center font-semibold" style={{ color: col }}>{kat}</td>
+                               <tr key={i} className={i % 2 === 0 ? 'bg-slate-50 dark:bg-slate-800/50' : 'bg-white dark:bg-slate-900'}>
+                                 <td className="p-3 text-center font-bold text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">{i + 1}</td>
+                                 <td className="p-3 text-slate-800 dark:text-slate-200 font-medium border-b border-slate-100 dark:border-slate-800">{ind.label}</td>
+                                 <td className="p-3 text-center font-black text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800">{ind.avg.toFixed(3)}</td>
+                                 <td className="p-3 text-center border-b border-slate-100 dark:border-slate-800"><span className="font-black text-white px-3 py-1 rounded-full text-xs" style={{ background: col }}>{mutu}</span></td>
+                                 <td className="p-3 text-center font-bold border-b border-slate-100 dark:border-slate-800" style={{ color: col }}>{kat}</td>
                                </tr>
                              );
                            })}
@@ -703,16 +726,16 @@ export const PresentationPage: React.FC = () => {
                   const avg: number = ind?.avg ?? 0;
                   const dist = ind?.distribution ?? {};
                   return (
-                  <div className="flex-1 flex flex-col p-12 bg-white">
-                     <h2 className="text-3xl font-black text-slate-900 uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>{slide.title}</h2>
+                  <div className="flex-1 flex flex-col p-12 bg-white dark:bg-slate-900">
+                     <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase border-l-8 pl-6 mb-8" style={{ borderColor: activeTheme.primaryHex }}>{slide.title}</h2>
                      <div className="grid grid-cols-2 gap-10 flex-1">
-                        <div className="flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-3xl p-10 text-center">
-                           <p className="text-xl font-bold text-slate-500 uppercase tracking-widest mb-4">Nilai Rata-Rata Unsur</p>
+                        <div className="flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-10 text-center">
+                           <p className="text-xl font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">Nilai Rata-Rata Unsur</p>
                            <p className="text-[7rem] font-black leading-none mb-6" style={{ color: activeTheme.primaryHex }}>{avg.toFixed(2)}</p>
-                           <p className="text-2xl font-bold text-slate-600">Skala 1 - 4</p>
+                           <p className="text-2xl font-bold text-slate-600 dark:text-slate-300">Skala 1 - 4</p>
                         </div>
-                        <div className="flex flex-col bg-white border border-slate-200 rounded-3xl p-10">
-                           <p className="text-xl font-bold text-slate-500 uppercase tracking-widest mb-8 text-center">Distribusi Jawaban Responden</p>
+                        <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-10">
+                           <p className="text-xl font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-8 text-center">Distribusi Jawaban Responden</p>
                            <div className="flex-1">
                              <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={[
@@ -721,13 +744,17 @@ export const PresentationPage: React.FC = () => {
                                   { name: 'Baik',  value: Number(dist['3'] ?? 0) },
                                   { name: 'Sangat Baik', value: Number(dist['4'] ?? 0) }
                                 ]} margin={{ top: 20, right: 30, left: -20, bottom: 0 }}>
-                                   <XAxis dataKey="name" fontSize={12} fontWeight="bold" tickLine={false} axisLine={false} />
-                                   <YAxis fontSize={12} tickLine={false} axisLine={false} />
-                                   <Tooltip cursor={{fill: 'rgba(0,0,0,0.05)'}} />
+                                   <XAxis dataKey="name" fontSize={12} fontWeight="bold" tickLine={false} axisLine={false} stroke="currentColor" className="text-slate-600 dark:text-slate-400" />
+                                   <YAxis fontSize={12} tickLine={false} axisLine={false} stroke="currentColor" className="text-slate-600 dark:text-slate-400" />
+                                   <Tooltip cursor={{fill: 'rgba(100,116,139,0.1)'}} contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', color: '#fff', borderRadius: '8px', border: 'none' }} itemStyle={{ color: '#fff' }} />
                                    <Bar dataKey="value" fill="#4285F4" radius={[6, 6, 0, 0]} maxBarSize={80}>
                                      {[0, 1, 2, 3].map((_, idx) => (
                                        <Cell key={`c-${idx}`} fill={idx === 0 ? '#ef4444' : idx === 1 ? '#f59e0b' : idx === 2 ? '#3b82f6' : '#10b981'} />
                                      ))}
+                                     <LabelList dataKey="value" position="top" formatter={(val: number) => {
+                                       const total = [Number(dist['1']??0), Number(dist['2']??0), Number(dist['3']??0), Number(dist['4']??0)].reduce((a,b)=>a+b,0);
+                                       return total > 0 ? `${val} (${((val/total)*100).toFixed(1)}%)` : val;
+                                     }} fontSize={12} fontWeight="bold" fill="currentColor" className="text-slate-700 dark:text-slate-300" />
                                    </Bar>
                                 </BarChart>
                              </ResponsiveContainer>
@@ -753,7 +780,7 @@ export const PresentationPage: React.FC = () => {
 
                 {/* Footer on each slide (except cover/closing/chapter) — normal flow, not absolute */}
                 {slide.type !== "cover" && slide.type !== "closing" && slide.type !== "chapter" && (
-                  <div className="flex-shrink-0 mx-10 flex justify-between items-center text-xs font-bold text-slate-300 uppercase tracking-widest border-t border-slate-200 pt-2 pb-3 print:text-black">
+                  <div className="flex-shrink-0 mx-10 flex justify-between items-center text-xs font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest border-t border-slate-200 dark:border-slate-800 pt-2 pb-3 print:text-black print:border-slate-200">
                      <span>{presentationData.subtitle.split('\n')[0]}</span>
                      <span>Hal. {index + 1}</span>
                   </div>
