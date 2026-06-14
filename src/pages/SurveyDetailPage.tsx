@@ -112,18 +112,23 @@ const RankItems: React.FC<{ title?: string; items?: CandidateRankItem[] | any[] 
 };
 
 const QASection: React.FC<{ data?: Record<string, any> }> = ({ data: sectionData }) => {
-  if (!sectionData || Object.keys(sectionData).length === 0) return null;
+  if (!sectionData || typeof sectionData !== "object" || Object.keys(sectionData).length === 0) return null;
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {Object.entries(sectionData).map(([key, value]) => {
         const title = key.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
+
+        // 1. Array of objects (most common: [{name, percentage, count}])
         if (Array.isArray(value) && value.length > 0) {
-          return <div key={key}><RankItems title={title} items={value} /></div>;
+          const items = value.map((v: any) =>
+            typeof v === "object" && v !== null
+              ? v
+              : { name: String(v), count: 0, percentage: 0 }
+          );
+          return <div key={key}><RankItems title={title} items={items} /></div>;
         }
-        if (typeof value === "object" && value !== null) {
-          const items = Object.entries(value).map(([name, count]) => ({ name, count: Number(count), percentage: Number(count) }));
-          if (items.length > 0) return <div key={key}><RankItems title={title} items={items} /></div>;
-        }
+
+        // 2. Plain number/string scalar
         if (typeof value === "string" || typeof value === "number") {
           return (
             <div key={key} className="bg-card rounded-xl border border-border p-4 space-y-1">
@@ -132,6 +137,23 @@ const QASection: React.FC<{ data?: Record<string, any> }> = ({ data: sectionData
             </div>
           );
         }
+
+        // 3. Plain object with primitive values (e.g. {PKB: 205, Gerindra: 308})
+        if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+          const vals = Object.values(value);
+          // Only render if all values are primitive (not nested objects)
+          const allPrimitive = vals.every(v => typeof v === "string" || typeof v === "number");
+          if (allPrimitive) {
+            const items = Object.entries(value).map(([name, count]) => ({
+              name,
+              count: Number(count),
+              percentage: Number(count),
+            }));
+            if (items.length > 0) return <div key={key}><RankItems title={title} items={items} /></div>;
+          }
+          // Nested objects — skip (don't crash)
+        }
+
         return null;
       })}
     </div>
@@ -143,6 +165,12 @@ const QASection: React.FC<{ data?: Record<string, any> }> = ({ data: sectionData
 /** Convert IKM indicators to a QASection-compatible record (label → score 0–100) */
 const indicatorsToQA = (indicators: { label: string; avg: number }[]): Record<string, number> =>
   Object.fromEntries(indicators.map(ind => [ind.label, Number(((ind.avg / 4) * 100).toFixed(1))]));
+
+const formatDateSafe = (timestamp?: string | null, includeTime: boolean = false): string => {
+  if (!timestamp) return "-";
+  const date = new Date(timestamp);
+  return isNaN(date.getTime()) ? "-" : (includeTime ? date.toLocaleString("id-ID") : date.toLocaleDateString("id-ID"));
+};
 
 /** Build surveyor stats from respondents when question_analysis.surveyor_validation is missing */
 const buildSurveyorStats = (respondents: Respondent[]): Record<string, any> => {
@@ -1120,7 +1148,7 @@ export const SurveyDetailPage: React.FC = () => {
                 <Button variant="outline" size="sm" onClick={() => {
                   const exportData = data.respondents.map(r => ({
                     ...r,
-                    answers: JSON.stringify(r.answers)
+                    answers: JSON.stringify(r.answers || {})
                   }));
                   exportToCSV(exportData, `respondents_list_${config?.id}`);
                 }} className="h-7 gap-2 text-[10px] font-black uppercase">
@@ -1168,7 +1196,7 @@ export const SurveyDetailPage: React.FC = () => {
                               <TableCell className="hidden lg:table-cell text-foreground/80">{r.gender}</TableCell>
                               <TableCell className="hidden lg:table-cell text-foreground/80">{r.education}</TableCell>
                               <TableCell className="text-muted-foreground text-xs font-medium">
-                                {new Date(r.timestamp).toLocaleDateString("id-ID")}
+                                {formatDateSafe(r.timestamp)}
                               </TableCell>
                               <TableCell className="text-right">
                                  <Dialog>
@@ -1191,12 +1219,12 @@ export const SurveyDetailPage: React.FC = () => {
                                           <div className="text-muted-foreground">Rata-rata Skor</div>
                                           <div className="font-black text-right text-primary">
                                             {(() => {
-                                              const scores = Object.values(r.answers).filter(v => typeof v === 'number') as number[];
+                                              const scores = Object.values(r.answers || {}).filter(v => typeof v === 'number') as number[];
                                               return scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : "0.00";
                                             })()}
                                           </div>
                                           <div className="text-muted-foreground">Waktu Pengisian</div>
-                                          <div className="font-bold text-right text-[9px] text-foreground">{new Date(r.timestamp).toLocaleString("id-ID")}</div>
+                                          <div className="font-bold text-right text-[9px] text-foreground">{formatDateSafe(r.timestamp, true)}</div>
                                        </div>
                                        <div className="space-y-1">
                                           <h4 className="text-[9px] font-black uppercase text-primary tracking-widest px-1">Dokumentasi</h4>
@@ -1211,7 +1239,7 @@ export const SurveyDetailPage: React.FC = () => {
                                        <div className="space-y-1">
                                           <h4 className="text-[9px] font-black uppercase text-primary tracking-widest px-1">Indikator Kepuasan</h4>
                                           <div className="space-y-0.5">
-                                            {Object.entries(r.answers).map(([key, val]) => (
+                                            {Object.entries(r.answers || {}).map(([key, val]) => (
                                               <div key={key} className="flex justify-between items-center px-2 py-1 hover:bg-muted/50 rounded-md transition-colors">
                                                 <span className="text-[9px] font-medium text-foreground leading-tight">{key}</span>
                                                 <Badge className="font-black h-4 w-4 text-[8px] flex shrink-0 items-center justify-center p-0 rounded-full">{val}</Badge>
@@ -1555,7 +1583,7 @@ export const SurveyDetailPage: React.FC = () => {
                             <tr key={r.id ?? idx} className="hover:bg-muted/30 transition-colors">
                               <td className="px-3 py-2 font-mono text-muted-foreground">{r.id}</td>
                               <td className="px-3 py-2 font-semibold">{r.name ?? "–"}</td>
-                              <td className="px-3 py-2 text-muted-foreground">{r.timestamp ? new Date(r.timestamp).toLocaleString("id-ID") : "–"}</td>
+                              <td className="px-3 py-2 text-muted-foreground">{formatDateSafe(r.timestamp, true)}</td>
                               <td className="px-3 py-2">{r.gender ?? "–"}</td>
                               <td className="px-3 py-2">{r.education ?? "–"}</td>
                               <td className="px-3 py-2 font-black text-primary">{r.score_average != null ? r.score_average.toFixed(2) : "–"}</td>
