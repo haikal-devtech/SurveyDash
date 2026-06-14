@@ -215,43 +215,70 @@ export function resetSurveyDashboardConfig(surveyId: string): SurveyDashboardCon
 
 export function resolveSurveyDashboard(
   cfg: SurveyDashboardConfig,
-  liveIndicators?: { avg: number }[]
+  liveIndicators?: { avg: number }[],
+  liveApiData?: {
+    ikm?: { score?: number; label?: string; category?: string; interval?: string; gap?: number };
+    meta?: { sample_validity?: string; total_respondents?: number; margin_of_error?: string };
+  }
 ): ResolvedSurveyDashboard {
-  // Margin of Error
+  // Margin of Error — prefer API value when present
+  const apiMarginOfError = liveApiData?.meta?.margin_of_error;
   const marginOfError =
-    cfg.marginErrorMode === "slovin"
-      ? calculateSlovinMarginError(cfg.population, cfg.totalRespondents).label
-      : cfg.manualMarginOfError;
+    apiMarginOfError
+      ? apiMarginOfError
+      : cfg.marginErrorMode === "slovin"
+        ? calculateSlovinMarginError(cfg.population, cfg.totalRespondents).label
+        : cfg.manualMarginOfError;
 
-  // Index Score
+  // Index Score — API ikm.score takes priority when > 0
+  const apiScore = liveApiData?.ikm?.score ?? 0;
   const indexScore =
-    cfg.indexScoreMode === "auto" && liveIndicators && liveIndicators.length > 0
-      ? calculateAutomaticIndexScore(liveIndicators)
-      : cfg.manualIndexScore;
+    apiScore > 0
+      ? apiScore
+      : cfg.indexScoreMode === "auto" && liveIndicators && liveIndicators.length > 0
+        ? calculateAutomaticIndexScore(liveIndicators)
+        : cfg.manualIndexScore;
 
-  // Gap
+  // Gap — API ikm.gap takes priority when defined
   const gap =
-    cfg.gapMode === "auto"
-      ? calculateGap(cfg.targetScore, indexScore)
-      : cfg.manualGap;
+    liveApiData?.ikm?.gap !== undefined
+      ? liveApiData.ikm.gap
+      : cfg.gapMode === "auto"
+        ? calculateGap(cfg.targetScore, indexScore)
+        : cfg.manualGap;
 
-  // Quality
+  // Quality — manual config, then API label, then auto-calculate
   const quality =
-    cfg.qualityMode === "auto"
-      ? getQualityByScore(indexScore)
-      : {
-          label: cfg.manualQualityLabel,
-          category: cfg.manualQualityCategory,
-          interval: cfg.manualQualityInterval,
-        };
+    cfg.qualityMode === "manual"
+      ? { label: cfg.manualQualityLabel, category: cfg.manualQualityCategory, interval: cfg.manualQualityInterval }
+      : liveApiData?.ikm?.label
+        ? {
+            label: liveApiData.ikm.label,
+            category: liveApiData.ikm.category ?? getQualityByScore(indexScore).category,
+            interval: liveApiData.ikm.interval ?? getQualityByScore(indexScore).interval,
+          }
+        : getQualityByScore(indexScore);
+
+  // Sample validity — prefer API meta over config "0%"
+  const apiSampleValidity = liveApiData?.meta?.sample_validity;
+  const sampleValidity =
+    apiSampleValidity && apiSampleValidity !== "0%"
+      ? apiSampleValidity
+      : cfg.sampleValidity;
+
+  // Total respondents — prefer API meta
+  const totalRespondents =
+    (liveApiData?.meta?.total_respondents && liveApiData.meta.total_respondents > 0)
+      ? liveApiData.meta.total_respondents
+      : cfg.totalRespondents;
 
   return {
     marginOfError,
     participationRate: cfg.participationRate,
     reliabilityIndex: cfg.reliabilityIndex,
     trend: cfg.trend,
-    totalRespondents: cfg.totalRespondents,
-    sampleValidity: cfg.sampleValidity,
+    totalRespondents,
+    sampleValidity,
     indexScore,
     qualityLabel: quality.label,
     qualityCategory: quality.category,

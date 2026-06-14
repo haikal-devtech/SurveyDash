@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-import { SurveyConfig, SurveyData, SlideVisibility, DEFAULT_SLIDE_VISIBILITY } from "@/types";
+import { SurveyConfig, SurveyData, SlideVisibility, DEFAULT_SLIDE_VISIBILITY, Respondent } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ import { motion, AnimatePresence } from "motion/react";
 import axios from "axios";
 import html2canvas from "html2canvas";
 import { getSurveyDashboardConfig, buildConfigFromSurvey, resolveSurveyDashboard } from "@/lib/survey-dashboard-config";
+import { CandidateRankItem } from "@/types";
 
 // Helper for PNG Export
 const downloadPNG = async (elementId: string, filename: string) => {
@@ -62,6 +63,120 @@ const exportToCSV = (data: any[], filename: string) => {
 };
 
 
+// ── Reusable slide helpers ────────────────────────────────────────────────────
+
+const SlideEmptyState: React.FC<{ label: string; icon: React.FC<{ className?: string }> }> = ({ label, icon: Icon }) => (
+  <div className="py-20 text-center flex flex-col items-center gap-4 bg-muted/20 rounded-2xl border-2 border-dashed border-border">
+    <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+      <Icon className="w-7 h-7 text-muted-foreground" />
+    </div>
+    <div className="space-y-1">
+      <p className="font-black text-foreground">{label}</p>
+      <p className="text-sm text-muted-foreground italic">Data untuk bagian ini belum tersedia.</p>
+    </div>
+  </div>
+);
+
+const RankItems: React.FC<{ title?: string; items?: CandidateRankItem[] | any[] }> = ({ title, items }) => {
+  if (!items || items.length === 0) return null;
+  const maxVal = Math.max(...items.map((i: any) => Number(i.percentage ?? i.count ?? 0)));
+  return (
+    <div className="space-y-2">
+      {title && <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{title}</p>}
+      <div className="space-y-2">
+        {items.slice(0, 12).map((item: any, idx: number) => {
+          const val = Number(item.percentage ?? item.count ?? 0);
+          const pctStr = item.percentage != null
+            ? (typeof item.percentage === "string" ? item.percentage : `${Number(item.percentage).toFixed(1)}%`)
+            : (item.count != null ? `${item.count} orang` : "–");
+          const w = maxVal > 0 ? (val / maxVal) * 100 : 0;
+          return (
+            <div key={idx} className="flex items-center gap-3">
+              <span className="text-[10px] font-black w-5 text-right text-muted-foreground shrink-0">{idx + 1}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-xs font-semibold truncate text-foreground">{item.name ?? item.label ?? `Item ${idx + 1}`}</span>
+                  <span className="text-xs font-black text-primary ml-2 shrink-0">{pctStr}</span>
+                </div>
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${w}%` }} />
+                </div>
+                {item.party && <p className="text-[10px] text-muted-foreground mt-0.5 italic">{item.party}</p>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const QASection: React.FC<{ data?: Record<string, any> }> = ({ data: sectionData }) => {
+  if (!sectionData || Object.keys(sectionData).length === 0) return null;
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {Object.entries(sectionData).map(([key, value]) => {
+        const title = key.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
+        if (Array.isArray(value) && value.length > 0) {
+          return <div key={key}><RankItems title={title} items={value} /></div>;
+        }
+        if (typeof value === "object" && value !== null) {
+          const items = Object.entries(value).map(([name, count]) => ({ name, count: Number(count), percentage: Number(count) }));
+          if (items.length > 0) return <div key={key}><RankItems title={title} items={items} /></div>;
+        }
+        if (typeof value === "string" || typeof value === "number") {
+          return (
+            <div key={key} className="bg-card rounded-xl border border-border p-4 space-y-1">
+              <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">{title}</p>
+              <p className="text-sm font-bold text-foreground">{String(value)}</p>
+            </div>
+          );
+        }
+        return null;
+      })}
+    </div>
+  );
+};
+
+// ── Slide fallback helpers ─────────────────────────────────────────────────────
+
+/** Convert IKM indicators to a QASection-compatible record (label → score 0–100) */
+const indicatorsToQA = (indicators: { label: string; avg: number }[]): Record<string, number> =>
+  Object.fromEntries(indicators.map(ind => [ind.label, Number(((ind.avg / 4) * 100).toFixed(1))]));
+
+/** Build surveyor stats from respondents when question_analysis.surveyor_validation is missing */
+const buildSurveyorStats = (respondents: Respondent[]): Record<string, any> => {
+  const bySurveyor: Record<string, { count: number; scores: number[] }> = {};
+  const byProvince: Record<string, number> = {};
+  for (const r of respondents) {
+    const sv = r.surveyor ?? "Tidak Diketahui";
+    if (!bySurveyor[sv]) bySurveyor[sv] = { count: 0, scores: [] };
+    bySurveyor[sv].count++;
+    if (r.score_average != null) bySurveyor[sv].scores.push(r.score_average);
+    const prov = r.province ?? (r.location as string | undefined) ?? "Tidak Diketahui";
+    byProvince[prov] = (byProvince[prov] ?? 0) + 1;
+  }
+  const surveyorList = Object.entries(bySurveyor).map(([name, d]) => ({
+    name,
+    count: d.count,
+    percentage: d.count,
+  }));
+  const avgScoreList = Object.entries(bySurveyor)
+    .filter(([, d]) => d.scores.length > 0)
+    .map(([name, d]) => ({
+      name,
+      percentage: Number((d.scores.reduce((a, b) => a + b, 0) / d.scores.length).toFixed(2)),
+    }));
+  const provinceList = Object.entries(byProvince).map(([name, count]) => ({ name, count, percentage: count }));
+  return {
+    ...(surveyorList.length ? { jumlah_kuesioner_per_surveyor: surveyorList } : {}),
+    ...(avgScoreList.length ? { rata_rata_skor_per_surveyor: avgScoreList } : {}),
+    ...(provinceList.length ? { sebaran_provinsi: provinceList } : {}),
+  };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const SurveyDetailPage: React.FC = () => {
   const { id } = useParams();
   const [config, setConfig] = useState<SurveyConfig | null>(null);
@@ -80,13 +195,17 @@ export const SurveyDetailPage: React.FC = () => {
   const surveyDashConfig = config
     ? buildConfigFromSurvey(config)
     : getSurveyDashboardConfig(id ?? "");
-  const dashboardSummary = resolveSurveyDashboard(surveyDashConfig, data?.indicators ?? undefined);
+  const dashboardSummary = resolveSurveyDashboard(
+    surveyDashConfig,
+    data?.indicators ?? undefined,
+    data ?? undefined
+  );
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (autoRefreshEnabled && config) {
       interval = setInterval(() => {
-        fetchData(config.scriptUrl);
+        fetchData(config.scriptUrl, config.presentationMode);
       }, refreshInterval);
     }
     return () => {
@@ -114,17 +233,29 @@ export const SurveyDetailPage: React.FC = () => {
     }
   };
 
-  const fetchData = async (url: string) => {
+  const fetchData = async (url: string, presentationMode?: boolean) => {
     if (!url || url === "undefined" || url === "null" || url.trim() === "") {
       setError("URL Script tidak valid atau belum dikonfigurasi. Silakan periksa pengaturan survei di Management Console.");
       return;
     }
 
     try {
-      const resp = await axios.get(`/api/survey-data?scriptUrl=${encodeURIComponent(url)}`);
-      
+      const params = new URLSearchParams({ scriptUrl: url });
+      if (presentationMode) params.set("mode", "presentation");
+      const resp = await axios.get(`/api/survey-data?${params.toString()}`);
+
+      // Debug log
+      console.group("[SurveyDash] fetchData response");
+      console.log("meta:", resp.data?.meta);
+      console.log("ikm:", resp.data?.ikm);
+      console.log("candidate_preference keys:", Object.keys(resp.data?.candidate_preference ?? {}));
+      console.log("question_analysis keys:", Object.keys(resp.data?.question_analysis ?? {}));
+      console.log("respondents count:", resp.data?.respondents?.length ?? 0);
+      console.log("mode:", params.get("mode") ?? "sheet");
+      console.groupEnd();
+
       // Check for updates for Super Admin
-      if (role === 'SUPER_ADMIN' && data && JSON.stringify(data) !== JSON.stringify(resp.data)) {
+      if (role === "SUPER_ADMIN" && data && JSON.stringify(data) !== JSON.stringify(resp.data)) {
         setLastNotification({ message: "Data survei telah diperbarui otomatis.", type: "info" });
         setTimeout(() => setLastNotification(null), 5000);
       }
@@ -133,8 +264,8 @@ export const SurveyDetailPage: React.FC = () => {
       setError(null);
     } catch (err: any) {
       console.error("Fetch error:", err);
-      const serverError = typeof err.response?.data === 'object' 
-        ? (err.response.data.error || JSON.stringify(err.response.data)) 
+      const serverError = typeof err.response?.data === "object"
+        ? (err.response.data.error || JSON.stringify(err.response.data))
         : (err.response?.data || err.message);
       setError(`Gagal memuat data: ${serverError}. Pastikan URL Google Apps Script benar dan sudah dideploy sebagai Web App.`);
     }
@@ -158,7 +289,7 @@ export const SurveyDetailPage: React.FC = () => {
           visibility: "PUBLIC"
         };
         setConfig(demoConfig);
-        await fetchData("demo");
+        await fetchData("demo", false);
         setLoading(false);
         return;
       }
@@ -169,7 +300,7 @@ export const SurveyDetailPage: React.FC = () => {
         if (snap.exists()) {
           const cfg = { id: snap.id, ...snap.data() } as SurveyConfig;
           setConfig(cfg);
-          await fetchData(cfg.scriptUrl);
+          await fetchData(cfg.scriptUrl, cfg.presentationMode);
         }
       } catch (err) {
         console.error("Config fetch error:", err);
@@ -193,7 +324,7 @@ export const SurveyDetailPage: React.FC = () => {
   const handleRefresh = async () => {
     if (!config) return;
     setRefreshing(true);
-    await fetchData(config.scriptUrl);
+    await fetchData(config.scriptUrl, config.presentationMode);
     setRefreshing(false);
   };
 
@@ -1139,31 +1270,299 @@ export const SurveyDetailPage: React.FC = () => {
         </TabsContent>
         )}
 
-        {/* ── Slide Politik & Elektoral (F–O) — empty states until API supports ── */}
-        {([
-          { key: "nationalLeadership" as keyof SlideVisibility, value: "nationalLeadership", label: "Kepemimpinan Nasional", icon: Award },
-          { key: "leaderFigures" as keyof SlideVisibility, value: "leaderFigures", label: "Tokoh & Figur Pemimpin", icon: UserCheck },
-          { key: "presidentialElectability" as keyof SlideVisibility, value: "presidentialElectability", label: "Elektabilitas Capres", icon: TrendingUp },
-          { key: "presidentialSimulation" as keyof SlideVisibility, value: "presidentialSimulation", label: "Simulasi Capres", icon: Shuffle },
-          { key: "partyElectability" as keyof SlideVisibility, value: "partyElectability", label: "Elektabilitas Parpol", icon: Flag },
-          { key: "governmentPerformance" as keyof SlideVisibility, value: "governmentPerformance", label: "Kinerja Pemerintah", icon: Building2 },
-          { key: "voterBehavior" as keyof SlideVisibility, value: "voterBehavior", label: "Perilaku Pemilih", icon: Users },
-          { key: "publicEmotion" as keyof SlideVisibility, value: "publicEmotion", label: "Emosi Publik Terhadap Tokoh", icon: Heart },
-          { key: "surveyorValidation" as keyof SlideVisibility, value: "surveyorValidation", label: "Validasi Surveyor & Quality Control", icon: ShieldCheck },
-          { key: "rawData" as keyof SlideVisibility, value: "rawData", label: "Data Mentah / Audit Responden", icon: Database },
-        ] as const).map(slide => slideVis[slide.key] ? (
-          <TabsContent key={slide.value} value={slide.value}>
-            <div className="py-20 text-center flex flex-col items-center gap-4 bg-muted/20 rounded-2xl border-2 border-dashed border-border">
-              <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
-                <slide.icon className="w-7 h-7 text-muted-foreground" />
-              </div>
-              <div className="space-y-1">
-                <p className="font-black text-foreground">{slide.label}</p>
-                <p className="text-sm text-muted-foreground italic">Data untuk bagian ini belum tersedia.</p>
-              </div>
-            </div>
+        {/* ── Kepemimpinan Nasional ── */}
+        {slideVis.nationalLeadership && (() => {
+          const qaData = data?.question_analysis?.national_leadership;
+          const cpData = data?.candidate_preference;
+          const indFallback = data?.indicators?.length ? indicatorsToQA(data.indicators) : null;
+          const openFallback = data?.open_ended?.general_opinion?.length
+            ? { "Opini Umum Publik": data.open_ended.general_opinion.map((t, i) => ({ name: `${i + 1}`, label: t, percentage: 0 })) }
+            : null;
+          const hasData = qaData || cpData?.capres?.length || cpData?.politisi?.length || indFallback || openFallback;
+          return (
+            <TabsContent value="nationalLeadership">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <Award className="w-4 h-4 text-primary" />Kepemimpinan Nasional
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qaData ? <QASection data={qaData} /> : null}
+                    {!qaData && cpData?.capres?.length ? <RankItems title="Elektabilitas Pemimpin Nasional" items={cpData.capres} /> : null}
+                    {!qaData && cpData?.politisi?.length ? <RankItems title="Tokoh Politik" items={cpData.politisi} /> : null}
+                    {!qaData && !cpData?.capres?.length && indFallback ? <QASection data={indFallback} /> : null}
+                    {!qaData && !cpData?.capres?.length && !indFallback && openFallback ? <QASection data={openFallback} /> : null}
+                  </> : <SlideEmptyState label="Kepemimpinan Nasional" icon={Award} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Tokoh & Figur ── */}
+        {slideVis.leaderFigures && (() => {
+          const qa = data?.question_analysis?.leader_figures;
+          const cp = data?.candidate_preference;
+          const hasCp = cp?.capres?.length || cp?.politisi?.length || cp?.tokoh?.length || cp?.profesional?.length;
+          const hasData = qa || hasCp;
+          return (
+            <TabsContent value="leaderFigures">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-primary" />Tokoh & Figur Pemimpin
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qa ? <QASection data={qa} /> : null}
+                    {cp?.capres?.length ? <RankItems title="Calon Presiden" items={cp.capres} /> : null}
+                    {cp?.tokoh?.length ? <RankItems title="Tokoh Nasional" items={cp.tokoh} /> : null}
+                    {cp?.politisi?.length ? <RankItems title="Tokoh Politik" items={cp.politisi} /> : null}
+                    {cp?.profesional?.length ? <RankItems title="Profesional / Teknokrat" items={cp.profesional} /> : null}
+                  </> : <SlideEmptyState label="Tokoh & Figur Pemimpin" icon={UserCheck} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Elektabilitas Capres ── */}
+        {slideVis.presidentialElectability && (() => {
+          const qa = data?.question_analysis?.presidential_electability;
+          const cp = data?.candidate_preference;
+          const hasData = qa || cp?.capres?.length || cp?.capres_closed?.length || cp?.capres_alternative?.length
+            || cp?.simulation_10?.length || cp?.simulation_8?.length || cp?.simulation_5?.length;
+          return (
+            <TabsContent value="presidentialElectability">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-primary" />Elektabilitas Calon Presiden
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qa ? <QASection data={qa} /> : null}
+                    {cp?.capres?.length ? <RankItems title="Elektabilitas Terbuka" items={cp.capres} /> : null}
+                    {cp?.capres_alternative?.length ? <RankItems title="Elektabilitas Alternatif" items={cp.capres_alternative} /> : null}
+                    {cp?.capres_closed?.length ? <RankItems title="Elektabilitas Tertutup" items={cp.capres_closed} /> : null}
+                    {cp?.simulation_10?.length ? <RankItems title="Simulasi 10 Nama" items={cp.simulation_10} /> : null}
+                    {cp?.simulation_8?.length ? <RankItems title="Simulasi 8 Nama" items={cp.simulation_8} /> : null}
+                    {cp?.simulation_5?.length ? <RankItems title="Simulasi 5 Nama" items={cp.simulation_5} /> : null}
+                  </> : <SlideEmptyState label="Elektabilitas Capres" icon={TrendingUp} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Simulasi Capres ── */}
+        {slideVis.presidentialSimulation && (() => {
+          const qa = data?.question_analysis?.presidential_simulation;
+          const cp = data?.candidate_preference;
+          const hasData = qa || cp?.simulation_10?.length || cp?.simulation_8?.length || cp?.simulation_5?.length
+            || cp?.politisi?.length || cp?.tokoh?.length || cp?.profesional?.length;
+          return (
+            <TabsContent value="presidentialSimulation">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <Shuffle className="w-4 h-4 text-primary" />Simulasi Calon Presiden
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qa ? <QASection data={qa} /> : null}
+                    {cp?.simulation_10?.length ? <RankItems title="Simulasi 10 Nama" items={cp.simulation_10} /> : null}
+                    {cp?.simulation_8?.length ? <RankItems title="Simulasi 8 Nama" items={cp.simulation_8} /> : null}
+                    {cp?.simulation_5?.length ? <RankItems title="Simulasi 5 Nama" items={cp.simulation_5} /> : null}
+                    {!cp?.simulation_10?.length && !cp?.simulation_8?.length && !cp?.simulation_5?.length && cp?.politisi?.length ? <RankItems title="Tokoh Politik" items={cp.politisi} /> : null}
+                    {!cp?.simulation_10?.length && !cp?.simulation_8?.length && !cp?.simulation_5?.length && cp?.tokoh?.length ? <RankItems title="Tokoh Nasional" items={cp.tokoh} /> : null}
+                    {!cp?.simulation_10?.length && !cp?.simulation_8?.length && !cp?.simulation_5?.length && cp?.profesional?.length ? <RankItems title="Profesional / Teknokrat" items={cp.profesional} /> : null}
+                  </> : <SlideEmptyState label="Simulasi Capres" icon={Shuffle} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Elektabilitas Parpol ── */}
+        {slideVis.partyElectability && (() => {
+          const qa = data?.question_analysis?.party_electability;
+          const cp = data?.candidate_preference;
+          const hasData = qa || cp?.parpol?.length || cp?.parpol_closed?.length;
+          return (
+            <TabsContent value="partyElectability">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <Flag className="w-4 h-4 text-primary" />Elektabilitas Partai Politik
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qa ? <QASection data={qa} /> : null}
+                    {cp?.parpol?.length ? <RankItems title="Elektabilitas Terbuka" items={cp.parpol} /> : null}
+                    {cp?.parpol_closed?.length ? <RankItems title="Elektabilitas Tertutup" items={cp.parpol_closed} /> : null}
+                  </> : <SlideEmptyState label="Elektabilitas Parpol" icon={Flag} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Kinerja Pemerintah ── */}
+        {slideVis.governmentPerformance && (() => {
+          const qa = data?.question_analysis?.government_performance;
+          const indFallback = data?.indicators?.length ? indicatorsToQA(data.indicators) : null;
+          const openFallback = data?.open_ended?.expectations?.length
+            ? data.open_ended.expectations.map((t, i) => ({ name: `Harapan ${i + 1}`, label: t, percentage: 0 }))
+            : null;
+          const hasData = qa || indFallback || openFallback;
+          return (
+            <TabsContent value="governmentPerformance">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-primary" />Kinerja Pemerintah
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qa ? <QASection data={qa} /> : null}
+                    {!qa && indFallback ? <><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Skor Indikator Layanan</p><QASection data={indFallback} /></> : null}
+                    {!qa && !indFallback && openFallback ? <RankItems title="Harapan & Saran Publik" items={openFallback} /> : null}
+                  </> : <SlideEmptyState label="Kinerja Pemerintah" icon={Building2} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Perilaku Pemilih ── */}
+        {slideVis.voterBehavior && (() => {
+          const qa = data?.question_analysis?.voter_behavior;
+          const cp = data?.candidate_preference;
+          const indFallback = data?.indicators?.length ? indicatorsToQA(data.indicators) : null;
+          const hasData = qa || cp?.capres?.length || cp?.parpol?.length || indFallback;
+          return (
+            <TabsContent value="voterBehavior">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <Users className="w-4 h-4 text-primary" />Perilaku Pemilih
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qa ? <QASection data={qa} /> : null}
+                    {!qa && cp?.capres?.length ? <RankItems title="Pilihan Capres" items={cp.capres} /> : null}
+                    {!qa && cp?.parpol?.length ? <RankItems title="Pilihan Partai" items={cp.parpol} /> : null}
+                    {!qa && !cp?.capres?.length && !cp?.parpol?.length && indFallback ? <QASection data={indFallback} /> : null}
+                  </> : <SlideEmptyState label="Perilaku Pemilih" icon={Users} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Emosi Publik ── */}
+        {slideVis.publicEmotion && (() => {
+          const qa = data?.question_analysis?.public_emotion;
+          const cp = data?.candidate_preference;
+          const openFallback = data?.open_ended?.general_opinion?.length
+            ? data.open_ended.general_opinion.map((t, i) => ({ name: `Opini ${i + 1}`, label: t, percentage: 0 }))
+            : null;
+          const hasData = qa || cp?.tokoh?.length || cp?.capres?.length || openFallback;
+          return (
+            <TabsContent value="publicEmotion">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <Heart className="w-4 h-4 text-primary" />Emosi Publik Terhadap Tokoh
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qa ? <QASection data={qa} /> : null}
+                    {!qa && cp?.tokoh?.length ? <RankItems title="Tokoh yang Disukai Publik" items={cp.tokoh} /> : null}
+                    {!qa && !cp?.tokoh?.length && cp?.capres?.length ? <RankItems title="Figur Capres" items={cp.capres} /> : null}
+                    {!qa && !cp?.tokoh?.length && !cp?.capres?.length && openFallback ? <RankItems title="Opini Umum Publik" items={openFallback} /> : null}
+                  </> : <SlideEmptyState label="Emosi Publik Terhadap Tokoh" icon={Heart} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Validasi Surveyor ── */}
+        {slideVis.surveyorValidation && (() => {
+          const qa = data?.question_analysis?.surveyor_validation;
+          const respFallback = data?.respondents?.length ? buildSurveyorStats(data.respondents) : null;
+          const hasData = qa || (respFallback && Object.keys(respFallback).length > 0);
+          return (
+            <TabsContent value="surveyorValidation">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-primary" />Validasi Surveyor & Quality Control
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0">
+                  {hasData ? (
+                    qa ? <QASection data={qa} /> : <QASection data={respFallback!} />
+                  ) : <SlideEmptyState label="Validasi Surveyor & Quality Control" icon={ShieldCheck} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Data Mentah ── */}
+        {slideVis.rawData && (
+          <TabsContent value="rawData">
+            <Card className="border-0 shadow-none bg-transparent">
+              <CardHeader className="pb-3 px-0">
+                <CardTitle className="text-base font-black flex items-center gap-2">
+                  <Database className="w-4 h-4 text-primary" />Data Mentah / Audit Responden
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-0">
+                {data?.respondents && data.respondents.length > 0
+                  ? <div className="overflow-x-auto rounded-xl border border-border">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/60 border-b border-border">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-black text-[10px] uppercase tracking-wider">ID</th>
+                            <th className="px-3 py-2 text-left font-black text-[10px] uppercase tracking-wider">Nama</th>
+                            <th className="px-3 py-2 text-left font-black text-[10px] uppercase tracking-wider">Timestamp</th>
+                            <th className="px-3 py-2 text-left font-black text-[10px] uppercase tracking-wider">Jenis Kelamin</th>
+                            <th className="px-3 py-2 text-left font-black text-[10px] uppercase tracking-wider">Pendidikan</th>
+                            <th className="px-3 py-2 text-left font-black text-[10px] uppercase tracking-wider">Rata-rata Skor</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {data.respondents.map((r, idx) => (
+                            <tr key={r.id ?? idx} className="hover:bg-muted/30 transition-colors">
+                              <td className="px-3 py-2 font-mono text-muted-foreground">{r.id}</td>
+                              <td className="px-3 py-2 font-semibold">{r.name ?? "–"}</td>
+                              <td className="px-3 py-2 text-muted-foreground">{r.timestamp ? new Date(r.timestamp).toLocaleString("id-ID") : "–"}</td>
+                              <td className="px-3 py-2">{r.gender ?? "–"}</td>
+                              <td className="px-3 py-2">{r.education ?? "–"}</td>
+                              <td className="px-3 py-2 font-black text-primary">{r.score_average != null ? r.score_average.toFixed(2) : "–"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  : <SlideEmptyState label="Data Mentah / Audit Responden" icon={Database} />}
+              </CardContent>
+            </Card>
           </TabsContent>
-        ) : null)}
+        )}
 
       </Tabs>
     </div>

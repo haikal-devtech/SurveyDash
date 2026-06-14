@@ -145,6 +145,36 @@ async function startServer() {
     }
   });
 
+  // API Route: Save survey settings to Google Apps Script
+  app.post("/api/survey-settings", async (req, res) => {
+    const { scriptUrl, settings } = req.body as { scriptUrl?: string; settings?: Record<string, any> };
+
+    if (!scriptUrl || typeof scriptUrl !== "string") {
+      return res.status(400).json({ error: "scriptUrl wajib diisi" });
+    }
+
+    try {
+      new URL(scriptUrl);
+    } catch {
+      return res.status(400).json({ error: "Format URL tidak valid" });
+    }
+
+    try {
+      const response = await axios.post(scriptUrl, { action: "saveSettings", settings }, {
+        timeout: 15000,
+        headers: { "Content-Type": "application/json" },
+      });
+      const appsScriptData = response.data;
+      if (appsScriptData?.success === false) {
+        return res.status(502).json({ error: appsScriptData.error ?? "Apps Script menolak permintaan.", details: appsScriptData });
+      }
+      return res.json(appsScriptData);
+    } catch (error: any) {
+      console.error("survey-settings: Apps Script POST failed:", error.message);
+      return res.status(502).json({ error: "Gagal menghubungi Apps Script. Pastikan doPost sudah diimplementasikan dan URL benar.", details: error.message });
+    }
+  });
+
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });

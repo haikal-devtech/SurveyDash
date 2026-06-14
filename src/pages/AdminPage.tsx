@@ -263,6 +263,7 @@ export const AdminPage: React.FC = () => {
     e.preventDefault();
     if (!editingSurvey || !editingDashConfig) return;
     setIsUpdatingSurvey(true);
+    const presentationMode = (editingDashConfig as any).presentationMode ?? false;
     try {
       const docRef = doc(db, "surveys", editingSurvey.id);
       const payload = {
@@ -292,9 +293,35 @@ export const AdminPage: React.FC = () => {
         manualQualityLabel: editingDashConfig.manualQualityLabel,
         manualQualityCategory: editingDashConfig.manualQualityCategory,
         manualQualityInterval: editingDashConfig.manualQualityInterval,
-        presentationMode: (editingDashConfig as any).presentationMode ?? false,
+        presentationMode,
         slideVisibility: editingSurvey.slideVisibility ?? DEFAULT_SLIDE_VISIBILITY,
       };
+
+      // Step 1: POST settings to Apps Script first (required — this sets presentationModeEnabled on the backend)
+      const scriptUrl = editingSurvey.scriptUrl;
+      if (scriptUrl && scriptUrl !== "demo" && scriptUrl.startsWith("http")) {
+        const settingsResp = await fetch("/api/survey-settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scriptUrl,
+            settings: {
+              presentationModeEnabled: presentationMode,
+              dataMode: presentationMode ? "presentation" : "actual",
+              surveyId: editingSurvey.id,
+              targetScore: editingDashConfig.targetScore,
+            },
+          }),
+        });
+        if (!settingsResp.ok) {
+          const errData = await settingsResp.json().catch(() => ({}));
+          alert(`Gagal menyimpan pengaturan ke Apps Script:\n${errData.error ?? settingsResp.statusText}\n\nPastikan Apps Script sudah diimplementasikan doPost().`);
+          setIsUpdatingSurvey(false);
+          return;
+        }
+      }
+
+      // Step 2: Save to Firestore as cache
       await updateDoc(docRef, payload);
       const updatedSurvey: SurveyConfig = { ...editingSurvey, ...payload };
       setSurveys(surveys.map(s => s.id === editingSurvey.id ? updatedSurvey : s));

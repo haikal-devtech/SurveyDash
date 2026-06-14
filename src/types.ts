@@ -8,6 +8,17 @@ export interface Respondent {
   documentation?: string | null;
   surveyor?: string | null;
   location?: string | null;
+  province?: string | null;
+  score_average?: number;
+  raw_answers?: Record<string, any>;
+}
+
+export interface CandidateRankItem {
+  name: string;
+  label?: string;
+  count?: number;
+  percentage?: number | string;
+  party?: string;
 }
 
 export interface SurveyData {
@@ -16,11 +27,16 @@ export interface SurveyData {
     period: string;
     total_respondents: number;
     last_updated: string;
+    sample_validity?: string;
+    data_mode?: string;
+    margin_of_error?: string;
   };
   ikm: {
     score: number;
     category: string;
     label: string;
+    interval?: string;
+    gap?: number;
   };
   indicators: {
     id: number;
@@ -42,6 +58,30 @@ export interface SurveyData {
     expectations: string[];
   };
   respondents?: Respondent[];
+  candidate_preference?: {
+    capres?: CandidateRankItem[];
+    capres_alternative?: CandidateRankItem[];
+    capres_closed?: CandidateRankItem[];
+    simulation_10?: CandidateRankItem[];
+    simulation_8?: CandidateRankItem[];
+    simulation_5?: CandidateRankItem[];
+    politisi?: CandidateRankItem[];
+    tokoh?: CandidateRankItem[];
+    profesional?: CandidateRankItem[];
+    parpol?: CandidateRankItem[];
+    parpol_closed?: CandidateRankItem[];
+  };
+  question_analysis?: {
+    national_leadership?: Record<string, any>;
+    leader_figures?: Record<string, any>;
+    presidential_electability?: Record<string, any>;
+    presidential_simulation?: Record<string, any>;
+    party_electability?: Record<string, any>;
+    government_performance?: Record<string, any>;
+    voter_behavior?: Record<string, any>;
+    public_emotion?: Record<string, any>;
+    surveyor_validation?: Record<string, any>;
+  };
 }
 
 export type SurveyVisibility = "PRIVATE" | "LINK_ONLY" | "PUBLIC";
