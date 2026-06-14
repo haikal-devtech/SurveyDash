@@ -111,6 +111,21 @@ const RankItems: React.FC<{ title?: string; items?: CandidateRankItem[] | any[] 
   );
 };
 
+/** Numbered text-quote list — for verbatim open-ended answers without meaningful frequency */
+const TextQuoteList: React.FC<{ title: string; items: { name: string }[] }> = ({ title, items }) => (
+  <div className="space-y-2">
+    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{title}</p>
+    <div className="space-y-1.5">
+      {items.slice(0, 10).map((item, idx) => (
+        <div key={idx} className="flex gap-2.5 rounded-lg bg-muted/30 border border-border/40 px-3 py-2">
+          <span className="text-[10px] font-black text-muted-foreground/60 shrink-0 mt-0.5 w-4 text-right">{idx + 1}</span>
+          <p className="text-xs text-foreground leading-relaxed flex-1">{item.name}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 const QASection: React.FC<{ data?: Record<string, any> }> = ({ data: sectionData }) => {
   if (!sectionData || typeof sectionData !== "object" || Object.keys(sectionData).length === 0) return null;
   return (
@@ -118,14 +133,23 @@ const QASection: React.FC<{ data?: Record<string, any> }> = ({ data: sectionData
       {Object.entries(sectionData).map(([key, value]) => {
         const title = key.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
 
-        // 1. Array of objects (most common: [{name, percentage, count}])
+        // 1. Array of items
         if (Array.isArray(value) && value.length > 0) {
           const items = value.map((v: any) =>
             typeof v === "object" && v !== null
               ? v
               : { name: String(v), count: 0, percentage: 0 }
           );
-          return <div key={key}><RankItems title={title} items={items} /></div>;
+          // Detect plain text (strings converted to objects with count=0, percentage=0)
+          // → render as quote list, not rank bars
+          const isTextList = items.every((i: any) => (i.count === 0 || i.count === undefined) && (i.percentage === 0 || i.percentage === undefined));
+          return (
+            <div key={key}>
+              {isTextList
+                ? <TextQuoteList title={title} items={items} />
+                : <RankItems title={title} items={items} />}
+            </div>
+          );
         }
 
         // 2. Plain number/string scalar
@@ -141,7 +165,6 @@ const QASection: React.FC<{ data?: Record<string, any> }> = ({ data: sectionData
         // 3. Plain object with primitive values (e.g. {PKB: 205, Gerindra: 308})
         if (typeof value === "object" && value !== null && !Array.isArray(value)) {
           const vals = Object.values(value);
-          // Only render if all values are primitive (not nested objects)
           const allPrimitive = vals.every(v => typeof v === "string" || typeof v === "number");
           if (allPrimitive) {
             const items = Object.entries(value).map(([name, count]) => ({
@@ -151,7 +174,6 @@ const QASection: React.FC<{ data?: Record<string, any> }> = ({ data: sectionData
             }));
             if (items.length > 0) return <div key={key}><RankItems title={title} items={items} /></div>;
           }
-          // Nested objects — skip (don't crash)
         }
 
         return null;

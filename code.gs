@@ -471,9 +471,10 @@ function likertToScore_(rows, idx) {
 }
 
 /** Kumpulkan jawaban terbuka dan hitung frekuensi */
-function topOpenAnswers_(rows, idx, limit) {
+function topOpenAnswers_(rows, idx, limit, n) {
   limit = limit || 30;
   if (idx < 0) return [];
+  const total = (typeof n === 'number' && n > 0) ? n : rows.length;
   const counts = {};
   for (const row of rows) {
     const v = String(row[idx] ?? '').trim();
@@ -485,7 +486,11 @@ function topOpenAnswers_(rows, idx, limit) {
   return Object.entries(counts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
-    .map(([name, count]) => ({ name, count, percentage: count }));
+    .map(([name, count]) => ({
+      name,
+      count,
+      percentage: total > 0 ? Math.round(count / total * 1000) / 10 : 0,
+    }));
 }
 
 /** Kumpulkan teks jawaban terbuka mentah (tanpa agregasi) */
@@ -837,7 +842,7 @@ function buildData_(sheetName, dataMode) {
   const politisi     = toRank_(countCol_(rows, IDX.d1b_politisi),    n);
   const tokoh        = toRank_(countCol_(rows, IDX.d1b_tokoh),       n);
   const profesional  = toRank_(countCol_(rows, IDX.d1b_profesional), n);
-  const parpolOpen   = topOpenAnswers_(rows, IDX.e1a, 25);
+  const parpolOpen   = topOpenAnswers_(rows, IDX.e1a, 25, n);
   const parpolDikenal= toRank_(countMulti_(rows, IDX.e1b), n).slice(0, 25);
   const parpolSuka   = toRank_(countMulti_(rows, IDX.e1c), n).slice(0, 25);
   const parpolClosed = toRank_(countCol_(rows, IDX.e1d), n).slice(0, 25);
@@ -846,35 +851,35 @@ function buildData_(sheetName, dataMode) {
 
   // A — Kepemimpinan Nasional
   const nationalLeadership = {
-    kondisi_kepemimpinan_opini:       collectText_(rows, IDX.a1a, 30),
+    kondisi_kepemimpinan_opini:       topOpenAnswers_(rows, IDX.a1a, 25, n),
     kepuasan_kepemimpinan_skala:      { rata_rata: avg_(rows, IDX.a1b), distribusi: countCol_(rows, IDX.a1b) },
     optimisme_pemimpin_masa_depan:    { rata_rata: avg_(rows, IDX.a1c), distribusi: countCol_(rows, IDX.a1c) },
     masalah_utama_bangsa:             toRank_(countMulti_(rows, IDX.a1d), n),
-    opini_kebijakan_prabowo:          collectText_(rows, IDX.a2a, 20),
-    kriteria_pemimpin_ideal:          collectText_(rows, IDX.a2b, 20),
-    tidak_suka_pemimpin:              collectText_(rows, IDX.a2c, 20),
-    harapan_pemimpin:                 collectText_(rows, IDX.a2d, 20),
+    opini_kebijakan_prabowo:          topOpenAnswers_(rows, IDX.a2a, 20, n),
+    kriteria_pemimpin_ideal:          topOpenAnswers_(rows, IDX.a2b, 20, n),
+    tidak_suka_pemimpin:              topOpenAnswers_(rows, IDX.a2c, 20, n),
+    harapan_pemimpin:                 topOpenAnswers_(rows, IDX.a2d, 20, n),
     karakter_pemimpin_dibutuhkan:     toRank_(countMulti_(rows, IDX.a2e), n),
     kebutuhan_tokoh_baru:             toRank_(countCol_(rows, IDX.a2f), n),
     asal_kalangan_pemimpin_ideal:     toRank_(countCol_(rows, IDX.a2g), n),
-    tokoh_paling_layak:               topOpenAnswers_(rows, IDX.a2h, 25),
-    tokoh_alternatif:                 topOpenAnswers_(rows, IDX.a2i, 20),
-    unggul_ekonomi:                   topOpenAnswers_(rows, IDX.a2j_ekonomi, 20),
-    unggul_pemberantasan_korupsi:     topOpenAnswers_(rows, IDX.a2j_korupsi, 20),
-    unggul_diplomasi_internasional:   topOpenAnswers_(rows, IDX.a2j_diplomasi, 20),
-    unggul_pertahanan_keamanan:       topOpenAnswers_(rows, IDX.a2j_pertahanan, 20),
-    unggul_kesejahteraan_rakyat:      topOpenAnswers_(rows, IDX.a2j_kesejahteraan, 20),
+    tokoh_paling_layak:               topOpenAnswers_(rows, IDX.a2h, 25, n),
+    tokoh_alternatif:                 topOpenAnswers_(rows, IDX.a2i, 20, n),
+    unggul_ekonomi:                   topOpenAnswers_(rows, IDX.a2j_ekonomi, 20, n),
+    unggul_pemberantasan_korupsi:     topOpenAnswers_(rows, IDX.a2j_korupsi, 20, n),
+    unggul_diplomasi_internasional:   topOpenAnswers_(rows, IDX.a2j_diplomasi, 20, n),
+    unggul_pertahanan_keamanan:       topOpenAnswers_(rows, IDX.a2j_pertahanan, 20, n),
+    unggul_kesejahteraan_rakyat:      topOpenAnswers_(rows, IDX.a2j_kesejahteraan, 20, n),
   };
 
   // Tokoh & Figur (A2h/i/j)
   const leaderFigures = {
-    tokoh_paling_layak:   topOpenAnswers_(rows, IDX.a2h, 25),
-    tokoh_alternatif:     topOpenAnswers_(rows, IDX.a2i, 20),
-    unggul_ekonomi:       topOpenAnswers_(rows, IDX.a2j_ekonomi, 20),
-    unggul_korupsi:       topOpenAnswers_(rows, IDX.a2j_korupsi, 20),
-    unggul_diplomasi:     topOpenAnswers_(rows, IDX.a2j_diplomasi, 20),
-    unggul_pertahanan:    topOpenAnswers_(rows, IDX.a2j_pertahanan, 20),
-    unggul_kesejahteraan: topOpenAnswers_(rows, IDX.a2j_kesejahteraan, 20),
+    tokoh_paling_layak:   topOpenAnswers_(rows, IDX.a2h, 25, n),
+    tokoh_alternatif:     topOpenAnswers_(rows, IDX.a2i, 20, n),
+    unggul_ekonomi:       topOpenAnswers_(rows, IDX.a2j_ekonomi, 20, n),
+    unggul_korupsi:       topOpenAnswers_(rows, IDX.a2j_korupsi, 20, n),
+    unggul_diplomasi:     topOpenAnswers_(rows, IDX.a2j_diplomasi, 20, n),
+    unggul_pertahanan:    topOpenAnswers_(rows, IDX.a2j_pertahanan, 20, n),
+    unggul_kesejahteraan: topOpenAnswers_(rows, IDX.a2j_kesejahteraan, 20, n),
     asal_kalangan_ideal:  toRank_(countCol_(rows, IDX.a2g), n),
     capres_disukai:       capresSuka.slice(0, 20),
   };
@@ -886,8 +891,8 @@ function buildData_(sheetName, dataMode) {
     capres_dikenal_c1a:          capresKnown,
     capres_disukai_c1b:          capresSuka,
     capres_dipilih_tertutup_c1c: capresClosed,
-    capres_ideal_b1c:            collectText_(rows, IDX.b1c, 20),
-    asal_kalangan_capres_ideal:  collectText_(rows, IDX.b1d, 20),
+    capres_ideal_b1c:            topOpenAnswers_(rows, IDX.b1c, 20, n),
+    asal_kalangan_capres_ideal:  toRank_(countCol_(rows, IDX.b1d), n),
   };
 
   // D — Simulasi Capres
@@ -938,10 +943,10 @@ function buildData_(sheetName, dataMode) {
     kepercayaan_publik_f4:     govPerf_kepercayaan,
     skor_keseluruhan_f5b:      avg_(rows, IDX.f5b),
     penilaian_keseluruhan_f5a: toRank_(countCol_(rows, IDX.f5a), n),
-    opini_kinerja_f1a:         collectText_(rows, IDX.f1a, 25),
-    tidak_suka_kinerja_f1b:    collectText_(rows, IDX.f1b, 20),
-    harapan_pemerintah_f1c:    collectText_(rows, IDX.f1c, 20),
-    isu_mendesak_f5c:          collectText_(rows, IDX.f5c, 25),
+    opini_kinerja_f1a:         topOpenAnswers_(rows, IDX.f1a, 25, n),
+    tidak_suka_kinerja_f1b:    topOpenAnswers_(rows, IDX.f1b, 20, n),
+    harapan_pemerintah_f1c:    topOpenAnswers_(rows, IDX.f1c, 20, n),
+    isu_mendesak_f5c:          topOpenAnswers_(rows, IDX.f5c, 25, n),
   };
 
   // G — Perilaku Pemilih
@@ -964,7 +969,7 @@ function buildData_(sheetName, dataMode) {
   }
 
   const voterBehavior = {
-    alasan_memilih_g1a:         collectText_(rows, IDX.g1a, 25),
+    alasan_memilih_g1a:         topOpenAnswers_(rows, IDX.g1a, 25, n),
     pertimbangan_utama_g1b:     toRank_(countMulti_(rows, IDX.g1b), n),
     preferensi_kampanye_g2:     g2_kampanye,
     faktor_pilihan_g3:          g3_pertimbangan,
@@ -989,26 +994,26 @@ function buildData_(sheetName, dataMode) {
   const persepsiTokoh = {};
   if (IDX.h1a_prabowo  >= 0) {
     persepsiTokoh['Prabowo Subianto'] = {
-      pendapat:    collectText_(rows, IDX.h1a_prabowo,  20),
-      suka:        collectText_(rows, IDX.h1b_prabowo,  15),
-      tidak_suka:  collectText_(rows, IDX.h1c_prabowo,  15),
-      harapan:     collectText_(rows, IDX.h1d_prabowo,  15),
+      pendapat:    topOpenAnswers_(rows, IDX.h1a_prabowo,  20, n),
+      suka:        topOpenAnswers_(rows, IDX.h1b_prabowo,  15, n),
+      tidak_suka:  topOpenAnswers_(rows, IDX.h1c_prabowo,  15, n),
+      harapan:     topOpenAnswers_(rows, IDX.h1d_prabowo,  15, n),
     };
   }
   if (IDX.h1a_gibran >= 0) {
     persepsiTokoh['Gibran Rakabuming Raka'] = {
-      pendapat:    collectText_(rows, IDX.h1a_gibran,   20),
-      suka:        collectText_(rows, IDX.h1b_gibran,   15),
-      tidak_suka:  collectText_(rows, IDX.h1c_gibran,   15),
-      harapan:     collectText_(rows, IDX.h1d_gibran,   15),
+      pendapat:    topOpenAnswers_(rows, IDX.h1a_gibran,   20, n),
+      suka:        topOpenAnswers_(rows, IDX.h1b_gibran,   15, n),
+      tidak_suka:  topOpenAnswers_(rows, IDX.h1c_gibran,   15, n),
+      harapan:     topOpenAnswers_(rows, IDX.h1d_gibran,   15, n),
     };
   }
   if (IDX.h1a_sudirman >= 0) {
     persepsiTokoh['Sudirman Said'] = {
-      pendapat:    collectText_(rows, IDX.h1a_sudirman, 20),
-      suka:        collectText_(rows, IDX.h1b_sudirman, 15),
-      tidak_suka:  collectText_(rows, IDX.h1c_sudirman, 15),
-      harapan:     collectText_(rows, IDX.h1d_sudirman, 15),
+      pendapat:    topOpenAnswers_(rows, IDX.h1a_sudirman, 20, n),
+      suka:        topOpenAnswers_(rows, IDX.h1b_sudirman, 15, n),
+      tidak_suka:  topOpenAnswers_(rows, IDX.h1c_sudirman, 15, n),
+      harapan:     topOpenAnswers_(rows, IDX.h1d_sudirman, 15, n),
     };
   }
 
