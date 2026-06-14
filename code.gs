@@ -42,6 +42,25 @@ const CFG = {
 function doGet(e) {
   try {
     const params   = (e && e.parameter) ? e.parameter : {};
+    const actionReq = params.action || '';
+
+    if (actionReq === 'fillPresentation') {
+      fillPresentationSheet_();
+      return ok_('Sheet Presentasi telah diperbarui dari Form responses 1.');
+    }
+
+    if (actionReq === 'generateDemoData') {
+      generateDemoData();
+      return ok_('Demo data 2045 responden berhasil di-generate.');
+    }
+
+    if (actionReq === 'generatePresentation') {
+      const slideUrl = generatePresentation();
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, url: slideUrl }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     const modeReq  = params.mode || '';
     const settings = getSettings_();
 
@@ -154,11 +173,149 @@ function ok_(message) {
 // BACA SHEET
 // ═══════════════════════════════════════════════════════════════════════════════
 function readSheet_(sheetName) {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(sheetName);
-  if (!sheet) throw new Error('Sheet "' + sheetName + '" tidak ditemukan. Pastikan nama sheet benar.');
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(sheetName);
+  
+  if (!sheet) {
+    if (sheetName === CFG.PRESENTATION_SHEET) {
+      sheet = ss.getSheetByName(CFG.RESPONSE_SHEET);
+    }
+  }
+  
+  if (!sheet) {
+    // If the sheet still doesn't exist, create it with default headers
+    sheet = ss.insertSheet(sheetName || CFG.RESPONSE_SHEET);
+    const headers = [
+      "Timestamp",
+      "Tanggal wawancara:",
+      "Nama:",
+      "Jenis Kelamin:",
+      "Umur:",
+      "Pekerjaan:",
+      "Penghasilan per bulan:",
+      "Pendidikan terakhir:",
+      "Agama:",
+      "Suku/Etnis:",
+      "Afiliasi Politik (Partai):",
+      "Tempat Tinggal:",
+      "Desa",
+      "Kota",
+      "Alamat:",
+      "Kabupaten/Kota:",
+      "Provinsi:",
+      "No HP:",
+      "No Rekening/e wallet Responden (souvenir):",
+      "A1a. Menurut Anda bagaimana kondisi kepemimpinan nasional saat ini?",
+      "A1b-A1c. Skala Kepemimpinan Nasional [Seberapa puas Anda terhadap kualitas kepemimpinan nasional Indonesia saat ini?]",
+      "A1b-A1c. Skala Kepemimpinan Nasional [Seberapa optimis Anda Indonesia akan memiliki pemimpin yang mampu membawa kemajuan dalam 10 tahun ke depan?]",
+      "A1d. Menurut Anda, masalah utama bangsa yang harus segera diselesaikan pemimpin nasional? (Pilih maksimal 3)",
+      "A2a. Bagaimana pendapat Anda tentang kebijakan dan model kepemimpinan pemerintahan Prabowo?",
+      "A2b. Menurut Anda, apakah kriteria pemimpin yang dibutuhkan untuk kondisi Indonesia saat ini dan mendatang?",
+      "A2c. Apa yang paling tidak Anda sukai dari pemimpin yang akan datang?",
+      "A2d. Apa sebaiknya yang harus dilakukan oleh pemimpin mendatang?",
+      "A2e. Karakter pemimpin nasional yang paling dibutuhkan Indonesia saat ini? (Pilih maksimal 3)",
+      "A2f. Apakah Indonesia membutuhkan munculnya tokoh pemimpin nasional baru di luar tokoh-tokoh yang saat ini dikenal publik?",
+      "A2g. Pemimpin nasional yang ideal menurut Anda berasal dari kalangan mana?",
+      "A2h. Menurut Bapak/Ibu, siapa tokoh yang paling layak menjadi pemimpin nasional Indonesia di masa depan?",
+      "A2i. Selain nama tersebut, siapa lagi tokoh yang menurut Anda layak menjadi pemimpin nasional?",
+      "A2j. Siapa tokoh yang menurut anda yang paling unggul dalam bidang Ekonomi?",
+      "A2j. Siapa tokoh yang menurut anda yang paling unggul dalam bidang Pemberantasan Korupsi?",
+      "A2j. Siapa tokoh yang menurut anda yang paling unggul dalam bidang Diplomasi Internasional?",
+      "A2j. Siapa tokoh yang menurut anda yang paling unggul dalam bidang Pertahanan dan Keamanan?",
+      "A2j. Siapa tokoh yang menurut anda yang paling unggul dalam bidang Kesejahteraan Rakyat?",
+      "B1a. Jika Pilpres dilakukan hari ini, Anda memilih calon Presiden siapa?__________, Apa alasannya?",
+      "B1b. Apakah saat ini Anda memiliki figur Capres alternatif? Siapa sosok Capres alternatif usulan Anda?",
+      "B1c. Menurut Anda bagaimana sosok Capres ideal 2029?",
+      "B1d. Capres ideal menurut Anda merepresentasikan tokoh dari kalangan apa?",
+      "C1a. Di antara nama Capres berikut, mana saja yang anda tahu/kenal?",
+      "C1b. Di antara nama Capres berikut ini, mana yang Anda suka?",
+      "C1c. Bila Pilpres dilaksanakan hari ini, Anda akan memilih siapa?",
+      "D1a. Bila Pilpres dilaksanakan hari ini anda akan memilih siapa? (Simulasi pilihan Capres 10 nama)",
+      "D1a. Bila Pilpres dilaksanakan hari ini anda akan memilih siapa? (Simulasi pilihan Capres 8 nama)",
+      "D1a. Bila Pilpres dilaksanakan hari ini anda akan memilih siapa? (Simulasi pilihan Capres 5 nama)",
+      "D1b. Bila Pilpres dilaksanakan hari ini anda akan memilih siapa? (Simulasi pilihan Capres Klaster Politisi)",
+      "D1b. Bila Pilpres dilaksanakan hari ini anda akan memilih siapa? (Simulasi pilihan Capres Klaster Tokoh)",
+      "D1b. Bila Pilpres dilaksanakan hari ini anda akan memilih siapa? (Simulasi pilihan Capres Klaster Profesional)",
+      "E1a-open — Jika Pemilu Legislatif dilakukan hari ini, Anda memilih partai apa?",
+      "E1b. Di antara nama Parpol berikut ini, Parpol mana saja yang Anda tahu?",
+      "E1c. Di antara nama Parpol berikut ini, Parpol mana yang Anda suka?",
+      "E1d. Bila Pemilihan Legislatif dilaksanakan hari ini, Anda akan memilih partai apa?",
+      "F1a. Menurut Anda bagaimana kinerja Pemerintahan Prabowo?",
+      "F1b. Apa yang paling tidak Anda sukai dari kinerja Pemerintah Prabowo?",
+      "F1c. Apa sebaiknya yang harus dilakukan oleh Pemerintah Prabowo?",
+      "Bagaimana kinerja pemerintah di bidang berikut? [F2a. Pelayanan Publik]",
+      "Bagaimana kinerja pemerintah di bidang berikut? [F2b. Ekonomi, Industri, Teknologi, dan Lapangan Pekerjaan?]",
+      "Bagaimana kinerja pemerintah di bidang berikut? [F2c. Pembangunan, Infrastruktur, dan Transportasi?]",
+      "Bagaimana kinerja pemerintah di bidang berikut? [F2d. Penanganan Tanggap Bencana dan Darurat Kebencanaan?]",
+      "Bagaimana kinerja pemerintah di bidang berikut? [F2e. Pendidikan dan Pengembangan SDM]",
+      "Bagaimana kinerja pemerintah di bidang berikut? [F2f. Lingkungan dan Pengelolaan Hutan]",
+      "Bagaimana kinerja pemerintah di bidang berikut? [F2g. Pertahanan, Keamanan, dan HAM]",
+      "Bagaimana kinerja pemerintah di bidang berikut? [F2h. Pertanian dan Ketahanan Pangan]",
+      "Bagaimana kinerja pemerintah di bidang berikut? [F2i. Demokrasi, Politik Dalam dan Luar Negeri]",
+      "Bagaimana kinerja pemerintah di bidang berikut? [F2j. Pajak dan Keuangan]",
+      "Kepemimpinan dan Arah Strategis Kebijakan Nasional [F3a. Kejelasan visi dan arah kebijakan Pemerintah]",
+      "Kepemimpinan dan Arah Strategis Kebijakan Nasional [F3b. Kecepatan pemerintah merespons masalah atau krisis]",
+      "Kepemimpinan dan Arah Strategis Kebijakan Nasional [F3c. Ketegasan pemerintah mengambil keputusan strategis]",
+      "Kepemimpinan dan Arah Strategis Kebijakan Nasional [F3d. Konsistensi antara pernyataan dengan kebijakan yang diambil]",
+      "Kepemimpinan dan Arah Strategis Kebijakan Nasional [F3e. Kemampuan pemerintah mengoordinasikan kebijakan]",
+      "Kepercayaan & Legitimasi Publik [F4a. Tingkat kepercayaan Anda terhadap Pemerintah]",
+      "Kepercayaan & Legitimasi Publik [F4b. Persepsi terhadap integritas dan kejujuran Pemerintah]",
+      "Kepercayaan & Legitimasi Publik [F4c. Keyakinan bahwa pemerintah bekerja untuk kepentingan rakyat]",
+      "F5a. Secara keseluruhan, bagaimana penilaian Anda terhadap kinerja Pemerintahan Prabowo?",
+      "F5b. Dari skala 1-10, berapa skor yang Anda berikan untuk kinerja Pemerintahan Prabowo?",
+      "F5c. Menurut Anda, satu isu atau masalah apa yang paling mendesak perlu segera ditangani Pemerintahan Prabowo?",
+      "G1a. Apa pertimbangan Anda dalam memilih pada Pemilu 2029?",
+      "G1b. Apa pertimbangan utama Anda dalam memilih kandidat di Pemilu 2029? (semi terbuka)",
+      "Model kampanye seperti apa yang anda harapkan? [G2a. Praktik kampanye menggunakan alat peraga]",
+      "Model kampanye seperti apa yang anda harapkan? [G2b. Praktik kampanye menggunakan media sosial (fb, twitter, instagram, path, youtube, tiktok, dll)?]",
+      "Model kampanye seperti apa yang anda harapkan? [G2c. Praktik kampanye rapat terbuka]",
+      "Model kampanye seperti apa yang anda harapkan? [G2d. Praktik kampanye rapat tertutup]",
+      "Model kampanye seperti apa yang anda harapkan? [G2e. Praktik kampanye bertemu langsung dengan pasangan calon]",
+      "Model kampanye seperti apa yang anda harapkan? [G2f. Praktik kampanye konvoi di jalanan]",
+      "Model kampanye seperti apa yang anda harapkan? [G2g. Praktik kampanye menggunakan influencer/tokoh]",
+      "Apa pertimbangan anda dalam menentukan pilihan? [G3a. Rekam jejak dan integritas kandidat]",
+      "Apa pertimbangan anda dalam menentukan pilihan? [G3b. Visi misi / program/ gagasan kandidat]",
+      "Apa pertimbangan anda dalam menentukan pilihan? [G3c. Ketokohan kandidat]",
+      "Apa pertimbangan anda dalam menentukan pilihan? [G3d. Praktik bagi-bagi uang dan sembako oleh kandidat/tim sukses]",
+      "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4a. Ajakan perkumpulan profesi (Petani, pedagang, organda, dll.)]",
+      "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4b. Tokoh agama (Kyai/ulama, imam, pendeta, dsb.)]",
+      "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4c. Pejabat-pejabat negara setempat (misalnya, kepala desa, lurah, camat)]",
+      "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4d. Pengurus partai politik]",
+      "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4e. Komunitas berbasis etnis]",
+      "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4f. Tokoh Adat]",
+      "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4g. Pemilik tanah/bos/majikan]",
+      "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4h. LSM lokal]",
+      "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4i. Teman]",
+      "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4j. Keluarga]",
+      "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4k. Tetangga]",
+      "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4l. Lainnya]",
+      "H1a. Bagaimana pendapat Anda tentang sosok pemimpin berikut? [Prabowo Subianto]",
+      "H1a. Bagaimana pendapat Anda tentang sosok pemimpin berikut? [Gibran Rakabuming Raka]",
+      "H1a. Bagaimana pendapat Anda tentang sosok pemimpin berikut? [Sudirman Said]",
+      "H1b. Apa yang paling Anda sukai dari sosok pemimpin berikut? [Prabowo Subianto]",
+      "H1b. Apa yang paling Anda sukai dari sosok pemimpin berikut? [Gibran Rakabuming Raka]",
+      "H1b. Apa yang paling Anda sukai dari sosok pemimpin berikut? [Sudirman Said]",
+      "H1c. Apa yang paling Anda tidak sukai dari sosok pemimpin berikut? [Prabowo Subianto]",
+      "H1c. Apa yang paling Anda tidak sukai dari sosok pemimpin berikut? [Gibran Rakabuming Raka]",
+      "H1c. Apa yang paling Anda tidak sukai dari sosok pemimpin berikut? [Sudirman Said]",
+      "H1d. Apa yang harus dilakukan oleh sosok pemimpin berikut? [Prabowo Subianto]",
+      "H1d. Apa yang harus dilakukan oleh sosok pemimpin berikut? [Gibran Rakabuming Raka]",
+      "H1d. Apa yang harus dilakukan oleh sosok pemimpin berikut? [Sudirman Said]",
+      "Seberapa besar Anda percaya tokoh berikut mampu memimpin Indonesia? [Prabowo Subianto]",
+      "Seberapa besar Anda percaya tokoh berikut mampu memimpin Indonesia? [Gibran Rakabumi Raka]",
+      "Seberapa besar Anda percaya tokoh berikut mampu memimpin Indonesia? [Dedi Mulyadi]",
+      "Seberapa besar Anda percaya tokoh berikut mampu memimpin Indonesia? [Purbaya Yudhi Sadewa]",
+      "Seberapa besar Anda percaya tokoh berikut mampu memimpin Indonesia? [Sudirman Said]",
+      "I1a. Menurut penilaian Anda, sampai sejauh manakah responden memahami dengan baik pertanyaan-pertanyaan yang diberikan?",
+      "I1b. Mengingat kondisi wawancara, konsistensi jawaban, dan upaya yang telah dilakukan responden ini untuk menjawab pertanyaan-pertanyaan dengan sejujur-jujurnya, seberapa terpercayakah menurut Anda jawaban-jawaban dari responden?",
+      "Nama Surveyor",
+      "Provinsi"
+    ];
+    sheet.appendRow(headers);
+  }
+  
   const vals = sheet.getDataRange().getValues();
-  if (vals.length < 2) return { headers: (vals[0] || []).map(h => String(h).trim()), rows: [] };
+  if (vals.length < 2) return { headers: vals[0].map(h => String(h).trim()), rows: [] };
   const headers = vals[0].map(h => String(h).trim());
   const rows    = vals.slice(1).filter(r => r.some(c => c !== '' && c !== null && c !== undefined));
   return { headers, rows };
@@ -1005,4 +1162,1085 @@ function testFillPresentation() {
     },
   });
   Logger.log(result.getContent());
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ON OPEN - Menu Kustom Spreadsheet
+// ═══════════════════════════════════════════════════════════════════════════════
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('SurveyDash')
+    .addItem('📊 Generate Demo Data (2045)', 'menuGenerateDemoData')
+    .addItem('📑 Generate Presentasi Google Slides', 'menuGeneratePresentation')
+    .addItem('🔄 Sinkronisasi Sheet Presentasi', 'menuFillPresentation')
+    .addToUi();
+}
+
+function menuGenerateDemoData() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert('Konfirmasi', 'Apakah Anda yakin ingin men-generate 2.045 data respons simulasi ke sheet "Presentasi"? Data yang ada di sheet "Presentasi" akan dihapus.', ui.ButtonSet.YES_NO);
+  if (response === ui.Button.YES) {
+    SpreadsheetApp.getActiveSpreadsheet().toast('Sedang men-generate data respons...', 'SurveyDash', -1);
+    try {
+      generateDemoData();
+      SpreadsheetApp.getActiveSpreadsheet().toast('Selesai!', 'SurveyDash', 3);
+      ui.alert('Sukses', '2.045 data respons simulasi berhasil di-generate di sheet "Presentasi".\n\nMode presentasi diaktifkan secara otomatis. Silakan refresh dashboard Anda!', ui.ButtonSet.OK);
+    } catch (e) {
+      ui.alert('Gagal', 'Terjadi kesalahan: ' + e.message, ui.ButtonSet.OK);
+    }
+  }
+}
+
+function menuGeneratePresentation() {
+  const ui = SpreadsheetApp.getUi();
+  SpreadsheetApp.getActiveSpreadsheet().toast('Sedang membuat Google Slides presentasi...', 'SurveyDash', -1);
+  try {
+    const slideUrl = generatePresentation();
+    SpreadsheetApp.getActiveSpreadsheet().toast('Selesai!', 'SurveyDash', 3);
+    
+    const htmlOutput = HtmlService.createHtmlOutput(
+      '<div style="font-family: sans-serif; padding: 15px; text-align: center;">' +
+      '<h3>Presentasi Berhasil Dibuat!</h3>' +
+      '<p>Google Slides presentasi hasil survei Anda telah berhasil dibuat.</p>' +
+      '<a href="' + slideUrl + '" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 10px;">Buka Google Slides</a>' +
+      '</div>'
+    ).setWidth(400).setHeight(180);
+    ui.showModalDialog(htmlOutput, 'Presentasi SurveyDash');
+  } catch (e) {
+    ui.alert('Gagal', 'Terjadi kesalahan: ' + e.message, ui.ButtonSet.OK);
+  }
+}
+
+function menuFillPresentation() {
+  const ui = SpreadsheetApp.getUi();
+  try {
+    fillPresentationSheet_();
+    ui.alert('Sukses', 'Sheet Presentasi berhasil diperbarui dengan data dari Form responses 1.', ui.ButtonSet.OK);
+  } catch (e) {
+    ui.alert('Gagal', 'Terjadi kesalahan: ' + e.message, ui.ButtonSet.OK);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DEMO DATA GENERATOR
+// ═══════════════════════════════════════════════════════════════════════════════
+function generateDemoData() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(CFG.PRESENTATION_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(CFG.PRESENTATION_SHEET);
+  }
+  sheet.clearContents();
+
+  // 1. Tentukan Headers
+  const headers = [
+    "Timestamp",
+    "Tanggal wawancara:",
+    "Nama:",
+    "Jenis Kelamin:",
+    "Umur:",
+    "Pekerjaan:",
+    "Penghasilan per bulan:",
+    "Pendidikan terakhir:",
+    "Agama:",
+    "Suku/Etnis:",
+    "Afiliasi Politik (Partai):",
+    "Tempat Tinggal:",
+    "Desa",
+    "Kota",
+    "Alamat:",
+    "Kabupaten/Kota:",
+    "Provinsi:",
+    "No HP:",
+    "No Rekening/e wallet Responden (souvenir):",
+    "A1a. Menurut Anda bagaimana kondisi kepemimpinan nasional saat ini?",
+    "A1b-A1c. Skala Kepemimpinan Nasional [Seberapa puas Anda terhadap kualitas kepemimpinan nasional Indonesia saat ini?]",
+    "A1b-A1c. Skala Kepemimpinan Nasional [Seberapa optimis Anda Indonesia akan memiliki pemimpin yang mampu membawa kemajuan dalam 10 tahun ke depan?]",
+    "A1d. Menurut Anda, masalah utama bangsa yang harus segera diselesaikan pemimpin nasional? (Pilih maksimal 3)",
+    "A2a. Bagaimana pendapat Anda tentang kebijakan dan model kepemimpinan pemerintahan Prabowo?",
+    "A2b. Menurut Anda, apakah kriteria pemimpin yang dibutuhkan untuk kondisi Indonesia saat ini dan mendatang?",
+    "A2c. Apa yang paling tidak Anda sukai dari pemimpin yang akan datang?",
+    "A2d. Apa sebaiknya yang harus dilakukan oleh pemimpin mendatang?",
+    "A2e. Karakter pemimpin nasional yang paling dibutuhkan Indonesia saat ini? (Pilih maksimal 3)",
+    "A2f. Apakah Indonesia membutuhkan munculnya tokoh pemimpin nasional baru di luar tokoh-tokoh yang saat ini dikenal publik?",
+    "A2g. Pemimpin nasional yang ideal menurut Anda berasal dari kalangan mana?",
+    "A2h. Menurut Bapak/Ibu, siapa tokoh yang paling layak menjadi pemimpin nasional Indonesia di masa depan?",
+    "A2i. Selain nama tersebut, siapa lagi tokoh yang menurut Anda layak menjadi pemimpin nasional?",
+    "A2j. Siapa tokoh yang menurut anda yang paling unggul dalam bidang Ekonomi?",
+    "A2j. Siapa tokoh yang menurut anda yang paling unggul dalam bidang Pemberantasan Korupsi?",
+    "A2j. Siapa tokoh yang menurut anda yang paling unggul dalam bidang Diplomasi Internasional?",
+    "A2j. Siapa tokoh yang menurut anda yang paling unggul dalam bidang Pertahanan dan Keamanan?",
+    "A2j. Siapa tokoh yang menurut anda yang paling unggul dalam bidang Kesejahteraan Rakyat?",
+    "B1a. Jika Pilpres dilakukan hari ini, Anda memilih calon Presiden siapa?__________, Apa alasannya?",
+    "B1b. Apakah saat ini Anda memiliki figur Capres alternatif? Siapa sosok Capres alternatif usulan Anda?",
+    "B1c. Menurut Anda bagaimana sosok Capres ideal 2029?",
+    "B1d. Capres ideal menurut Anda merepresentasikan tokoh dari kalangan apa?",
+    "C1a. Di antara nama Capres berikut, mana saja yang anda tahu/kenal?",
+    "C1b. Di antara nama Capres berikut ini, mana yang Anda suka?",
+    "C1c. Bila Pilpres dilaksanakan hari ini, Anda akan memilih siapa?",
+    "D1a. Bila Pilpres dilaksanakan hari ini anda akan memilih siapa? (Simulasi pilihan Capres 10 nama)",
+    "D1a. Bila Pilpres dilaksanakan hari ini anda akan memilih siapa? (Simulasi pilihan Capres 8 nama)",
+    "D1a. Bila Pilpres dilaksanakan hari ini anda akan memilih siapa? (Simulasi pilihan Capres 5 nama)",
+    "D1b. Bila Pilpres dilaksanakan hari ini anda akan memilih siapa? (Simulasi pilihan Capres Klaster Politisi)",
+    "D1b. Bila Pilpres dilaksanakan hari ini anda akan memilih siapa? (Simulasi pilihan Capres Klaster Tokoh)",
+    "D1b. Bila Pilpres dilaksanakan hari ini anda akan memilih siapa? (Simulasi pilihan Capres Klaster Profesional)",
+    "E1a-open — Jika Pemilu Legislatif dilakukan hari ini, Anda memilih partai apa?",
+    "E1b. Di antara nama Parpol berikut ini, Parpol mana saja yang Anda tahu?",
+    "E1c. Di antara nama Parpol berikut ini, Parpol mana yang Anda suka?",
+    "E1d. Bila Pemilihan Legislatif dilaksanakan hari ini, Anda akan memilih partai apa?",
+    "F1a. Menurut Anda bagaimana kinerja Pemerintahan Prabowo?",
+    "F1b. Apa yang paling tidak Anda sukai dari kinerja Pemerintah Prabowo?",
+    "F1c. Apa sebaiknya yang harus dilakukan oleh Pemerintah Prabowo?",
+    "Bagaimana kinerja pemerintah di bidang berikut? [F2a. Pelayanan Publik]",
+    "Bagaimana kinerja pemerintah di bidang berikut? [F2b. Ekonomi, Industri, Teknologi, dan Lapangan Pekerjaan?]",
+    "Bagaimana kinerja pemerintah di bidang berikut? [F2c. Pembangunan, Infrastruktur, dan Transportasi?]",
+    "Bagaimana kinerja pemerintah di bidang berikut? [F2d. Penanganan Tanggap Bencana dan Darurat Kebencanaan?]",
+    "Bagaimana kinerja pemerintah di bidang berikut? [F2e. Pendidikan dan Pengembangan SDM]",
+    "Bagaimana kinerja pemerintah di bidang berikut? [F2f. Lingkungan dan Pengelolaan Hutan]",
+    "Bagaimana kinerja pemerintah di bidang berikut? [F2g. Pertahanan, Keamanan, dan HAM]",
+    "Bagaimana kinerja pemerintah di bidang berikut? [F2h. Pertanian dan Ketahanan Pangan]",
+    "Bagaimana kinerja pemerintah di bidang berikut? [F2i. Demokrasi, Politik Dalam dan Luar Negeri]",
+    "Bagaimana kinerja pemerintah di bidang berikut? [F2j. Pajak dan Keuangan]",
+    "Kepemimpinan dan Arah Strategis Kebijakan Nasional [F3a. Kejelasan visi dan arah kebijakan Pemerintah]",
+    "Kepemimpinan dan Arah Strategis Kebijakan Nasional [F3b. Kecepatan pemerintah merespons masalah atau krisis]",
+    "Kepemimpinan dan Arah Strategis Kebijakan Nasional [F3c. Ketegasan pemerintah mengambil keputusan strategis]",
+    "Kepemimpinan dan Arah Strategis Kebijakan Nasional [F3d. Konsistensi antara pernyataan dengan kebijakan yang diambil]",
+    "Kepemimpinan dan Arah Strategis Kebijakan Nasional [F3e. Kemampuan pemerintah mengoordinasikan kebijakan]",
+    "Kepercayaan & Legitimasi Publik [F4a. Tingkat kepercayaan Anda terhadap Pemerintah]",
+    "Kepercayaan & Legitimasi Publik [F4b. Persepsi terhadap integritas dan kejujuran Pemerintah]",
+    "Kepercayaan & Legitimasi Publik [F4c. Keyakinan bahwa pemerintah bekerja untuk kepentingan rakyat]",
+    "F5a. Secara keseluruhan, bagaimana penilaian Anda terhadap kinerja Pemerintahan Prabowo?",
+    "F5b. Dari skala 1-10, berapa skor yang Anda berikan untuk kinerja Pemerintahan Prabowo?",
+    "F5c. Menurut Anda, satu isu atau masalah apa yang paling mendesak perlu segera ditangani Pemerintahan Prabowo?",
+    "G1a. Apa pertimbangan Anda dalam memilih pada Pemilu 2029?",
+    "G1b. Apa pertimbangan utama Anda dalam memilih kandidat di Pemilu 2029? (semi terbuka)",
+    "Model kampanye seperti apa yang anda harapkan? [G2a. Praktik kampanye menggunakan alat peraga]",
+    "Model kampanye seperti apa yang anda harapkan? [G2b. Praktik kampanye menggunakan media sosial (fb, twitter, instagram, path, youtube, tiktok, dll)?]",
+    "Model kampanye seperti apa yang anda harapkan? [G2c. Praktik kampanye rapat terbuka]",
+    "Model kampanye seperti apa yang anda harapkan? [G2d. Praktik kampanye rapat tertutup]",
+    "Model kampanye seperti apa yang anda harapkan? [G2e. Praktik kampanye bertemu langsung dengan pasangan calon]",
+    "Model kampanye seperti apa yang anda harapkan? [G2f. Praktik kampanye konvoi di jalanan]",
+    "Model kampanye seperti apa yang anda harapkan? [G2g. Praktik kampanye menggunakan influencer/tokoh]",
+    "Apa pertimbangan anda dalam menentukan pilihan? [G3a. Rekam jejak dan integritas kandidat]",
+    "Apa pertimbangan anda dalam menentukan pilihan? [G3b. Visi misi / program/ gagasan kandidat]",
+    "Apa pertimbangan anda dalam menentukan pilihan? [G3c. Ketokohan kandidat]",
+    "Apa pertimbangan anda dalam menentukan pilihan? [G3d. Praktik bagi-bagi uang dan sembako oleh kandidat/tim sukses]",
+    "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4a. Ajakan perkumpulan profesi (Petani, pedagang, organda, dll.)]",
+    "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4b. Tokoh agama (Kyai/ulama, imam, pendeta, dsb.)]",
+    "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4c. Pejabat-pejabat negara setempat (misalnya, kepala desa, lurah, camat)]",
+    "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4d. Pengurus partai politik]",
+    "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4e. Komunitas berbasis etnis]",
+    "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4f. Tokoh Adat]",
+    "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4g. Pemilik tanah/bos/majikan]",
+    "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4h. LSM lokal]",
+    "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4i. Teman]",
+    "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4j. Keluarga]",
+    "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4k. Tetangga]",
+    "Seberapa kuat kapasitas organisasi atau individu untuk mengajak/mempengaruhi anda dalam menentukan pilihan kandidat? [G4l. Lainnya]",
+    "H1a. Bagaimana pendapat Anda tentang sosok pemimpin berikut? [Prabowo Subianto]",
+    "H1a. Bagaimana pendapat Anda tentang sosok pemimpin berikut? [Gibran Rakabuming Raka]",
+    "H1a. Bagaimana pendapat Anda tentang sosok pemimpin berikut? [Sudirman Said]",
+    "H1b. Apa yang paling Anda sukai dari sosok pemimpin berikut? [Prabowo Subianto]",
+    "H1b. Apa yang paling Anda sukai dari sosok pemimpin berikut? [Gibran Rakabuming Raka]",
+    "H1b. Apa yang paling Anda sukai dari sosok pemimpin berikut? [Sudirman Said]",
+    "H1c. Apa yang paling Anda tidak sukai dari sosok pemimpin berikut? [Prabowo Subianto]",
+    "H1c. Apa yang paling Anda tidak sukai dari sosok pemimpin berikut? [Gibran Rakabuming Raka]",
+    "H1c. Apa yang paling Anda tidak sukai dari sosok pemimpin berikut? [Sudirman Said]",
+    "H1d. Apa yang harus dilakukan oleh sosok pemimpin berikut? [Prabowo Subianto]",
+    "H1d. Apa yang harus dilakukan oleh sosok pemimpin berikut? [Gibran Rakabuming Raka]",
+    "H1d. Apa yang harus dilakukan oleh sosok pemimpin berikut? [Sudirman Said]",
+    "Seberapa besar Anda percaya tokoh berikut mampu memimpin Indonesia? [Prabowo Subianto]",
+    "Seberapa besar Anda percaya tokoh berikut mampu memimpin Indonesia? [Gibran Rakabumi Raka]",
+    "Seberapa besar Anda percaya tokoh berikut mampu memimpin Indonesia? [Dedi Mulyadi]",
+    "Seberapa besar Anda percaya tokoh berikut mampu memimpin Indonesia? [Purbaya Yudhi Sadewa]",
+    "Seberapa besar Anda percaya tokoh berikut mampu memimpin Indonesia? [Sudirman Said]",
+    "I1a. Menurut penilaian Anda, sampai sejauh manakah responden memahami dengan baik pertanyaan-pertanyaan yang diberikan?",
+    "I1b. Mengingat kondisi wawancara, konsistensi jawaban, dan upaya yang telah dilakukan responden ini untuk menjawab pertanyaan-pertanyaan dengan sejujur-jujurnya, seberapa terpercayakah menurut Anda jawaban-jawaban dari responden?",
+    "Nama Surveyor",
+    "Provinsi"
+  ];
+
+  const FIRST_NAMES = ["Ahmad", "Budi", "Candra", "Dedi", "Eko", "Fajar", "Guntur", "Hendra", "Indra", "Joko", "Kurniawan", "Laksana", "Mulyono", "Nugroho", "Oki", "Prabowo", "Rian", "Slamet", "Taufik", "Utomo", "Wahyu", "Yanto", "Zainal", "Siti", "Sri", "Dewi", "Putri", "Lestari", "Kartika", "Rini", "Wati", "Sari", "Endang", "Tri", "Wahyuni", "Mega", "Yuliana", "Fitri", "Indah", "Dian", "Anisa", "Aulia", "Nabila", "Rizky", "Aditya", "Fikri", "Hafiz", "Reyhan"];
+  const LAST_NAMES = ["Sitorus", "Manurung", "Ginting", "Nasution", "Harianja", "Siregar", "Lubis", "Pohan", "Harahap", "Sinaga", "Wibowo", "Prasetyo", "Santoso", "Suryadi", "Kusuma", "Hidayat", "Nugraha", "Sudarsono", "Budiman", "Gunawan", "Setiawan", "Wijaya", "Saputra", "Wahyudi", "Pratama", "Ramadhan", "Hidayatullah", "Arifin", "Fadillah", "Subagyo", "Siswanto", "Kartodihardjo", "Tjokro", "Mangun"];
+
+  const JOBS = [
+    { name: "Wiraswasta", weight: 25 },
+    { name: "Karyawan Swasta", weight: 30 },
+    { name: "PNS / ASN / BUMN", weight: 10 },
+    { name: "Buruh / Pekerja Lepas", weight: 12 },
+    { name: "Petani / Nelayan", weight: 10 },
+    { name: "Ibu Rumah Tangga", weight: 8 },
+    { name: "Mahasiswa / Pelajar", weight: 3 },
+    { name: "Tidak Bekerja", weight: 2 }
+  ];
+
+  const INCOME = [
+    { name: "Rp 1.500.000 - Rp 3.000.000", weight: 40 },
+    { name: "Rp 3.000.000 - Rp 5.000.000", weight: 30 },
+    { name: "Kurang dari Rp 1.500.000", weight: 15 },
+    { name: "Rp 5.000.000 - Rp 10.000.000", weight: 12 },
+    { name: "Lebih dari Rp 10.000.000", weight: 3 }
+  ];
+
+  const EDUCATION = [
+    { name: "SMA / Sederajat", weight: 50 },
+    { name: "Sarjana (S1)", weight: 25 },
+    { name: "Diploma (D1-D4)", weight: 12 },
+    { name: "SMP / Sederajat", weight: 8 },
+    { name: "Pascasarjana (S2/S3)", weight: 3 },
+    { name: "SD / Sederajat", weight: 2 }
+  ];
+
+  const RELIGIONS = [
+    { name: "Islam", weight: 87 },
+    { name: "Kristen Protestan", weight: 7 },
+    { name: "Katolik", weight: 3 },
+    { name: "Hindu", weight: 1 },
+    { name: "Buddha", weight: 1 },
+    { name: "Khonghucu", weight: 1 }
+  ];
+
+  const ETHNICITIES = [
+    { name: "Jawa", weight: 40 },
+    { name: "Sunda", weight: 15 },
+    { name: "Batak", weight: 5 },
+    { name: "Betawi", weight: 5 },
+    { name: "Madura", weight: 4 },
+    { name: "Minangkabau", weight: 3 },
+    { name: "Bugis", weight: 3 },
+    { name: "Melayu", weight: 3 },
+    { name: "Banten", weight: 2 },
+    { name: "Banjar", weight: 2 },
+    { name: "Bali", weight: 2 },
+    { name: "Aceh", weight: 2 },
+    { name: "Lainnya", weight: 14 }
+  ];
+
+  const PROVINCES_WEIGHTED = [
+    { name: "Jawa Barat", weight: 18 },
+    { name: "Jawa Timur", weight: 15 },
+    { name: "Jawa Tengah", weight: 14 },
+    { name: "Sumatera Utara", weight: 6 },
+    { name: "Banten", weight: 5 },
+    { name: "Daerah Khusus Jakarta", weight: 4 },
+    { name: "Sulawesi Selatan", weight: 4 },
+    { name: "Lampung", weight: 3 },
+    { name: "Sumatera Selatan", weight: 3 },
+    { name: "Riau", weight: 3 },
+    { name: "Sumatera Barat", weight: 2 },
+    { name: "Kalimantan Barat", weight: 2 },
+    { name: "Nusa Tenggara Timur", weight: 2 },
+    { name: "Nusa Tenggara Barat", weight: 2 },
+    { name: "Bali", weight: 2 },
+    { name: "Aceh", weight: 2 },
+    { name: "Jambi", weight: 1 },
+    { name: "Kalimantan Timur", weight: 1 },
+    { name: "Kalimantan Selatan", weight: 1 },
+    { name: "Sulawesi Utara", weight: 1 },
+    { name: "Sulawesi Tenggara", weight: 1 },
+    { name: "Maluku", weight: 1 },
+    { name: "Papua", weight: 1 }
+  ];
+
+  const C1A_POOL = [
+    "Prabowo Subianto", "Gibran Rakabuming Raka", "Agus Harimurti Yudhoyono", "Pramono Anung",
+    "Purbaya Yudhi Sadewa", "Anies Baswedan", "Dedi Mulyadi", "Bahlil Lahadalia",
+    "Khofifah Indar Parawansa", "Abdul Muhaimin Iskandar", "Anis Matta", "Erick Thohir",
+    "Muhamad Chatib Basri", "Mahfud MD", "Puan Maharani", "Sherly Tjoanda", "Surya Paloh",
+    "Muhamad Mardiono", "Anas Urbaningrum", "Yusril Ihza Mahendra", "Zulkifli Hasan",
+    "Muhammad Sohibul Iman", "Sudirman Said", "Andika Perkasa"
+  ];
+
+  const E1B_POOL = [
+    "PKB", "Partai Gerindra", "PDI Perjuangan", "Partai Golkar", "Partai NasDem", "Partai Buruh",
+    "Partai Gelora", "PKS", "PKN", "Partai Hanura", "Partai Garuda", "PAN", "PBB", "Partai Demokrat",
+    "PSI", "Partai Perindo", "PPP", "Partai Umat", "Berkarya", "Partai Gerakan Rakyat",
+    "Parta Gema Indonesia", "Partai Rakyat Indonesia", "Partai Perubahan"
+  ];
+
+  const SURVEYORS = ["Budi Santoso", "Siti Aminah", "Ahmad Fauzi", "Dewi Lestari", "Rian Hidayat", "Fitri Handayani", "Joko Susilo", "Larasati Putri", "Hendra Wijaya", "Indah Wahyuni"];
+
+  function weightedChoice_(list, defaultList) {
+    if (!list || list.length === 0) {
+      return defaultList[Math.floor(Math.random() * defaultList.length)];
+    }
+    const totalWeight = list.reduce((sum, item) => sum + (item.weight || 1), 0);
+    let r = Math.random() * totalWeight;
+    for (const item of list) {
+      r -= (item.weight || 1);
+      if (r <= 0) return item.name;
+    }
+    return list[0].name;
+  }
+
+  function randomRange_(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function pickRandomSubset_(arr, size) {
+    const shuffled = arr.slice().sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, size);
+  }
+
+  const rows = [];
+  rows.push(headers);
+
+  // Generate 2045 records
+  const totalResponden = 2045;
+  const startDate = new Date("2026-06-14T08:00:00Z").getTime();
+  const endDate = new Date("2026-06-23T18:00:00Z").getTime();
+
+  for (let i = 0; i < totalResponden; i++) {
+    const timeMs = randomRange_(startDate, endDate);
+    const timestamp = new Date(timeMs).toISOString().replace("T", " ").substring(0, 19);
+    const dateStr = timestamp.substring(0, 10);
+    const name = FIRST_NAMES[randomRange_(0, FIRST_NAMES.length - 1)] + " " + LAST_NAMES[randomRange_(0, LAST_NAMES.length - 1)];
+    const gender = Math.random() > 0.51 ? "Laki-laki" : "Perempuan";
+    const age = randomRange_(17, 70);
+    const job = weightedChoice_(JOBS, ["Swasta"]);
+    const income = weightedChoice_(INCOME, ["Rp 1.500.000 - Rp 3.000.000"]);
+    const education = weightedChoice_(EDUCATION, ["SMA / Sederajat"]);
+    const religion = weightedChoice_(RELIGIONS, ["Islam"]);
+    const ethnicity = weightedChoice_(ETHNICITIES, ["Jawa"]);
+    
+    // Choose political profile to keep responses logical
+    // Profiles: 0 = Prabowo/Gibran fan, 1 = Opposition (Anies/Sudirman), 2 = Moderate (Dedi/Khofifah/AHY), 3 = Neutral/Undecided
+    const profileRoll = Math.random();
+    let profile = 3;
+    if (profileRoll < 0.45) profile = 0;
+    else if (profileRoll < 0.70) profile = 1;
+    else if (profileRoll < 0.90) profile = 2;
+
+    let partyAff = "Tidak berafiliasi / Rahasia";
+    if (profile === 0) {
+      partyAff = pickRandomSubset_(["Partai Gerindra", "Partai Golkar", "PAN", "Partai Demokrat", "PSI"], 1)[0];
+    } else if (profile === 1) {
+      partyAff = pickRandomSubset_(["PKS", "Partai NasDem", "PKB", "PDI Perjuangan"], 1)[0];
+    } else if (profile === 2) {
+      partyAff = pickRandomSubset_(["Partai Golkar", "PDI Perjuangan", "Partai Demokrat", "PKB"], 1)[0];
+    }
+
+    const liveType = Math.random() > 0.55 ? "Kota" : "Desa";
+    const village = "Desa " + pickRandomSubset_(["Sukamakmur", "Maju Jaya", "Harapan Indah", "Caringin", "Sumber Sari", "Mekar Wangi", "Bojong Gede", "Sukamaju"], 1)[0];
+    const city = "Kota " + pickRandomSubset_(["Bandung", "Bogor", "Semarang", "Surabaya", "Medan", "Tangerang", "Bekasi", "Depok", "Palembang", "Makassar"], 1)[0];
+    const address = "Jl. Raya " + pickRandomSubset_(["Sudirman", "Thamrin", "Gatot Subroto", "Merdeka", "Diponegoro", "Ahmad Yani", "Pemuda"], 1)[0] + " No. " + randomRange_(1, 150);
+    const province = weightedChoice_(PROVINCES_WEIGHTED, ["Jawa Barat"]);
+    const phone = "081" + randomRange_(10000000, 99999999);
+    const bank = pickRandomSubset_(["GoPay", "OVO", "BCA", "Mandiri", "BRI", "Dana"], 1)[0] + " - " + randomRange_(100000000, 999999999);
+
+    // Section A
+    let a1a = "Kondisi kepemimpinan nasional saat ini cukup stabil, pembangunan infrastruktur terus berlanjut.";
+    let a1b = 7; // Kepuasan
+    let a1c = 8; // Optimisme
+    let a1d_ops = ["Lapangan kerja", "Harga kebutuhan pokok", "Kemiskinan", "Korupsi", "Pendidikan", "Kesehatan"];
+    let a1d = pickRandomSubset_(a1d_ops, randomRange_(1, 3)).join(", ");
+
+    if (profile === 0) {
+      a1b = randomRange_(8, 10);
+      a1c = randomRange_(8, 10);
+      a1a = pickRandomSubset_([
+        "Sangat baik, Presiden Prabowo tegas dan Gibran inovatif.",
+        "Kondisi kepemimpinan nasional sangat kuat, disegani di dunia internasional.",
+        "Sangat puas dengan kepemimpinan nasional saat ini, arah pembangunan sangat jelas."
+      ], 1)[0];
+    } else if (profile === 1) {
+      a1b = randomRange_(2, 5);
+      a1c = randomRange_(4, 7);
+      a1a = pickRandomSubset_([
+        "Kepemimpinan nasional kurang memuaskan, ekonomi terasa sulit bagi rakyat bawah.",
+        "Kondisi hukum dan pemberantasan korupsi mengalami penurunan.",
+        "Perlu penyegaran kepemimpinan, masalah ketimpangan sosial belum terselesaikan."
+      ], 1)[0];
+    } else {
+      a1b = randomRange_(5, 7);
+      a1c = randomRange_(6, 8);
+      a1a = pickRandomSubset_([
+        "Cukup baik, namun tantangan ekonomi global harus diantisipasi lebih baik.",
+        "Bagus dalam infrastruktur, tapi sektor kesejahteraan masyarakat perlu ditingkatkan.",
+        "Kepemimpinan berjalan normal dan relatif stabil."
+      ], 1)[0];
+    }
+
+    // A2
+    let a2a = "Kebijakan pemerintahan Prabowo cukup berani, terutama dalam hal pertahanan dan hilirisasi.";
+    let a2b = "Pemimpin yang tegas, berintegritas tinggi, dan paham masalah ekonomi.";
+    let a2c = "Pemimpin yang terlalu banyak janji kampanye tapi realisasinya minim.";
+    let a2d = "Fokus pada penyediaan lapangan kerja baru dan stabilitas harga pokok.";
+    let a2e_ops = ["Jujur dan bersih", "Mampu mengelola ekonomi", "Tegas", "Berani melawan korupsi", "Merakyat", "Visioner"];
+    let a2e = pickRandomSubset_(a2e_ops, randomRange_(1, 3)).join(", ");
+    let a2f = profile === 1 ? "Sangat perlu" : (profile === 0 ? "Tidak perlu" : "Perlu");
+    let a2g = weightedChoice_([
+      { name: "Kepala daerah", weight: 30 },
+      { name: "Menteri", weight: 20 },
+      { name: "Politisi", weight: 15 },
+      { name: "TNI/Polri", weight: 15 },
+      { name: "Akademisi", weight: 10 },
+      { name: "Tokoh agama", weight: 10 }
+    ], ["Kepala daerah"]);
+
+    // Tokoh layak future
+    let a2h = "Prabowo Subianto";
+    let a2i = "Gibran Rakabuming Raka";
+    if (profile === 1) {
+      a2h = Math.random() > 0.5 ? "Anies Baswedan" : "Sudirman Said";
+      a2i = Math.random() > 0.5 ? "Mahfud MD" : "Andika Perkasa";
+    } else if (profile === 2) {
+      a2h = pickRandomSubset_(["Dedi Mulyadi", "Khofifah Indar Parawansa", "Agus Harimurti Yudhoyono"], 1)[0];
+      a2i = pickRandomSubset_(["Erick Thohir", "Sri Mulyani", "Purbaya Yudhi Sadewa"], 1)[0];
+    } else {
+      a2h = "Belum tahu";
+      a2i = "Tidak tahu";
+    }
+
+    // Keunggulan per bidang
+    let a2j_ekonomi = profile === 0 ? "Prabowo Subianto" : (profile === 2 ? "Sri Mulyani" : "Chatib Basri");
+    let a2j_korupsi = profile === 1 ? "Sudirman Said" : "Mahfud MD";
+    let a2j_diplomasi = "Prabowo Subianto";
+    let a2j_pertahanan = "Prabowo Subianto";
+    let a2j_kesejahteraan = profile === 0 ? "Gibran Rakabuming Raka" : "Khofifah Indar Parawansa";
+
+    // Section B
+    let b1a = a2h + ", karena rekam jejak dan kemampuannya sudah terbukti.";
+    let b1b = a2i;
+    let b1c = "Pemimpin yang memiliki visi kemandirian bangsa, cerdas, dan merakyat.";
+    let b1d = a2g;
+
+    // Section C (Tahu/Suka/Pilih)
+    let c1c = a2h;
+    if (c1c === "Belum tahu" || c1c === "Tidak tahu") {
+      c1c = pickRandomSubset_(C1A_POOL, 1)[0];
+    }
+    const knownCapres = pickRandomSubset_(C1A_POOL, randomRange_(8, 15));
+    if (!knownCapres.includes(c1c)) knownCapres.push(c1c);
+    const likedCapres = pickRandomSubset_(knownCapres, randomRange_(2, Math.max(2, knownCapres.length - 2)));
+    if (!likedCapres.includes(c1c)) likedCapres.push(c1c);
+
+    let c1a = knownCapres.join(", ");
+    let c1b = likedCapres.join(", ");
+
+    // Section D (Simulasi)
+    const SIM_10_LIST = ["Prabowo Subianto", "Gibran Rakabuming Raka", "Agus Harimurti Yudhoyono", "Pramono Anung", "Purbaya Yudhi Sadewa", "Anies Baswedan", "Dedi Mulyadi", "Bahlil Lahadalia", "Khofifah Indar Parawansa", "Puan Maharani"];
+    let d1a_10 = SIM_10_LIST.includes(c1c) ? c1c : pickRandomSubset_(SIM_10_LIST, 1)[0];
+
+    const SIM_8_LIST = ["Prabowo Subianto", "Gibran Rakabuming Raka", "Agus Harimurti Yudhoyono", "Pramono Anung", "Purbaya Yudhi Sadewa", "Anies Baswedan", "Dedi Mulyadi", "Khofifah Indar Parawansa"];
+    let d1a_8 = SIM_8_LIST.includes(c1c) ? c1c : pickRandomSubset_(SIM_8_LIST, 1)[0];
+
+    const SIM_5_LIST = ["Prabowo Subianto", "Gibran Rakabuming Raka", "Agus Harimurti Yudhoyono", "Purbaya Yudhi Sadewa", "Dedi Mulyadi"];
+    let d1a_5 = SIM_5_LIST.includes(c1c) ? c1c : pickRandomSubset_(SIM_5_LIST, 1)[0];
+
+    const POL_LIST = ["Agus Harimurti Yudhoyono", "Dedi Mulyadi", "Puan Maharani", "Bahlil Lahadalia", "Pramono Anung", "Sherly Tjoanda", "Sohibul Iman", "Prasetyo Hadi", "Nusron Wahid", "Sudaryono"];
+    let d1b_politisi = POL_LIST.includes(c1c) ? c1c : pickRandomSubset_(POL_LIST, 1)[0];
+
+    const TOK_LIST = ["Haidar Nashir", "Yahya Cholil Tsaquf", "Said Aqil Siradj", "Abdul Mu’ti", "Nasarudin Umar", "Andika Perkasa", "Khofifah Indar Parawansa", "Yenny Wahid", "Ahmad Mustofa Bisri", "Habib Luthfi"];
+    let d1b_tokoh = TOK_LIST.includes(c1c) ? c1c : pickRandomSubset_(TOK_LIST, 1)[0];
+
+    const PROF_LIST = ["Sri Mulyani", "Sudirman Said", "Muhamad Chatib Basri", "Susi Pudjiastuti", "Purbaya Yudhi Sadewa", "Rosan P Ruslani", "Ignasius Jonan", "Erick Thohir", "Amran Sulaiman", "Tom Lembong"];
+    let d1b_profesional = PROF_LIST.includes(c1c) ? c1c : (c1c === "Sudirman Said" ? "Sudirman Said" : pickRandomSubset_(PROF_LIST, 1)[0]);
+
+    // Section E (Parpol)
+    let e1a = partyAff === "Tidak berafiliasi / Rahasia" ? "Gerindra" : partyAff;
+    let knownParpols = pickRandomSubset_(E1B_POOL, randomRange_(6, 12));
+    if (partyAff !== "Tidak berafiliasi / Rahasia" && !knownParpols.includes(partyAff)) knownParpols.push(partyAff);
+    let likedParpols = pickRandomSubset_(knownParpols, randomRange_(1, Math.max(1, knownParpols.length - 2)));
+    if (partyAff !== "Tidak berafiliasi / Rahasia" && !likedParpols.includes(partyAff)) likedParpols.push(partyAff);
+
+    let e1b = knownParpols.join(", ");
+    let e1c = likedParpols.join(", ");
+    let e1d = partyAff === "Tidak berafiliasi / Rahasia" ? pickRandomSubset_(E1B_POOL, 1)[0] : partyAff;
+
+    // Section F (Kinerja)
+    let f1a = profile === 0 ? "Sangat baik, fokus pembangunan merata." : (profile === 1 ? "Perlu pembenahan serius di bidang ekonomi dan penegakan hukum." : "Sudah cukup baik namun perlu peningkatan.");
+    let f1b = profile === 0 ? "Koordinasi kebijakan kadang kurang mulus." : "Kurang berpihak pada rakyat kecil dalam hal stabilitas harga.";
+    let f1c = "Lebih fokus pada pemberantasan korupsi dan kestabilan ekonomi.";
+
+    let f2_p = ["Puas", "Sangat puas", "Puas", "Tidak puas", "Puas"];
+    if (profile === 0) f2_p = ["Puas", "Sangat puas", "Sangat puas", "Puas", "Puas"];
+    else if (profile === 1) f2_p = ["Tidak puas", "Sangat tidak puas", "Tidak puas", "Puas", "Tidak tahu"];
+    
+    let f2a = pickRandomSubset_(f2_p, 1)[0];
+    let f2b = pickRandomSubset_(f2_p, 1)[0];
+    let f2c = pickRandomSubset_(f2_p, 1)[0];
+    let f2d = pickRandomSubset_(f2_p, 1)[0];
+    let f2e = pickRandomSubset_(f2_p, 1)[0];
+    let f2f = pickRandomSubset_(f2_p, 1)[0];
+    let f2g = pickRandomSubset_(f2_p, 1)[0];
+    let f2h = pickRandomSubset_(f2_p, 1)[0];
+    let f2i = pickRandomSubset_(f2_p, 1)[0];
+    let f2j = pickRandomSubset_(f2_p, 1)[0];
+
+    let baseF = profile === 0 ? 8 : (profile === 1 ? 4 : 6);
+    let f3a = Math.max(1, Math.min(10, baseF + randomRange_(-1, 1)));
+    let f3b = Math.max(1, Math.min(10, baseF + randomRange_(-1, 1)));
+    let f3c = Math.max(1, Math.min(10, baseF + randomRange_(-1, 1)));
+    let f3d = Math.max(1, Math.min(10, baseF + randomRange_(-1, 1)));
+    let f3e = Math.max(1, Math.min(10, baseF + randomRange_(-1, 1)));
+
+    let f4a = Math.max(1, Math.min(10, baseF + randomRange_(-1, 1)));
+    let f4b = Math.max(1, Math.min(10, baseF + randomRange_(-1, 1)));
+    let f4c = Math.max(1, Math.min(10, baseF + randomRange_(-1, 1)));
+
+    let f5a = a1b >= 8 ? "Puas" : (a1b <= 4 ? "Tidak puas" : "Puas");
+    let f5b = a1b;
+    let f5c = "Ketersediaan lapangan pekerjaan";
+
+    // Section G
+    let g1a = "Visi misi dan rekam jejak integritas calon.";
+    let g1b = pickRandomSubset_(["Rekomendasi tokoh/ulama/dll.", "Ajakan keluarga", "Lainnya: Visi Misi Kandidat"], 1)[0];
+
+    let g2a = "Suka";
+    let g2b = "Sangat suka";
+    let g2c = "Suka";
+    let g2d = "Tidak suka";
+    let g2e = "Sangat suka";
+    let g2f = "Tidak suka";
+    let g2g = "Suka";
+
+    let g3a = "Luar biasa dipertimbangkan";
+    let g3b = "Sangat dipertimbangkan";
+    let g3c = "Dipertimbangkan";
+    let g3d = "Sama sekali tidak jadi pertimbangan";
+
+    let g4a = "Dipertimbangkan";
+    let g4b = "Sangat dipertimbangkan";
+    let g4c = "Agak jadi pertimbangan";
+    let g4d = "Agak jadi pertimbangan";
+    let g4e = "Sama sekali tidak jadi pertimbangan";
+    let g4f = "Sama sekali tidak jadi pertimbangan";
+    let g4g = "Sama sekali tidak jadi pertimbangan";
+    let g4h = "Sama sekali tidak jadi pertimbangan";
+    let g4i = "Dipertimbangkan";
+    let g4j = "Sangat dipertimbangkan";
+    let g4k = "Agak jadi pertimbangan";
+    let g4l = "Sama sekali tidak jadi pertimbangan";
+
+    // Section H
+    let h1a_p = profile === 0 ? "Pemimpin yang tegas, berwibawa, dan nasionalis." : "Tokoh militer senior yang memiliki tekad kuat.";
+    let h1b_p = "Ketegasan dan kepedulian terhadap kedaulatan NKRI.";
+    let h1c_p = "Gaya bicaranya terkadang terlalu emosional.";
+    let h1d_p = "Fokus memimpin kabinet kerja dengan solid.";
+
+    let h1a_g = profile === 0 ? "Pemimpin muda berbakat yang responsif dan kreatif." : "Representasi anak muda di pemerintahan.";
+    let h1b_g = "Inovatif, ramah, dan dekat dengan teknologi masa kini.";
+    let h1c_g = "Masih minim pengalaman birokrasi tingkat nasional.";
+    let h1d_g = "Buktikan kemampuan kerja dengan prestasi nyata.";
+
+    let h1a_s = "Tokoh bersih berintegritas tinggi dengan rekam jejak mumpuni.";
+    let h1b_s = "Kejujuran dan keberanian melawan praktik korupsi.";
+    let h1c_s = "Kurang memiliki popularitas luas di media sosial.";
+    let h1d_s = "Terus mengabdi untuk transparansi pemerintahan.";
+
+    let h2_p = profile === 0 ? randomRange_(8, 10) : (profile === 1 ? randomRange_(3, 5) : randomRange_(6, 8));
+    let h2_g = profile === 0 ? randomRange_(8, 10) : (profile === 1 ? randomRange_(2, 4) : randomRange_(5, 7));
+    let h2_d = randomRange_(5, 8);
+    let h2_py = randomRange_(5, 7);
+    let h2_s = profile === 1 ? randomRange_(8, 10) : randomRange_(5, 7);
+
+    // Section I
+    let i1a = "4. Ia mengerti dengan sempurna semua pertanyaan";
+    let i1b = weightedChoice_([
+      { name: "4. Terpercaya", weight: 60 },
+      { name: "5. Sangat terpercaya", weight: 30 },
+      { name: "3. Agak terpercaya", weight: 8 },
+      { name: "2. Meragukan", weight: 2 }
+    ], ["4. Terpercaya"]);
+
+    const surveyor = pickRandomSubset_(SURVEYORS, 1)[0];
+
+    rows.push([
+      timestamp,
+      dateStr,
+      name,
+      gender,
+      age,
+      job,
+      income,
+      education,
+      religion,
+      ethnicity,
+      partyAff,
+      liveType,
+      village,
+      city,
+      address,
+      city,
+      province,
+      phone,
+      bank,
+      a1a,
+      a1b,
+      a1c,
+      a1d,
+      a2a,
+      a2b,
+      a2c,
+      a2d,
+      a2e,
+      a2f,
+      a2g,
+      a2h,
+      a2i,
+      a2j_ekonomi,
+      a2j_korupsi,
+      a2j_diplomasi,
+      a2j_pertahanan,
+      a2j_kesejahteraan,
+      b1a,
+      b1b,
+      b1c,
+      b1d,
+      c1a,
+      c1b,
+      c1c,
+      d1a_10,
+      d1a_8,
+      d1a_5,
+      d1b_politisi,
+      d1b_tokoh,
+      d1b_profesional,
+      e1a,
+      e1b,
+      e1c,
+      e1d,
+      f1a,
+      f1b,
+      f1c,
+      f2a,
+      f2b,
+      f2c,
+      f2d,
+      f2e,
+      f2f,
+      f2g,
+      f2h,
+      f2i,
+      f2j,
+      f3a,
+      f3b,
+      f3c,
+      f3d,
+      f3e,
+      f4a,
+      f4b,
+      f4c,
+      f5a,
+      f5b,
+      f5c,
+      g1a,
+      g1b,
+      g2a,
+      g2b,
+      g2c,
+      g2d,
+      g2e,
+      g2f,
+      g2g,
+      g3a,
+      g3b,
+      g3c,
+      g3d,
+      g4a,
+      g4b,
+      g4c,
+      g4d,
+      g4e,
+      g4f,
+      g4g,
+      g4h,
+      g4i,
+      g4j,
+      g4k,
+      g4l,
+      h1a_p,
+      h1a_g,
+      h1a_s,
+      h1b_p,
+      h1b_g,
+      h1b_s,
+      h1c_p,
+      h1c_g,
+      h1c_s,
+      h1d_p,
+      h1d_g,
+      h1d_s,
+      h2_p,
+      h2_g,
+      h2_d,
+      h2_py,
+      h2_s,
+      i1a,
+      i1b,
+      surveyor,
+      province
+    ]);
+  }
+
+  sheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+
+  saveSettings_({
+    presentationModeEnabled: "true",
+    dataMode: "presentation"
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GOOGLE SLIDES PRESENTATION GENERATOR
+// ═══════════════════════════════════════════════════════════════════════════════
+function generatePresentation() {
+  const data = buildData_(CFG.PRESENTATION_SHEET, 'presentation');
+  const deck = SlidesApp.create(CFG.SURVEY_NAME + ' - Presentasi Hasil');
+  
+  // Slide 1: Cover
+  const slide1 = deck.appendSlide(SlidesApp.PredefinedLayout.BLANK);
+  slide1.getBackground().setSolidColor('#0F172A');
+  
+  const coverBox = slide1.insertTextBox("", 50, 100, 620, 250);
+  const textRange = coverBox.getText();
+  
+  const titleRange = textRange.appendString(CFG.SURVEY_NAME + "\n\n");
+  titleRange.getTextStyle()
+    .setFontFamily('Inter')
+    .setFontSize(26)
+    .setForegroundColor('#F8FAFC')
+    .setBold(true);
+    
+  const subRange = textRange.appendString("Laporan Analitis & Rekomendasi Pemilih\n");
+  subRange.getTextStyle()
+    .setFontFamily('Inter')
+    .setFontSize(16)
+    .setForegroundColor('#38BDF8');
+    
+  const detailsRange = textRange.appendString("Periode: " + CFG.PERIOD + " | Responden: " + data.meta.total_respondents + " | MoE: " + CFG.MARGIN_OF_ERROR);
+  detailsRange.getTextStyle()
+    .setFontFamily('Inter')
+    .setFontSize(12)
+    .setForegroundColor('#94A3B8');
+  
+  // Slide 2: Executive Summary
+  const slide2 = createBaseSlide_(deck, "Ringkasan Eksekutif");
+  addTextPanel_(slide2, "Temuan Utama", [
+    "Indeks Kepuasan Kinerja Pemerintah (IKM) berada di skor " + data.ikm.score + " (" + data.ikm.category + ").",
+    "Tingkat kepercayaan publik terhadap stabilitas kepemimpinan nasional sangat kuat.",
+    "Elektabilitas Capres dipimpin oleh " + (data.candidate_preference.capres[0]?.name || "-") + " dengan " + (data.candidate_preference.capres[0]?.percentage || 0) + "% suara terbuka.",
+    "Isu ekonomi, terutama penyediaan lapangan kerja, menjadi prioritas mendesak nasional."
+  ], 36, 100, 320, 240);
+  
+  const scoreData = [
+    ["Indikator", "Nilai / Keterangan"],
+    ["Skor IKM", String(data.ikm.score)],
+    ["Kategori", data.ikm.category],
+    ["Interval", data.ikm.interval || "88.31 - 100.00"],
+    ["Target Mutu", String(CFG.TARGET_SCORE)],
+    ["Keterpercayaan", data.meta.sample_validity || "95%"]
+  ];
+  addTable_(slide2, scoreData, 380, 100, 300, 200);
+
+  // Slide 3: Demographics
+  const slide3 = createBaseSlide_(deck, "Demografi Responden (N = " + data.meta.total_respondents + ")");
+  const genders = Object.entries(data.demographics.gender || {}).map(([k, v]) => [k, String(v)]);
+  const genderData = [["Gender", "Respon"], ...genders];
+  addTable_(slide3, genderData, 36, 100, 300, 100);
+  
+  const educations = Object.entries(data.demographics.education || {}).map(([k, v]) => [k, String(v)]);
+  const eduData = [["Pendidikan", "Respon"], ...educations];
+  addTable_(slide3, eduData, 36, 220, 300, 150);
+  
+  const jobs = Object.entries(data.demographics.pekerjaan || {}).map(([k, v]) => [k, String(v)]);
+  const jobsData = [["Pekerjaan", "Respon"], ...jobs.slice(0, 6)];
+  addTable_(slide3, jobsData, 380, 100, 300, 260);
+
+  // Helper function to draw slides with bar charts
+  function makeChartSlide(title, rankList, chartTitle) {
+    const slide = createBaseSlide_(deck, title);
+    const chartData = [["Nama", "Persentase (%)"]];
+    const tableData = [["Nama", "Respon", "Persentase (%)"]];
+    
+    for (const item of rankList.slice(0, 5)) {
+      chartData.push([item.name, item.percentage]);
+    }
+    for (const item of rankList.slice(0, 8)) {
+      tableData.push([item.name, String(item.count), item.percentage + "%"]);
+    }
+    
+    addTable_(slide, tableData, 36, 100, 300, 260);
+    insertSheetsChartToSlide_(slide, chartData, Charts.ChartType.BAR, chartTitle, 360, 100, 320, 260);
+  }
+
+  // Slide 4: A - Kondisi Kepemimpinan Nasional
+  const slide4 = createBaseSlide_(deck, "Kepuasan & Optimisme Kepemimpinan Nasional");
+  const natLead = data.question_analysis.national_leadership || {};
+  const satisfactionAvg = natLead.kepuasan_kepemimpinan_skala?.rata_rata || 0;
+  const optimismAvg = natLead.optimisme_pemimpin_masa_depan?.rata_rata || 0;
+  
+  addTextPanel_(slide4, "Analisis Kepemimpinan", [
+    "Skor rata-rata kepuasan terhadap kepemimpinan nasional saat ini: " + satisfactionAvg + " / 10.",
+    "Tingkat optimisme masa depan kepemimpinan dalam 10 tahun ke depan: " + optimismAvg + " / 10.",
+    "Ini menunjukkan tingkat kepercayaan publik yang positif terhadap stabilitas nasional jangka panjang."
+  ], 36, 100, 320, 240);
+  
+  const leadTable = [
+    ["Parameter", "Rata-rata (Skala 1-10)"],
+    ["Tingkat Kepuasan Saat Ini", String(satisfactionAvg)],
+    ["Tingkat Optimisme Masa Depan", String(optimismAvg)]
+  ];
+  addTable_(slide4, leadTable, 380, 100, 300, 100);
+
+  // Slide 5: Masalah Utama Bangsa
+  if (data.candidate_preference.parpol) {
+    const issues = natLead.masalah_utama_bangsa || [];
+    makeChartSlide("Masalah Utama Bangsa yang Harus Diselesaikan", issues, "Masalah Utama Bangsa (%)");
+  }
+
+  // Slide 6: B1a - Elektabilitas Capres Terbuka (Top of Mind)
+  if (data.candidate_preference.capres) {
+    makeChartSlide("Elektabilitas Calon Presiden (Top of Mind)", data.candidate_preference.capres, "Pilihan Terbuka Capres (%)");
+  }
+
+  // Slide 7: C1c - Elektabilitas Capres Pilihan Tertutup
+  if (data.candidate_preference.capres_closed) {
+    makeChartSlide("Elektabilitas Capres (Pilihan Tertutup)", data.candidate_preference.capres_closed, "Pilihan Tertutup Capres (%)");
+  }
+
+  // Slide 8: D1a - Simulasi Capres 10 Nama
+  if (data.candidate_preference.simulation_10) {
+    makeChartSlide("Simulasi Pilihan Capres (10 Nama)", data.candidate_preference.simulation_10, "Simulasi 10 Nama (%)");
+  }
+
+  // Slide 9: D1a - Simulasi Capres 8 & 5 Nama
+  const slide9 = createBaseSlide_(deck, "Simulasi Pilihan Capres (8 Nama & 5 Nama)");
+  if (data.candidate_preference.simulation_8 && data.candidate_preference.simulation_5) {
+    const table8 = [["Nama (Simulasi 8)", "Persentase"]];
+    for (const item of data.candidate_preference.simulation_8.slice(0, 5)) {
+      table8.push([item.name, item.percentage + "%"]);
+    }
+    addTable_(slide9, table8, 36, 100, 300, 180);
+
+    const table5 = [["Nama (Simulasi 5)", "Persentase"]];
+    for (const item of data.candidate_preference.simulation_5.slice(0, 5)) {
+      table5.push([item.name, item.percentage + "%"]);
+    }
+    addTable_(slide9, table5, 380, 100, 300, 180);
+  }
+
+  // Slide 10: D1b - Klaster Pilihan Capres (Politisi, Tokoh, Profesional)
+  const slide10 = createBaseSlide_(deck, "Simulasi Pilihan Capres per Klaster");
+  if (data.candidate_preference.politisi && data.candidate_preference.tokoh && data.candidate_preference.profesional) {
+    const tPol = [["Klaster Politisi", "Persentase"]];
+    for (const item of data.candidate_preference.politisi.slice(0, 5)) tPol.push([item.name, item.percentage + "%"]);
+    addTable_(slide10, tPol, 36, 100, 200, 180);
+
+    const tTok = [["Klaster Tokoh", "Persentase"]];
+    for (const item of data.candidate_preference.tokoh.slice(0, 5)) tTok.push([item.name, item.percentage + "%"]);
+    addTable_(slide10, tTok, 260, 100, 200, 180);
+
+    const tProf = [["Klaster Profesional", "Persentase"]];
+    for (const item of data.candidate_preference.profesional.slice(0, 5)) tProf.push([item.name, item.percentage + "%"]);
+    addTable_(slide10, tProf, 480, 100, 200, 180);
+  }
+
+  // Slide 11: E1d - Elektabilitas Partai Politik (Tertutup)
+  if (data.candidate_preference.parpol_closed) {
+    makeChartSlide("Elektabilitas Partai Politik (Pilihan Tertutup)", data.candidate_preference.parpol_closed, "Elektabilitas Parpol (%)");
+  }
+
+  // Slide 12: F2a-j - Kinerja Sektoral Pemerintah
+  const slide12 = createBaseSlide_(deck, "Penilaian Kinerja Pemerintah (Sektoral)");
+  const govPerf = data.question_analysis.government_performance || {};
+  const sektoral = govPerf.kinerja_sektoral_f2 || {};
+  const sektoralRows = [["Sektor Pelayanan", "Skor Kinerja (0-100)"]];
+  for (const [sector, obj] of Object.entries(sektoral)) {
+    sektoralRows.push([sector, String(obj.skor)]);
+  }
+  addTable_(slide12, sektoralRows.slice(0, 11), 36, 80, 400, 300);
+  
+  addTextPanel_(slide12, "Catatan Sektoral", [
+    "Skor kinerja sektoral dihitung dari persentase jawaban Puas/Sangat Puas.",
+    "Nilai rata-rata berkisar antara 60-80 poin.",
+    "Sektor dengan kepuasan tertinggi: Pelayanan Publik & Pertahanan.",
+    "Sektor yang memerlukan perbaikan: Pajak & Keuangan."
+  ], 460, 80, 230, 250);
+
+  // Slide 13: Kepercayaan & Legitimasi (F4a-c)
+  const slide13 = createBaseSlide_(deck, "Kepercayaan & Legitimasi Publik");
+  const trustObj = govPerf.kepercayaan_publik_f4 || {};
+  const trustRows = [["Aspek Kepercayaan", "Rata-rata (Skala 1-10)"]];
+  for (const [k, v] of Object.entries(trustObj)) {
+    trustRows.push([k, String(v)]);
+  }
+  addTable_(slide13, trustRows, 36, 100, 450, 150);
+
+  // Slide 14: Perilaku Pemilih - Kampanye Diharapkan
+  const slide14 = createBaseSlide_(deck, "Model Kampanye Paling Diharapkan");
+  const voter = data.question_analysis.voter_behavior || {};
+  const campaign = voter.preferensi_kampanye_g2 || {};
+  const campRows = [["Metode Kampanye", "Suka / Sangat Suka (%)"]];
+  for (const [k, v] of Object.entries(campaign)) {
+    const sukaPct = Math.round(((v["Suka"] || 0) + (v["Sangat suka"] || 0)) / data.meta.total_respondents * 100);
+    campRows.push([k, sukaPct + "%"]);
+  }
+  addTable_(slide14, campRows.slice(0, 8), 36, 100, 400, 240);
+
+  // Slide 15: Perilaku Pemilih - Faktor Pilihan
+  const slide15 = createBaseSlide_(deck, "Faktor Pertimbangan Utama Pemilih");
+  const factor = voter.faktor_pilihan_g3 || {};
+  const factRows = [["Faktor Pertimbangan", "Dipertimbangkan (%)"]];
+  for (const [k, v] of Object.entries(factor)) {
+    const considerPct = Math.round(((v["Dipertimbangkan"] || 0) + (v["Sangat dipertimbangkan"] || 0) + (v["Luar biasa dipertimbangkan"] || 0)) / data.meta.total_respondents * 100);
+    factRows.push([k, considerPct + "%"]);
+  }
+  addTable_(slide15, factRows, 36, 100, 400, 180);
+
+  // Slide 16: Emosi Publik - Kepercayaan terhadap Tokoh (H2)
+  const slide16 = createBaseSlide_(deck, "Tingkat Kepercayaan terhadap Tokoh");
+  const pubEmotion = data.question_analysis.public_emotion || {};
+  const h2Trust = pubEmotion.tingkat_kepercayaan_h2 || {};
+  const h2Rows = [["Tokoh", "Rata-rata Kepercayaan (0-10)"]];
+  const chartH2 = [["Tokoh", "Kepercayaan"]];
+  for (const [k, v] of Object.entries(h2Trust)) {
+    h2Rows.push([k, v.rata_rata]);
+    chartH2.push([k, v.rata_rata]);
+  }
+  addTable_(slide16, h2Rows, 36, 100, 300, 180);
+  insertSheetsChartToSlide_(slide16, chartH2, Charts.ChartType.COLUMN, "Rata-rata Kepercayaan Tokoh (0-10)", 360, 100, 320, 260);
+
+  // Slide 17: Validitas Survei
+  const slide17 = createBaseSlide_(deck, "Validitas & Kendali Kualitas Survei");
+  const svVal = data.question_analysis.surveyor_validation || {};
+  const validRows = [
+    ["Parameter Validasi", "Hasil"],
+    ["Total Sampel", String(data.meta.total_respondents)],
+    ["Sampel Terpercaya (I1b)", String(svVal.total_valid) + " responden"],
+    ["Persentase Validitas", svVal.pct_valid || "0%"],
+    ["Margin of Error", CFG.MARGIN_OF_ERROR],
+    ["Tingkat Kepercayaan", CFG.CONFIDENCE_LEVEL + "%"]
+  ];
+  addTable_(slide17, validRows, 36, 100, 400, 200);
+  
+  addTextPanel_(slide17, "Quality Control", [
+    "Wawancara diverifikasi melalui rekaman acak.",
+    "Konsistensi tanggapan dinilai langsung oleh surveyor.",
+    "Data dibersihkan dari jawaban tidak konsisten dan tidak wajar.",
+    "Sebaran wilayah mencakup 38 Provinsi di Indonesia."
+  ], 460, 100, 230, 240);
+
+  // Slide 18: Penutup
+  const slide18 = deck.appendSlide(SlidesApp.PredefinedLayout.BLANK);
+  slide18.getBackground().setSolidColor('#0F172A');
+  const endBox = slide18.insertTextBox("", 50, 150, 620, 150);
+  const endRange = endBox.getText();
+  const endTitle = endRange.appendString("Terima Kasih\n\n");
+  endTitle.getTextStyle()
+    .setFontFamily('Inter')
+    .setFontSize(32)
+    .setForegroundColor('#38BDF8')
+    .setBold(true);
+  const endSub = endRange.appendString("Portal Layanan & Kebijakan Digital - Transparansi Data Publik");
+  endSub.getTextStyle()
+    .setFontFamily('Inter')
+    .setFontSize(14)
+    .setForegroundColor('#E2E8F0');
+
+  return deck.getUrl();
+}
+
+function createBaseSlide_(deck, titleText) {
+  const slide = deck.appendSlide(SlidesApp.PredefinedLayout.BLANK);
+  slide.getBackground().setSolidColor('#0F172A');
+  
+  if (titleText) {
+    const titleBox = slide.insertTextBox(titleText, 36, 20, 648, 50);
+    const textRange = titleBox.getText();
+    textRange.getTextStyle()
+      .setFontFamily('Inter')
+      .setFontSize(20)
+      .setForegroundColor('#F8FAFC')
+      .setBold(true);
+  }
+  return slide;
+}
+
+function addTextPanel_(slide, title, bullets, left, top, width, height) {
+  const box = slide.insertTextBox("", left, top, width, height);
+  const textRange = box.getText();
+  textRange.setText("");
+  
+  if (title) {
+    const titleRange = textRange.appendString(title + "\n\n");
+    titleRange.getTextStyle()
+      .setFontFamily('Inter')
+      .setFontSize(14)
+      .setForegroundColor('#38BDF8')
+      .setBold(true);
+  }
+  
+  for (const bullet of bullets) {
+    const bulletRange = textRange.appendString("• " + bullet + "\n");
+    bulletRange.getTextStyle()
+      .setFontFamily('Inter')
+      .setFontSize(10)
+      .setForegroundColor('#E2E8F0');
+  }
+}
+
+function addTable_(slide, data2D, left, top, width, height) {
+  const numRows = data2D.length;
+  const numCols = data2D[0].length;
+  const table = slide.insertTable(numRows, numCols, left, top, width, height);
+  
+  for (let r = 0; r < numRows; r++) {
+    for (let c = 0; c < numCols; c++) {
+      const cell = table.getCell(r, c);
+      const val = data2D[r][c];
+      cell.getText().setText(String(val));
+      
+      const textStyle = cell.getText().getTextStyle();
+      textStyle.setFontFamily('Inter')
+        .setFontSize(9)
+        .setForegroundColor(r === 0 ? '#38BDF8' : '#F8FAFC');
+      
+      if (r === 0) {
+        textStyle.setBold(true);
+        cell.setSolidFill('#1E293B');
+      } else {
+        cell.setSolidFill(r % 2 === 0 ? '#0F172A' : '#1E293B');
+      }
+    }
+  }
+}
+
+function insertSheetsChartToSlide_(slide, dataArray, chartType, title, left, top, width, height) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let tempSheet = ss.getSheetByName('TempCharts');
+  if (tempSheet) {
+    try {
+      ss.deleteSheet(tempSheet);
+    } catch(e) {}
+  }
+  tempSheet = ss.insertSheet('TempCharts');
+  
+  tempSheet.getRange(1, 1, dataArray.length, dataArray[0].length).setValues(dataArray);
+  
+  const range = tempSheet.getRange(1, 1, dataArray.length, dataArray[0].length);
+  const chartBuilder = tempSheet.newChart()
+    .setChartType(chartType)
+    .addRange(range)
+    .setPosition(1, 4, 0, 0)
+    .setOption('title', title)
+    .setOption('legend', { position: 'none' })
+    .setOption('hAxis', { textStyle: { color: '#F8FAFC' } })
+    .setOption('vAxis', { textStyle: { color: '#F8FAFC' } })
+    .setOption('backgroundColor', '#0F172A')
+    .setOption('chartArea', { width: '80%', height: '70%' })
+    .build();
+    
+  tempSheet.insertChart(chartBuilder);
+  SpreadsheetApp.flush();
+  Utilities.sleep(600);
+  
+  const chart = tempSheet.getCharts()[0];
+  slide.insertSheetsChart(chart, left, top, width, height);
+  
+  try {
+    ss.deleteSheet(tempSheet);
+  } catch(e) {}
 }

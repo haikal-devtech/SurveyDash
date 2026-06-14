@@ -174,6 +174,52 @@ export const AdminPage: React.FC = () => {
     }
   };
 
+  const [generateDemoStatus, setGenerateDemoStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  const handleGenerateDemo = async () => {
+    if (!editingSurvey?.scriptUrl) return;
+    setGenerateDemoStatus("loading");
+    try {
+      await axios.post("/api/survey-action", {
+        scriptUrl: editingSurvey.scriptUrl,
+        action: "generateDemoData",
+      });
+      setGenerateDemoStatus("success");
+    } catch {
+      setGenerateDemoStatus("error");
+    } finally {
+      setTimeout(() => setGenerateDemoStatus("idle"), 3000);
+    }
+  };
+
+  const [generateSlidesStatus, setGenerateSlidesStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [slideLink, setSlideLink] = useState<string | null>(null);
+
+  const handleGenerateSlides = async () => {
+    if (!editingSurvey?.scriptUrl) return;
+    setGenerateSlidesStatus("loading");
+    setSlideLink(null);
+    try {
+      const resp = await axios.post("/api/survey-action", {
+        scriptUrl: editingSurvey.scriptUrl,
+        action: "generatePresentation",
+      });
+      if (resp.data?.success && resp.data?.url) {
+        setSlideLink(resp.data.url);
+        setGenerateSlidesStatus("success");
+      } else {
+        setGenerateSlidesStatus("error");
+      }
+    } catch {
+      setGenerateSlidesStatus("error");
+    } finally {
+      setTimeout(() => {
+        setGenerateSlidesStatus("idle");
+      }, 5000);
+    }
+  };
+
+
   const handlePromoteUser = async (uId: string, newRole: "SUPER_ADMIN" | "ADMIN" | "VIEWER") => {
     setIsUpdatingUser(uId);
     try {
@@ -672,26 +718,80 @@ export const AdminPage: React.FC = () => {
                         </button>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="gap-2"
-                          disabled={fillSheetStatus === "loading" || !editingSurvey.scriptUrl || editingSurvey.scriptUrl === "demo"}
-                          onClick={handleFillSheet}
-                        >
-                          {fillSheetStatus === "loading" ? (
-                            <><RotateCcw className="w-3.5 h-3.5 animate-spin" /> Mengisi Sheet...</>
-                          ) : fillSheetStatus === "success" ? (
-                            <><Check className="w-3.5 h-3.5 text-emerald-500" /> Sheet Terisi</>
-                          ) : fillSheetStatus === "error" ? (
-                            <><X className="w-3.5 h-3.5 text-destructive" /> Gagal</>
-                          ) : (
-                            <>Isi Sheet dengan Data Presentasi</>
-                          )}
-                        </Button>
-                        <p className="text-[10px] text-muted-foreground">Mengisi sheet presentasi di Google Sheets via backend.</p>
+                      <div className="space-y-4 pt-2">
+                        <div className="flex items-center gap-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 shrink-0 min-w-[210px]"
+                            disabled={fillSheetStatus === "loading" || !editingSurvey.scriptUrl || editingSurvey.scriptUrl === "demo"}
+                            onClick={handleFillSheet}
+                          >
+                            {fillSheetStatus === "loading" ? (
+                              <><RotateCcw className="w-3.5 h-3.5 animate-spin" /> Sinkronisasi...</>
+                            ) : fillSheetStatus === "success" ? (
+                              <><Check className="w-3.5 h-3.5 text-emerald-500" /> Sinkron Sukses</>
+                            ) : fillSheetStatus === "error" ? (
+                              <><X className="w-3.5 h-3.5 text-destructive" /> Gagal</>
+                            ) : (
+                              <>Isi dari Form responses 1</>
+                            )}
+                          </Button>
+                          <p className="text-[10px] text-muted-foreground">Salin data dari Form responses asli ke sheet Presentasi.</p>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 shrink-0 min-w-[210px] bg-primary/10 hover:bg-primary/20 border-primary/20 text-primary font-semibold"
+                            disabled={generateDemoStatus === "loading" || !editingSurvey.scriptUrl || editingSurvey.scriptUrl === "demo"}
+                            onClick={handleGenerateDemo}
+                          >
+                            {generateDemoStatus === "loading" ? (
+                              <><RotateCcw className="w-3.5 h-3.5 animate-spin" /> Men-generate...</>
+                            ) : generateDemoStatus === "success" ? (
+                              <><Check className="w-3.5 h-3.5 text-emerald-500" /> Sukses Membuat Demo</>
+                            ) : generateDemoStatus === "error" ? (
+                              <><X className="w-3.5 h-3.5 text-destructive" /> Gagal</>
+                            ) : (
+                              <>Generate Demo Data (2045)</>
+                            )}
+                          </Button>
+                          <p className="text-[10px] text-muted-foreground">Isi sheet Presentasi dengan 2.045 responden fiktif realistis untuk demo.</p>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 shrink-0 min-w-[210px]"
+                            disabled={generateSlidesStatus === "loading" || !editingSurvey.scriptUrl || editingSurvey.scriptUrl === "demo"}
+                            onClick={handleGenerateSlides}
+                          >
+                            {generateSlidesStatus === "loading" ? (
+                              <><RotateCcw className="w-3.5 h-3.5 animate-spin" /> Membuat Slides...</>
+                            ) : generateSlidesStatus === "success" ? (
+                              <><Check className="w-3.5 h-3.5 text-emerald-500" /> Slides Berhasil Dibuat</>
+                            ) : generateSlidesStatus === "error" ? (
+                              <><X className="w-3.5 h-3.5 text-destructive" /> Gagal</>
+                            ) : (
+                              <>Buat Presentasi Google Slides</>
+                            )}
+                          </Button>
+                          <p className="text-[10px] text-muted-foreground flex-1">
+                            {slideLink ? (
+                              <a href={slideLink} target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:underline font-black text-xs">
+                                ➔ KLIK DISINI UNTUK BUKA GOOGLE SLIDES
+                              </a>
+                            ) : (
+                              "Generate deck presentasi otomatis di Google Drive dengan bagan dan tabel."
+                            )}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </TabsContent>
