@@ -10,7 +10,17 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Edit3, Shield, User as UserIcon, Check, X, Users, Settings2, Globe } from "lucide-react";
+import { Plus, Trash2, Edit3, Shield, User as UserIcon, Check, X, Users, Settings2, Globe, BarChart2, RotateCcw, Save, Info } from "lucide-react";
+import {
+  DashboardSummaryConfig,
+  DEFAULT_DASHBOARD_SUMMARY_CONFIG,
+  getDashboardSummaryConfig,
+  saveDashboardSummaryConfig,
+  resetDashboardSummaryConfig,
+  calculateSlovinMarginError,
+  calculateGap,
+  getQualityByScore,
+} from "@/lib/dashboard-summary-config";
 
 export const AdminPage: React.FC = () => {
   const { user, role } = useAuth();
@@ -32,6 +42,30 @@ export const AdminPage: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingSurvey, setEditingSurvey] = useState<SurveyConfig | null>(null);
   const [isUpdatingSurvey, setIsUpdatingSurvey] = useState(false);
+
+  // Dashboard Summary Config State
+  const [dashConfig, setDashConfig] = useState<DashboardSummaryConfig>(() => getDashboardSummaryConfig());
+  const [dashSaveStatus, setDashSaveStatus] = useState<"idle" | "saved" | "reset">("idle");
+
+  const derivedMarginOfError = calculateSlovinMarginError(dashConfig.population, dashConfig.totalRespondents);
+  const derivedGap = calculateGap(dashConfig.targetScore, dashConfig.indexScore);
+  const derivedQuality = getQualityByScore(dashConfig.indexScore);
+
+  const handleDashSave = () => {
+    saveDashboardSummaryConfig(dashConfig);
+    setDashSaveStatus("saved");
+    setTimeout(() => setDashSaveStatus("idle"), 2500);
+  };
+
+  const handleDashReset = () => {
+    const defaultCfg = resetDashboardSummaryConfig();
+    setDashConfig(defaultCfg);
+    setDashSaveStatus("reset");
+    setTimeout(() => setDashSaveStatus("idle"), 2500);
+  };
+
+  const updateDash = (patch: Partial<DashboardSummaryConfig>) =>
+    setDashConfig(prev => ({ ...prev, ...patch }));
 
   const handlePromoteUser = async (uId: string, newRole: "SUPER_ADMIN" | "ADMIN" | "VIEWER") => {
     setIsUpdatingUser(uId);
@@ -183,6 +217,10 @@ export const AdminPage: React.FC = () => {
             <Users className="w-4 h-4" />
             Pengguna & Akses
           </TabsTrigger>
+          <TabsTrigger value="dashboard-config" className="gap-2">
+            <BarChart2 className="w-4 h-4" />
+            Ringkasan Dashboard
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="surveys" className="space-y-6">
@@ -283,6 +321,261 @@ export const AdminPage: React.FC = () => {
                 )}
               </TableBody>
             </Table>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="dashboard-config" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                  <CardTitle className="text-xl font-black">Pengaturan Ringkasan Dashboard</CardTitle>
+                  <CardDescription className="mt-1">
+                    Konfigurasi metric utama yang ditampilkan di ringkasan dashboard. Beberapa nilai dihitung otomatis berdasarkan rumus.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button variant="outline" size="sm" className="gap-2" onClick={handleDashReset}>
+                    <RotateCcw className="w-4 h-4" />
+                    Reset ke Default
+                  </Button>
+                  <Button size="sm" className="gap-2" onClick={handleDashSave}>
+                    <Save className="w-4 h-4" />
+                    {dashSaveStatus === "saved" ? "Tersimpan!" : dashSaveStatus === "reset" ? "Direset!" : "Simpan Perubahan"}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-8">
+
+              {/* Manual Override Toggle */}
+              <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/40">
+                <div className="space-y-1">
+                  <p className="text-sm font-black">Gunakan Nilai Manual</p>
+                  <p className="text-xs text-muted-foreground">Aktifkan untuk mengisi Margin of Error, Gap, Mutu, Kategori, dan Nilai Interval secara manual.</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={dashConfig.useManualOverride}
+                  onClick={() => updateDash({ useManualOverride: !dashConfig.useManualOverride })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 ${dashConfig.useManualOverride ? "bg-primary" : "bg-muted-foreground/30"}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${dashConfig.useManualOverride ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+              </div>
+
+              {/* Input Fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Populasi (N)</label>
+                  <Input
+                    type="number"
+                    value={dashConfig.population}
+                    onChange={e => updateDash({ population: Number(e.target.value) })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Total Responden (n)</label>
+                  <Input
+                    type="number"
+                    value={dashConfig.totalRespondents}
+                    onChange={e => updateDash({ totalRespondents: Number(e.target.value) })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Confidence Level (%)</label>
+                  <Input
+                    type="number"
+                    value={dashConfig.confidenceLevel}
+                    onChange={e => updateDash({ confidenceLevel: Number(e.target.value) })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Tingkat Partisipasi</label>
+                  <Input
+                    value={dashConfig.participationRate}
+                    onChange={e => updateDash({ participationRate: e.target.value })}
+                    placeholder="94%"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Index Reliability</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={dashConfig.reliabilityIndex}
+                    onChange={e => updateDash({ reliabilityIndex: Number(e.target.value) })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Trend Kepuasan</label>
+                  <Input
+                    value={dashConfig.trend}
+                    onChange={e => updateDash({ trend: e.target.value })}
+                    placeholder="+4.2%"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Sampel Validitas</label>
+                  <Input
+                    value={dashConfig.sampleValidity}
+                    onChange={e => updateDash({ sampleValidity: e.target.value })}
+                    placeholder="95%"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Indeks Kepuasan / NIK</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={dashConfig.indexScore}
+                    onChange={e => updateDash({ indexScore: Number(e.target.value) })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Target Mutu 2026</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={dashConfig.targetScore}
+                    onChange={e => updateDash({ targetScore: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              {/* Calculated Fields */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-muted-foreground">
+                  <Info className="w-3.5 h-3.5" />
+                  Nilai Kalkulasi Otomatis
+                  {dashConfig.useManualOverride && <Badge variant="outline" className="text-[10px] ml-1">Mode Manual Aktif</Badge>}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Margin of Error</label>
+                    {dashConfig.useManualOverride ? (
+                      <Input
+                        value={dashConfig.manualMarginOfError}
+                        onChange={e => updateDash({ manualMarginOfError: e.target.value })}
+                        placeholder="±5.00%"
+                      />
+                    ) : (
+                      <div className="flex h-10 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-mono text-foreground">
+                        {derivedMarginOfError.label}
+                      </div>
+                    )}
+                    {!dashConfig.useManualOverride && (
+                      <p className="text-[10px] text-muted-foreground">Dihitung dari rumus Slovin: e = √((N/n − 1) / N)</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Gap</label>
+                    {dashConfig.useManualOverride ? (
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={dashConfig.manualGap}
+                        onChange={e => updateDash({ manualGap: Number(e.target.value) })}
+                      />
+                    ) : (
+                      <div className="flex h-10 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-mono text-foreground">
+                        {derivedGap}
+                      </div>
+                    )}
+                    {!dashConfig.useManualOverride && (
+                      <p className="text-[10px] text-muted-foreground">Target Mutu − Indeks Kepuasan</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Mutu</label>
+                    {dashConfig.useManualOverride ? (
+                      <Input
+                        value={dashConfig.manualQualityLabel}
+                        onChange={e => updateDash({ manualQualityLabel: e.target.value })}
+                        placeholder="C"
+                      />
+                    ) : (
+                      <div className="flex h-10 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-mono text-foreground">
+                        {derivedQuality.label}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Kategori Mutu</label>
+                    {dashConfig.useManualOverride ? (
+                      <Input
+                        value={dashConfig.manualQualityCategory}
+                        onChange={e => updateDash({ manualQualityCategory: e.target.value })}
+                        placeholder="Kurang Baik"
+                      />
+                    ) : (
+                      <div className="flex h-10 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-mono text-foreground">
+                        {derivedQuality.category}
+                      </div>
+                    )}
+                    {!dashConfig.useManualOverride && (
+                      <p className="text-[10px] text-muted-foreground">Dihitung otomatis dari Indeks Kepuasan</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Nilai Interval</label>
+                    {dashConfig.useManualOverride ? (
+                      <Input
+                        value={dashConfig.manualQualityInterval}
+                        onChange={e => updateDash({ manualQualityInterval: e.target.value })}
+                        placeholder="65,00–76,60"
+                      />
+                    ) : (
+                      <div className="flex h-10 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-mono text-foreground">
+                        {derivedQuality.interval}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+                <p className="text-xs font-black uppercase tracking-wider text-muted-foreground">Pratinjau Hasil Akhir</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {[
+                    { label: "Margin of Error", value: dashConfig.useManualOverride ? dashConfig.manualMarginOfError : derivedMarginOfError.label },
+                    { label: "Tingkat Partisipasi", value: dashConfig.participationRate },
+                    { label: "Index Reliability", value: String(dashConfig.reliabilityIndex) },
+                    { label: "Trend Kepuasan", value: dashConfig.trend },
+                    { label: "Total Responden", value: String(dashConfig.totalRespondents) },
+                    { label: "Sampel Validitas", value: dashConfig.sampleValidity },
+                    { label: "Indeks Kepuasan", value: dashConfig.indexScore.toFixed(2) },
+                    { label: "Mutu", value: `${dashConfig.useManualOverride ? dashConfig.manualQualityLabel : derivedQuality.label} — ${dashConfig.useManualOverride ? dashConfig.manualQualityCategory : derivedQuality.category}` },
+                    { label: "Nilai Interval", value: dashConfig.useManualOverride ? dashConfig.manualQualityInterval : derivedQuality.interval },
+                    { label: "Target Mutu 2026", value: dashConfig.targetScore.toFixed(2) },
+                    { label: "Gap", value: `${dashConfig.useManualOverride ? dashConfig.manualGap : derivedGap} poin` },
+                  ].map(item => (
+                    <div key={item.label} className="bg-card rounded-lg p-3 border border-border/50">
+                      <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground mb-1">{item.label}</p>
+                      <p className="text-sm font-black font-mono text-foreground">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </CardContent>
           </Card>
         </TabsContent>
 

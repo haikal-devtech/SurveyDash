@@ -29,6 +29,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import axios from "axios";
 import html2canvas from "html2canvas";
+import { getDashboardSummaryConfig, resolveDashboardSummary } from "@/lib/dashboard-summary-config";
 
 // Helper for PNG Export
 const downloadPNG = async (elementId: string, filename: string) => {
@@ -75,6 +76,7 @@ export const SurveyDetailPage: React.FC = () => {
   const [respPage, setRespPage] = useState(1);
   const [respSort, setRespSort] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'timestamp', dir: 'desc' });
   const RESP_PER_PAGE = 50;
+  const dashboardSummary = resolveDashboardSummary(getDashboardSummaryConfig());
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -565,10 +567,10 @@ export const SurveyDetailPage: React.FC = () => {
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Margin of Error", value: "±2.5%", icon: Info, color: "text-blue-500" },
-          { label: "Tingkat Partisipasi", value: "94%", icon: Users, color: "text-purple-500" },
-          { label: "Index Reliability", value: "0.89", icon: Shield, color: "text-emerald-500" },
-          { label: "Trend Kepuasan", value: "+4.2%", icon: TrendingUp, color: "text-orange-500" }
+          { label: "Margin of Error", value: dashboardSummary.marginOfError, icon: Info, color: "text-blue-500" },
+          { label: "Tingkat Partisipasi", value: dashboardSummary.participationRate, icon: Users, color: "text-purple-500" },
+          { label: "Index Reliability", value: String(dashboardSummary.reliabilityIndex), icon: Shield, color: "text-emerald-500" },
+          { label: "Trend Kepuasan", value: dashboardSummary.trend, icon: TrendingUp, color: "text-orange-500" }
         ].map((stat, i) => (
           <Card key={i} className="border-none bg-card/50 backdrop-blur-sm shadow-sm">
             <CardContent className="p-4 flex items-center gap-3">
@@ -597,7 +599,7 @@ export const SurveyDetailPage: React.FC = () => {
           <CardContent>
              <div className="flex items-center gap-2 text-xs font-bold bg-white/10 w-fit px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
                <Users className="w-4 h-4" />
-               Sampel Validitas 95%
+               Sampel Validitas {dashboardSummary.sampleValidity}
              </div>
           </CardContent>
         </Card>
@@ -625,7 +627,7 @@ export const SurveyDetailPage: React.FC = () => {
                })()}
              </Badge>
              <p className="text-[10px] text-muted-foreground mt-2 font-mono">
-               Nilai Interval: {data.ikm.score >= 88.31 ? "88,31–100" : data.ikm.score >= 76.61 ? "76,61–88,30" : data.ikm.score >= 65.00 ? "65,00–76,60" : "25,00–64,99"}
+               Nilai Interval: {data.ikm.score >= 88.31 ? "88,31–100" : data.ikm.score >= 76.61 ? "76,61–​88,30" : data.ikm.score >= 65.00 ? "65,00–​76,60" : "25,00–​64,99"}
              </p>
           </CardContent>
         </Card>
@@ -634,12 +636,12 @@ export const SurveyDetailPage: React.FC = () => {
           <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500/50" />
           <CardHeader className="pb-2">
             <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Target Mutu 2026</CardDescription>
-            <CardTitle className="text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">90.00</CardTitle>
+            <CardTitle className="text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">{dashboardSummary.targetScore.toFixed(2)}</CardTitle>
           </CardHeader>
           <CardContent>
              <div className="flex items-center gap-2 text-xs text-muted-foreground font-black uppercase tracking-wider bg-emerald-500/10 w-fit px-3 py-1 rounded-full border border-emerald-500/20">
                <TrendingUp className="w-4 h-4 text-emerald-500" />
-               Gap: {(90 - data.ikm.score).toFixed(2)} poin
+               Gap: {(dashboardSummary.targetScore - data.ikm.score).toFixed(2)} poin
              </div>
           </CardContent>
         </Card>
