@@ -1,3 +1,5 @@
+import type { SurveyConfig } from "@/types";
+
 const STORAGE_PREFIX = "survey-dashboard-config:";
 
 export type MarginErrorMode = "slovin" | "manual";
@@ -28,6 +30,7 @@ export interface SurveyDashboardConfig {
   reliabilityIndex: number;
   trend: string;
   sampleValidity: string;
+  presentationMode?: boolean;
 }
 
 export interface ResolvedSurveyDashboard {
@@ -258,5 +261,37 @@ export function resolveSurveyDashboard(
     title: cfg.title,
     institution: cfg.institution,
     period: cfg.period,
+  };
+}
+
+// ─── Build config from Firestore SurveyConfig ─────────────────────────────────
+// Firestore is the authoritative source; localStorage is only a fallback cache.
+
+export function buildConfigFromSurvey(survey: SurveyConfig): SurveyDashboardConfig {
+  const known = DEFAULT_SURVEY_DASHBOARD_CONFIGS[survey.id];
+  return {
+    surveyId: survey.id,
+    title: survey.name,
+    institution: survey.agency,
+    period: survey.period,
+    population: survey.population ?? known?.population ?? 0,
+    totalRespondents: survey.totalRespondents ?? known?.totalRespondents ?? 0,
+    confidenceLevel: survey.confidenceLevel ?? known?.confidenceLevel ?? 95,
+    marginErrorMode: survey.marginErrorMode ?? known?.marginErrorMode ?? "manual",
+    manualMarginOfError: survey.manualMarginOfError ?? known?.manualMarginOfError ?? "±0.00%",
+    indexScoreMode: survey.indexScoreMode ?? known?.indexScoreMode ?? "auto",
+    manualIndexScore: survey.manualIndexScore ?? known?.manualIndexScore ?? 0,
+    targetScore: survey.targetScore ?? known?.targetScore ?? 90,
+    gapMode: survey.gapMode ?? known?.gapMode ?? "auto",
+    manualGap: survey.manualGap ?? known?.manualGap ?? 0,
+    qualityMode: survey.qualityMode ?? known?.qualityMode ?? "auto",
+    manualQualityLabel: survey.manualQualityLabel ?? known?.manualQualityLabel ?? "D",
+    manualQualityCategory: survey.manualQualityCategory ?? known?.manualQualityCategory ?? "Tidak Baik",
+    manualQualityInterval: survey.manualQualityInterval ?? known?.manualQualityInterval ?? "0–64,99",
+    participationRate: survey.participationRate ?? known?.participationRate ?? "0%",
+    reliabilityIndex: survey.reliabilityIndex ?? known?.reliabilityIndex ?? 0,
+    trend: survey.trend ?? known?.trend ?? "0%",
+    sampleValidity: survey.sampleValidity ?? known?.sampleValidity ?? "0%",
+    presentationMode: survey.presentationMode ?? false,
   };
 }

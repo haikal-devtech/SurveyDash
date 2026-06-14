@@ -13,15 +13,42 @@ async function startServer() {
 
   app.use(express.json());
 
+  // API Route: Proxy actions to Google Apps Script (fill sheet, etc.)
+  app.post("/api/survey-action", async (req, res) => {
+    const { scriptUrl, action } = req.body as { scriptUrl?: string; action?: string };
+
+    if (!scriptUrl || !action) {
+      return res.status(400).json({ error: "scriptUrl dan action wajib diisi" });
+    }
+
+    try {
+      new URL(scriptUrl);
+    } catch {
+      return res.status(400).json({ error: "Format URL tidak valid" });
+    }
+
+    try {
+      const sep = scriptUrl.includes("?") ? "&" : "?";
+      const response = await axios.get(`${scriptUrl}${sep}action=${encodeURIComponent(action)}`, {
+        timeout: 30000,
+      });
+      return res.json(response.data);
+    } catch (error: any) {
+      console.error(`survey-action [${action}] error:`, error.message);
+      return res.status(500).json({ error: "Aksi gagal dijalankan", details: error.message });
+    }
+  });
+
   // API Route: Proxy to Google Apps Script
   app.get("/api/survey-data", async (req, res) => {
-    let { scriptUrl } = req.query;
+    let { scriptUrl, mode } = req.query as { scriptUrl?: string; mode?: string };
     
     if (!scriptUrl || typeof scriptUrl !== "string") {
       return res.status(400).json({ error: "Script URL is missing or invalid" });
     }
 
     scriptUrl = scriptUrl.trim();
+    const presentationMode = mode === "presentation";
 
     if (scriptUrl === "demo") {
       const demoData = {
@@ -97,24 +124,23 @@ async function startServer() {
     }
 
     try {
-      const response = await axios.get(scriptUrl, {
-        timeout: 15000,
-      });
+      const sep = scriptUrl.includes("?") ? "&" : "?";
+      const fetchUrl = presentationMode
+        ? `${scriptUrl}${sep}mode=presentation`
+        : scriptUrl;
+      const response = await axios.get(fetchUrl, { timeout: 15000 });
       res.json(response.data);
     } catch (error: any) {
       console.error("Error fetching survey data:", error.message);
-      
       if (error.response) {
-        // GAS returned an error
-        return res.status(error.response.status).json({ 
-          error: `Google Apps Script returned an error (${error.response.status})`, 
-          details: error.message 
+        return res.status(error.response.status).json({
+          error: `Google Apps Script returned an error (${error.response.status})`,
+          details: error.message,
         });
       }
-      
-      res.status(500).json({ 
-        error: "Failed to fetch survey data from Google Apps Script", 
-        details: error.message 
+      res.status(500).json({
+        error: "Failed to fetch survey data from Google Apps Script",
+        details: error.message,
       });
     }
   });

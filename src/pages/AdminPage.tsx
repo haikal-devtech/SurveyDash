@@ -14,14 +14,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Trash2, Edit3, Shield, User as UserIcon, Check, X, Users, Globe, RotateCcw, Save, Info, BarChart2 } from "lucide-react";
 import {
   SurveyDashboardConfig,
-  getSurveyDashboardConfig,
-  saveSurveyDashboardConfig,
-  resetSurveyDashboardConfig,
+  DEFAULT_SURVEY_DASHBOARD_CONFIGS,
+  buildConfigFromSurvey,
   calculateSlovinMarginError,
   calculateGap,
   getQualityByScore,
   resolveSurveyDashboard,
 } from "@/lib/survey-dashboard-config";
+import axios from "axios";
 
 export const AdminPage: React.FC = () => {
   const { user, role } = useAuth();
@@ -50,7 +50,7 @@ export const AdminPage: React.FC = () => {
 
   const openEditSurvey = (s: SurveyConfig) => {
     setEditingSurvey(s);
-    setEditingDashConfig(getSurveyDashboardConfig(s.id));
+    setEditingDashConfig(buildConfigFromSurvey(s));
     setDashSaveStatus("idle");
   };
 
@@ -63,19 +63,33 @@ export const AdminPage: React.FC = () => {
   const updateDash = (patch: Partial<SurveyDashboardConfig>) =>
     setEditingDashConfig(prev => prev ? { ...prev, ...patch } : prev);
 
-  const handleDashSave = () => {
-    if (!editingSurvey || !editingDashConfig) return;
-    saveSurveyDashboardConfig(editingSurvey.id, editingDashConfig);
-    setDashSaveStatus("saved");
-    setTimeout(() => setDashSaveStatus("idle"), 2500);
+  const handleResetDashConfig = () => {
+    if (!editingSurvey) return;
+    const defaultCfg = DEFAULT_SURVEY_DASHBOARD_CONFIGS[editingSurvey.id];
+    if (defaultCfg) {
+      setEditingDashConfig({ ...defaultCfg });
+    } else {
+      setEditingDashConfig(buildConfigFromSurvey(editingSurvey));
+    }
+    setDashSaveStatus("reset");
   };
 
-  const handleDashReset = () => {
-    if (!editingSurvey) return;
-    const defaultCfg = resetSurveyDashboardConfig(editingSurvey.id);
-    setEditingDashConfig(defaultCfg);
-    setDashSaveStatus("reset");
-    setTimeout(() => setDashSaveStatus("idle"), 2500);
+  const [fillSheetStatus, setFillSheetStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  const handleFillSheet = async () => {
+    if (!editingSurvey?.scriptUrl) return;
+    setFillSheetStatus("loading");
+    try {
+      await axios.post("/api/survey-action", {
+        scriptUrl: editingSurvey.scriptUrl,
+        action: "fillPresentation",
+      });
+      setFillSheetStatus("success");
+    } catch {
+      setFillSheetStatus("error");
+    } finally {
+      setTimeout(() => setFillSheetStatus("idle"), 3000);
+    }
   };
 
   const handlePromoteUser = async (uId: string, newRole: "SUPER_ADMIN" | "ADMIN" | "VIEWER") => {
@@ -167,20 +181,44 @@ export const AdminPage: React.FC = () => {
 
   const handleEditSurvey = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingSurvey) return;
+    if (!editingSurvey || !editingDashConfig) return;
     setIsUpdatingSurvey(true);
     try {
       const docRef = doc(db, "surveys", editingSurvey.id);
-      await updateDoc(docRef, {
+      const payload = {
+        // Basic info
         name: editingSurvey.name,
+        subtitle: editingSurvey.subtitle ?? "",
         agency: editingSurvey.agency,
         period: editingSurvey.period,
         scriptUrl: editingSurvey.scriptUrl,
-        visibility: editingSurvey.visibility
-      });
-      setSurveys(surveys.map(s => s.id === editingSurvey.id ? editingSurvey : s));
-      setEditingSurvey(null);
-      alert("Survei berhasil diperbarui!");
+        visibility: editingSurvey.visibility,
+        // Dashboard & formula config
+        population: editingDashConfig.population,
+        totalRespondents: editingDashConfig.totalRespondents,
+        confidenceLevel: editingDashConfig.confidenceLevel,
+        marginErrorMode: editingDashConfig.marginErrorMode,
+        manualMarginOfError: editingDashConfig.manualMarginOfError,
+        participationRate: editingDashConfig.participationRate,
+        reliabilityIndex: editingDashConfig.reliabilityIndex,
+        trend: editingDashConfig.trend,
+        sampleValidity: editingDashConfig.sampleValidity,
+        indexScoreMode: editingDashConfig.indexScoreMode,
+        manualIndexScore: editingDashConfig.manualIndexScore,
+        targetScore: editingDashConfig.targetScore,
+        gapMode: editingDashConfig.gapMode,
+        manualGap: editingDashConfig.manualGap,
+        qualityMode: editingDashConfig.qualityMode,
+        manualQualityLabel: editingDashConfig.manualQualityLabel,
+        manualQualityCategory: editingDashConfig.manualQualityCategory,
+        manualQualityInterval: editingDashConfig.manualQualityInterval,
+        presentationMode: (editingDashConfig as any).presentationMode ?? false,
+      };
+      await updateDoc(docRef, payload);
+      const updatedSurvey: SurveyConfig = { ...editingSurvey, ...payload };
+      setSurveys(surveys.map(s => s.id === editingSurvey.id ? updatedSurvey : s));
+      setDashSaveStatus("saved");
+      setTimeout(() => { closeEditSurvey(); }, 1200);
     } catch (err) {
       console.error(err);
       alert("Gagal memperbarui survei.");
@@ -455,25 +493,88 @@ export const AdminPage: React.FC = () => {
 
                 <ScrollArea className="max-h-[70vh]">
                   {/* ── Tab 1: Info Survei ── */}
-                  <TabsContent value="info" className="px-6 py-4 mt-0">
+                  <TabsContent value="info" className="px-6 py-4 mt-0 space-y-6">
                     <form id="edit-survey-form" onSubmit={handleEditSurvey} className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Nama Survei</label>
-                        <Input required value={editingSurvey.name} onChange={e => setEditingSurvey({ ...editingSurvey, name: e.target.value })} />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Instansi / Unit Kerja</label>
-                        <Input required value={editingSurvey.agency} onChange={e => setEditingSurvey({ ...editingSurvey, agency: e.target.value })} />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Periode</label>
-                        <Input required value={editingSurvey.period} onChange={e => setEditingSurvey({ ...editingSurvey, period: e.target.value })} />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">URL Script (Web App)</label>
-                        <Input required value={editingSurvey.scriptUrl} onChange={e => setEditingSurvey({ ...editingSurvey, scriptUrl: e.target.value })} />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5 sm:col-span-2">
+                          <label className="text-xs font-medium text-muted-foreground">Nama Survei</label>
+                          <Input required value={editingSurvey.name} onChange={e => setEditingSurvey({ ...editingSurvey, name: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5 sm:col-span-2">
+                          <label className="text-xs font-medium text-muted-foreground">Subtitle</label>
+                          <Input value={editingSurvey.subtitle ?? ""} placeholder="Opsional" onChange={e => setEditingSurvey({ ...editingSurvey, subtitle: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Instansi / Unit Kerja</label>
+                          <Input required value={editingSurvey.agency} onChange={e => setEditingSurvey({ ...editingSurvey, agency: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Periode</label>
+                          <Input required value={editingSurvey.period} onChange={e => setEditingSurvey({ ...editingSurvey, period: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5 sm:col-span-2">
+                          <label className="text-xs font-medium text-muted-foreground">URL Script (Web App)</label>
+                          <Input required value={editingSurvey.scriptUrl} onChange={e => setEditingSurvey({ ...editingSurvey, scriptUrl: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Akses</label>
+                          <select
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            value={editingSurvey.visibility}
+                            onChange={e => setEditingSurvey({ ...editingSurvey, visibility: e.target.value as any })}
+                          >
+                            <option value="PRIVATE">Privat</option>
+                            <option value="LINK_ONLY">Link Saja</option>
+                            <option value="PUBLIC">Publik</option>
+                          </select>
+                        </div>
                       </div>
                     </form>
+
+                    {/* Mode Data Presentasi */}
+                    <div className="space-y-3 pt-2 border-t border-border">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pt-2">Sumber Data Dashboard</p>
+                      <div className="flex items-start justify-between gap-4 p-4 rounded-xl border border-border bg-muted/30">
+                        <div className="space-y-1">
+                          <p className="text-sm font-black">Mode Data Presentasi</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            Aktif: dashboard memakai data dari sheet presentasi.<br />
+                            Mati: dashboard memakai data asli dari "Form responses 1".
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={dc.presentationMode ?? false}
+                          onClick={() => updateDash({ presentationMode: !(dc.presentationMode ?? false) })}
+                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 ${(dc.presentationMode ?? false) ? "bg-primary" : "bg-muted-foreground/30"}`}
+                        >
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${(dc.presentationMode ?? false) ? "translate-x-6" : "translate-x-1"}`} />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-2"
+                          disabled={fillSheetStatus === "loading" || !editingSurvey.scriptUrl || editingSurvey.scriptUrl === "demo"}
+                          onClick={handleFillSheet}
+                        >
+                          {fillSheetStatus === "loading" ? (
+                            <><RotateCcw className="w-3.5 h-3.5 animate-spin" /> Mengisi Sheet...</>
+                          ) : fillSheetStatus === "success" ? (
+                            <><Check className="w-3.5 h-3.5 text-emerald-500" /> Sheet Terisi</>
+                          ) : fillSheetStatus === "error" ? (
+                            <><X className="w-3.5 h-3.5 text-destructive" /> Gagal</>
+                          ) : (
+                            <>Isi Sheet dengan Data Presentasi</>
+                          )}
+                        </Button>
+                        <p className="text-[10px] text-muted-foreground">Mengisi sheet presentasi di Google Sheets via backend.</p>
+                      </div>
+                    </div>
                   </TabsContent>
 
                   {/* ── Tab 2: Ringkasan & Rumus Dashboard ── */}
@@ -667,7 +768,7 @@ export const AdminPage: React.FC = () => {
                           { label: "Nilai Interval", value: resolved.qualityInterval },
                           { label: "Target Mutu", value: resolved.targetScore.toFixed(2) },
                           { label: "Gap", value: `${resolved.gap} poin` },
-                          { label: "Partisipasi", value: resolved.participationRate },
+                          { label: "Sumber Data", value: (dc.presentationMode ?? false) ? "Sheet Presentasi" : "Form responses 1" },
                         ].map(item => (
                           <div key={item.label} className="bg-card rounded-lg p-2.5 border border-border/50">
                             <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground mb-0.5">{item.label}</p>
@@ -676,25 +777,28 @@ export const AdminPage: React.FC = () => {
                         ))}
                       </div>
                     </div>
-
-                    {/* Save/Reset for dashboard config */}
-                    <div className="flex items-center gap-2 justify-end pb-2">
-                      <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={handleDashReset}>
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        Reset Config Survey Ini
-                      </Button>
-                      <Button type="button" size="sm" className="gap-1.5" onClick={handleDashSave}>
-                        <Save className="w-3.5 h-3.5" />
-                        {dashSaveStatus === "saved" ? "Tersimpan!" : dashSaveStatus === "reset" ? "Direset!" : "Simpan Config"}
-                      </Button>
-                    </div>
                   </TabsContent>
                 </ScrollArea>
 
-                <DialogFooter className="px-6 py-4 border-t border-border">
+                <DialogFooter className="px-6 py-4 border-t border-border gap-2 flex-wrap">
                   <Button type="button" variant="outline" onClick={closeEditSurvey}>Batal</Button>
-                  <Button type="submit" form="edit-survey-form" disabled={isUpdatingSurvey}>
-                    {isUpdatingSurvey ? "Menyimpan..." : "Simpan Info Survei"}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleResetDashConfig}
+                    className="gap-2 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    {dashSaveStatus === "reset" ? "Config Direset" : "Reset Config Survey Ini"}
+                  </Button>
+                  <Button type="submit" form="edit-survey-form" disabled={isUpdatingSurvey} className="gap-2 min-w-[160px]">
+                    {isUpdatingSurvey ? (
+                      <><RotateCcw className="w-3.5 h-3.5 animate-spin" /> Menyimpan...</>
+                    ) : dashSaveStatus === "saved" ? (
+                      <><Check className="w-3.5 h-3.5" /> Tersimpan!</>
+                    ) : (
+                      <><Save className="w-3.5 h-3.5" /> Simpan Perubahan</>
+                    )}
                   </Button>
                 </DialogFooter>
               </Tabs>

@@ -49,14 +49,35 @@ export type SurveyVisibility = "PRIVATE" | "LINK_ONLY" | "PUBLIC";
 export interface SurveyConfig {
   id: string;
   name: string;
+  subtitle?: string;
   agency: string;
   period: string;
   scriptUrl: string;
   isActive: boolean;
   visibility: SurveyVisibility;
-  isPublic?: boolean; 
+  isPublic?: boolean;
   createdAt: any;
   createdBy: string;
+  // Dashboard & formula config (stored in Firestore, authoritative source)
+  population?: number;
+  totalRespondents?: number;
+  confidenceLevel?: number;
+  marginErrorMode?: "slovin" | "manual";
+  manualMarginOfError?: string;
+  participationRate?: string;
+  reliabilityIndex?: number;
+  trend?: string;
+  sampleValidity?: string;
+  indexScoreMode?: "auto" | "manual";
+  manualIndexScore?: number;
+  targetScore?: number;
+  gapMode?: "auto" | "manual";
+  manualGap?: number;
+  qualityMode?: "auto" | "manual";
+  manualQualityLabel?: string;
+  manualQualityCategory?: string;
+  manualQualityInterval?: string;
+  presentationMode?: boolean;
 }
 
 export interface UserProfile {

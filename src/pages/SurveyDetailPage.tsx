@@ -29,7 +29,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import axios from "axios";
 import html2canvas from "html2canvas";
-import { getSurveyDashboardConfig, resolveSurveyDashboard } from "@/lib/survey-dashboard-config";
+import { getSurveyDashboardConfig, buildConfigFromSurvey, resolveSurveyDashboard } from "@/lib/survey-dashboard-config";
 
 // Helper for PNG Export
 const downloadPNG = async (elementId: string, filename: string) => {
@@ -76,7 +76,9 @@ export const SurveyDetailPage: React.FC = () => {
   const [respPage, setRespPage] = useState(1);
   const [respSort, setRespSort] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'timestamp', dir: 'desc' });
   const RESP_PER_PAGE = 50;
-  const surveyDashConfig = getSurveyDashboardConfig(id ?? "");
+  const surveyDashConfig = config
+    ? buildConfigFromSurvey(config)
+    : getSurveyDashboardConfig(id ?? "");
   const dashboardSummary = resolveSurveyDashboard(surveyDashConfig, data?.indicators ?? undefined);
 
   useEffect(() => {
@@ -607,28 +609,22 @@ export const SurveyDetailPage: React.FC = () => {
 
         <Card className="glass-card border-none relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-2 h-full" style={{
-            backgroundColor: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
+            backgroundColor: dashboardSummary.indexScore >= 88.31 ? '#10b981' : dashboardSummary.indexScore >= 76.61 ? '#3b82f6' : dashboardSummary.indexScore >= 65.00 ? '#f59e0b' : '#ef4444'
           }} />
           <CardHeader className="pb-2">
             <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Indeks Kepuasan (NIK)</CardDescription>
             <CardTitle className="text-3xl md:text-4xl font-black tracking-tighter" style={{
-              color: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
-            }}>{data.ikm.score.toFixed(2)}</CardTitle>
+              color: dashboardSummary.indexScore >= 88.31 ? '#10b981' : dashboardSummary.indexScore >= 76.61 ? '#3b82f6' : dashboardSummary.indexScore >= 65.00 ? '#f59e0b' : '#ef4444'
+            }}>{dashboardSummary.indexScore.toFixed(2)}</CardTitle>
           </CardHeader>
           <CardContent>
              <Badge className="hover:opacity-90 border-none font-black px-4 py-1.5 rounded-full uppercase tracking-wider text-xs text-white" style={{
-               backgroundColor: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
+               backgroundColor: dashboardSummary.indexScore >= 88.31 ? '#10b981' : dashboardSummary.indexScore >= 76.61 ? '#3b82f6' : dashboardSummary.indexScore >= 65.00 ? '#f59e0b' : '#ef4444'
              }}>
-               {(() => {
-                 const s = data.ikm.score;
-                 if (s >= 88.31) return "Mutu A — Sangat Baik";
-                 if (s >= 76.61) return "Mutu B — Baik";
-                 if (s >= 65.00) return "Mutu C — Kurang Baik";
-                 return "Mutu D — Tidak Baik";
-               })()}
+               Mutu {dashboardSummary.qualityLabel} — {dashboardSummary.qualityCategory}
              </Badge>
              <p className="text-[10px] text-muted-foreground mt-2 font-mono">
-               Nilai Interval: {data.ikm.score >= 88.31 ? "88,31–100" : data.ikm.score >= 76.61 ? "76,61–​88,30" : data.ikm.score >= 65.00 ? "65,00–​76,60" : "25,00–​64,99"}
+               Nilai Interval: {dashboardSummary.qualityInterval}
              </p>
           </CardContent>
         </Card>
@@ -636,13 +632,13 @@ export const SurveyDetailPage: React.FC = () => {
         <Card className="glass-card border-none relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500/50" />
           <CardHeader className="pb-2">
-            <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Target Mutu 2026</CardDescription>
+            <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Target Mutu</CardDescription>
             <CardTitle className="text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">{dashboardSummary.targetScore.toFixed(2)}</CardTitle>
           </CardHeader>
           <CardContent>
              <div className="flex items-center gap-2 text-xs text-muted-foreground font-black uppercase tracking-wider bg-emerald-500/10 w-fit px-3 py-1 rounded-full border border-emerald-500/20">
                <TrendingUp className="w-4 h-4 text-emerald-500" />
-               Gap: {(dashboardSummary.targetScore - data.ikm.score).toFixed(2)} poin
+               Gap: {dashboardSummary.gap.toFixed(2)} poin
              </div>
           </CardContent>
         </Card>
