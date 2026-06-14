@@ -1,47 +1,57 @@
 /**
- * code.gs — Google Apps Script for SurveyDash
+ * code.gs — Google Apps Script untuk SurveyDash
  * Survei Kepemimpinan Nasional & Elektoral Parpol dan Kandidat Capres Jelang Pilpres 2029
  *
- * CARA DEPLOY:
- *   1. Buka Apps Script Editor (Extensions → Apps Script)
- *   2. Paste seluruh kode ini, ganti kode yang lama
- *   3. Deploy → New deployment → Web App
- *      - Execute as: Me
+ * ─── CARA DEPLOY ────────────────────────────────────────────────────────────────
+ *   1. Buka spreadsheet Google Forms → Extensions → Apps Script
+ *   2. Hapus semua kode lama, paste seluruh kode ini
+ *   3. Save (Ctrl+S), lalu Deploy → New Deployment → Web App
+ *      - Execute as : Me
  *      - Who has access: Anyone
- *   4. Salin Web App URL → paste ke SurveyDash Admin → scriptUrl survei ini
+ *   4. Salin Web App URL → Admin SurveyDash → field scriptUrl survei ini
  *
- * ENDPOINT:
- *   GET  ?mode=actual|presentation    → JSON lengkap untuk dashboard
- *   POST {action:"saveSettings", settings:{...}} → Simpan pengaturan
- *   POST {action:"fillPresentation"}  → Salin Form responses 1 → sheet Presentasi
+ * ─── ENDPOINT ───────────────────────────────────────────────────────────────────
+ *   GET  (tanpa param)          → data aktual dari "Form responses 1"
+ *   GET  ?mode=presentation     → data dari sheet "Presentasi"
+ *   POST {action:"saveSettings", settings:{...}}   → simpan ke survey_settings
+ *   POST {action:"fillPresentation"}               → salin Form responses 1 → Presentasi
+ *
+ * ─── NAMA SHEET ─────────────────────────────────────────────────────────────────
+ *   "Form responses 1"   — respons asli dari Google Forms (otomatis dibuat)
+ *   "Presentasi"         — subset respons untuk mode presentasi (buat manual atau via fillPresentation)
+ *   "survey_settings"    — konfigurasi mode (dibuat otomatis)
  */
 
-// ── Konfigurasi ────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// KONFIGURASI
+// ═══════════════════════════════════════════════════════════════════════════════
 const CFG = {
   RESPONSE_SHEET:     'Form responses 1',
   PRESENTATION_SHEET: 'Presentasi',
   SETTINGS_SHEET:     'survey_settings',
   SURVEY_NAME:        'Survei Kepemimpinan Nasional & Elektoral Parpol dan Kandidat Capres Jelang Pilpres 2029',
-  PERIOD:             'Juni 2026',
+  PERIOD:             '14–23 Juni 2026',
   TARGET_SCORE:       90.0,
-  MARGIN_OF_ERROR:    '±2.97%',   // untuk n≈1200, N=289 juta
+  MARGIN_OF_ERROR:    '±2.97%',
   CONFIDENCE_LEVEL:   95,
 };
 
-// ── doGet: endpoint utama ──────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// doGet — endpoint utama
+// ═══════════════════════════════════════════════════════════════════════════════
 function doGet(e) {
   try {
-    const params  = (e && e.parameter) ? e.parameter : {};
-    const modeReq = params.mode || '';
+    const params   = (e && e.parameter) ? e.parameter : {};
+    const modeReq  = params.mode || '';
+    const settings = getSettings_();
 
-    const settings    = getSettings_();
-    const presentation =
+    const usePresentation =
       modeReq === 'presentation' ||
       String(settings.presentationModeEnabled) === 'true' ||
       settings.dataMode === 'presentation';
 
-    const sheetName = presentation ? CFG.PRESENTATION_SHEET : CFG.RESPONSE_SHEET;
-    const dataMode  = presentation ? 'presentation' : 'actual';
+    const sheetName = usePresentation ? CFG.PRESENTATION_SHEET : CFG.RESPONSE_SHEET;
+    const dataMode  = usePresentation ? 'presentation' : 'actual';
 
     const payload = buildData_(sheetName, dataMode);
 
@@ -56,7 +66,9 @@ function doGet(e) {
   }
 }
 
-// ── doPost: simpan pengaturan / isi sheet presentasi ──────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// doPost — simpan pengaturan / isi sheet presentasi
+// ═══════════════════════════════════════════════════════════════════════════════
 function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
@@ -82,9 +94,11 @@ function doPost(e) {
   }
 }
 
-// ── Settings ───────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════════════════════════
 function getSettings_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(CFG.SETTINGS_SHEET);
   if (!sheet) return {};
   const data = sheet.getDataRange().getValues();
@@ -107,12 +121,14 @@ function saveSettings_(newSettings) {
   for (let i = 1; i < rows.length; i++) keyRow[String(rows[i][0]).trim()] = i + 1;
 
   for (const [k, v] of Object.entries(newSettings)) {
-    if (keyRow[k]) sheet.getRange(keyRow[k], 2).setValue(v);
+    if (keyRow[k] !== undefined) sheet.getRange(keyRow[k], 2).setValue(v);
     else sheet.appendRow([k, v]);
   }
 }
 
-// ── Fill Presentation Sheet ────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// FILL PRESENTATION SHEET
+// ═══════════════════════════════════════════════════════════════════════════════
 function fillPresentationSheet_() {
   const ss  = SpreadsheetApp.getActiveSpreadsheet();
   const src = ss.getSheetByName(CFG.RESPONSE_SHEET);
@@ -128,32 +144,37 @@ function fillPresentationSheet_() {
   }
 }
 
-// ── Helper response ────────────────────────────────────────────────────────────
 function ok_(message) {
   return ContentService
     .createTextOutput(JSON.stringify({ success: true, message }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// ── Baca sheet ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// BACA SHEET
+// ═══════════════════════════════════════════════════════════════════════════════
 function readSheet_(sheetName) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
-  if (!sheet) throw new Error('Sheet "' + sheetName + '" tidak ditemukan. Buat dulu atau periksa nama.');
+  if (!sheet) throw new Error('Sheet "' + sheetName + '" tidak ditemukan. Pastikan nama sheet benar.');
   const vals = sheet.getDataRange().getValues();
-  if (vals.length < 2) return { headers: vals[0] || [], rows: [] };
+  if (vals.length < 2) return { headers: (vals[0] || []).map(h => String(h).trim()), rows: [] };
   const headers = vals[0].map(h => String(h).trim());
   const rows    = vals.slice(1).filter(r => r.some(c => c !== '' && c !== null && c !== undefined));
   return { headers, rows };
 }
 
-// ── Cari indeks kolom ──────────────────────────────────────────────────────────
-// - Exact match (case-insensitive)
+// ═══════════════════════════════════════════════════════════════════════════════
+// HELPER CARI KOLOM
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Exact match (case-insensitive) */
 function ci_(headers, text) {
   const t = text.toLowerCase();
   return headers.findIndex(h => h.toLowerCase() === t);
 }
-// - Partial match — headers yang mengandung semua kata dalam `keywords`
+
+/** Partial match — header harus mengandung SEMUA kata dalam keywords */
 function cp_(headers, ...keywords) {
   const kws = keywords.map(k => k.toLowerCase());
   return headers.findIndex(h => {
@@ -161,35 +182,82 @@ function cp_(headers, ...keywords) {
     return kws.every(k => lower.includes(k));
   });
 }
-// - Cari kolom yang mengandung kode pertanyaan (mis. "[F2a." atau "F2a.")
+
+/** Partial match — cari SEMUA indeks yang cocok (untuk header duplikat seperti H1a × 3) */
+function findAll_(headers, ...keywords) {
+  const kws = keywords.map(k => k.toLowerCase());
+  return headers.reduce((acc, h, i) => {
+    const lower = h.toLowerCase();
+    if (kws.every(k => lower.includes(k))) acc.push(i);
+    return acc;
+  }, []);
+}
+
+/** Cari kolom mengandung kode pertanyaan, contoh "[F2a." atau "F2a." */
 function cq_(headers, code) {
   const upper = code.toUpperCase();
   return headers.findIndex(h => {
     const u = h.toUpperCase();
-    return u.includes('[' + upper + '.') || u.includes(upper + '.') || u.startsWith(upper + ' ') || u.includes('(' + upper + ')');
+    return u.includes('[' + upper + '.') ||
+           u.includes(upper + '.') ||
+           u.startsWith(upper + ' ') ||
+           u.includes('(' + upper + ')');
   });
 }
 
-// ── Agregasi ───────────────────────────────────────────────────────────────────
-/** Hitung kemunculan setiap nilai unik di kolom idx */
+/** findLastIndex polyfill (GAS tidak selalu support) */
+function lastIdx_(headers, ...keywords) {
+  const kws = keywords.map(k => k.toLowerCase());
+  for (let i = headers.length - 1; i >= 0; i--) {
+    const lower = headers[i].toLowerCase();
+    if (kws.every(k => lower.includes(k))) return i;
+  }
+  return -1;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AGREGASI
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Hitung kemunculan setiap nilai unik di satu kolom */
 function countCol_(rows, idx) {
   const out = {};
   if (idx < 0) return out;
   for (const row of rows) {
     const v = String(row[idx] ?? '').trim();
-    if (v && v.toLowerCase() !== 'tidak tahu' && v !== '-') out[v] = (out[v] || 0) + 1;
+    if (v && v !== 'Tidak tahu' && v !== '-' && v !== '0') out[v] = (out[v] || 0) + 1;
   }
   return out;
 }
 
-/** Hitung multi-select (nilai dipisah koma di satu kolom) */
+/**
+ * Hitung multi-select.
+ * Mendukung dua format Google Forms:
+ *   1. Satu kolom, nilai dipisah koma/titik koma: "Anies, Dedi, Prabowo"
+ *   2. Beberapa kolom dengan nilai = nama pilihan atau kosong (checkbox per kolom)
+ *
+ * Jika idx adalah array, mode #2; jika number, mode #1.
+ */
 function countMulti_(rows, idx) {
   const out = {};
-  if (idx < 0) return out;
-  for (const row of rows) {
-    const items = String(row[idx] ?? '').split(/[,;]/).map(s => s.trim()).filter(Boolean);
-    for (const item of items) {
-      if (item.toLowerCase() !== 'tidak tahu') out[item] = (out[item] || 0) + 1;
+  if (idx === undefined || idx === null || (typeof idx === 'number' && idx < 0)) return out;
+
+  if (Array.isArray(idx)) {
+    // Mode: satu kolom per opsi (nilai = nama opsi atau kosong)
+    for (const col of idx) {
+      if (col < 0) continue;
+      for (const row of rows) {
+        const v = String(row[col] ?? '').trim();
+        if (v && v !== 'Tidak tahu') out[v] = (out[v] || 0) + 1;
+      }
+    }
+  } else {
+    // Mode: satu kolom, dipisah koma/titik koma
+    for (const row of rows) {
+      const items = String(row[idx] ?? '').split(/[,;]/).map(s => s.trim()).filter(Boolean);
+      for (const item of items) {
+        if (item !== 'Tidak tahu') out[item] = (out[item] || 0) + 1;
+      }
     }
   }
   return out;
@@ -206,7 +274,7 @@ function toRank_(counts, total) {
     .sort((a, b) => b.count - a.count);
 }
 
-/** Hitung rata-rata numerik (angka sebagai teks atau number) */
+/** Rata-rata numerik dari satu kolom */
 function avg_(rows, idx) {
   if (idx < 0) return 0;
   let sum = 0, n = 0;
@@ -217,7 +285,7 @@ function avg_(rows, idx) {
   return n > 0 ? Math.round(sum / n * 100) / 100 : 0;
 }
 
-/** Distribusi skala (label-based, mis. "Puas", "Tidak puas", ...) */
+/** Distribusi label (untuk Likert, opsi consideration, dll.) */
 function dist_(rows, idx, labels) {
   const out = {};
   labels.forEach(l => { out[l] = 0; });
@@ -229,7 +297,7 @@ function dist_(rows, idx, labels) {
   return out;
 }
 
-/** Konversi skala Likert 4-point ke skor 0-100 */
+/** Konversi Likert 4-point ke skor 0–100 */
 function likertToScore_(rows, idx) {
   const map = {
     'Sangat tidak puas': 25, 'Tidak puas': 50, 'Puas': 75, 'Sangat puas': 100,
@@ -240,12 +308,12 @@ function likertToScore_(rows, idx) {
   let sum = 0, n = 0;
   for (const row of rows) {
     const v = String(row[idx] ?? '').trim();
-    if (map[v]) { sum += map[v]; n++; }
+    if (map[v] !== undefined) { sum += map[v]; n++; }
   }
   return n > 0 ? Math.round(sum / n * 100) / 100 : 0;
 }
 
-/** Kumpulkan teks jawaban terbuka dan hitung frekuensi */
+/** Kumpulkan jawaban terbuka dan hitung frekuensi */
 function topOpenAnswers_(rows, idx, limit) {
   limit = limit || 30;
   if (idx < 0) return [];
@@ -263,38 +331,44 @@ function topOpenAnswers_(rows, idx, limit) {
     .map(([name, count]) => ({ name, count, percentage: count }));
 }
 
-/** Kumpulkan teks jawaban terbuka (tanpa agregasi, untuk open_ended) */
+/** Kumpulkan teks jawaban terbuka mentah (tanpa agregasi) */
 function collectText_(rows, idx, limit) {
   limit = limit || 40;
   if (idx < 0) return [];
   const out = [];
   for (const row of rows) {
     const v = String(row[idx] ?? '').trim();
-    if (v && v.length > 2) { out.push(v); if (out.length >= limit) break; }
+    if (v && v.length > 2) {
+      out.push(v);
+      if (out.length >= limit) break;
+    }
   }
   return out;
 }
 
-// ── Hitung IKM dari F2-F4 dan F5b ─────────────────────────────────────────────
-function computeIKM_(rows, headers, n) {
-  // F2a-F2j: skala kepuasan 4-point → konversi ke 0-100
+// ═══════════════════════════════════════════════════════════════════════════════
+// HITUNG IKM (F2 + F3/F4 + F5b)
+// ═══════════════════════════════════════════════════════════════════════════════
+function computeIKM_(rows, headers) {
+  // F2a–F2j: skala kepuasan 4-point → 0–100
   const f2Codes = ['F2a','F2b','F2c','F2d','F2e','F2f','F2g','F2h','F2i','F2j'];
   let f2Sum = 0, f2n = 0;
+  const f2Map = { 'Sangat tidak puas': 25, 'Tidak puas': 50, 'Puas': 75, 'Sangat puas': 100 };
   for (const code of f2Codes) {
     const idx = cp_(headers, code + '.');
     if (idx < 0) continue;
     for (const row of rows) {
       const v = String(row[idx] ?? '').trim();
-      const m = { 'Sangat tidak puas': 25, 'Tidak puas': 50, 'Puas': 75, 'Sangat puas': 100 };
-      if (m[v]) { f2Sum += m[v]; f2n++; }
+      if (f2Map[v] !== undefined) { f2Sum += f2Map[v]; f2n++; }
     }
   }
   const f2Score = f2n > 0 ? f2Sum / f2n : 0;
 
-  // F3a-F3e dan F4a-F4c: skala 1-10 → konversi ke 0-100
+  // F3a–F3e + F4a–F4c: skala 1–10 → 0–100
   const fScaleCodes = ['F3a','F3b','F3c','F3d','F3e','F4a','F4b','F4c'];
   let fsSum = 0, fsn = 0;
   for (const code of fScaleCodes) {
+    // Google Forms matrix header format: "...pertanyaan... [F3a. Kejelasan...]"
     const idx = cp_(headers, '[' + code + '.');
     if (idx < 0) continue;
     for (const row of rows) {
@@ -304,7 +378,7 @@ function computeIKM_(rows, headers, n) {
   }
   const fScaleScore = fsn > 0 ? fsSum / fsn : 0;
 
-  // F5b: skor keseluruhan 1-10 langsung
+  // F5b: skor keseluruhan 1–10
   const f5bIdx = cp_(headers, 'f5b');
   let f5bSum = 0, f5bn = 0;
   if (f5bIdx >= 0) {
@@ -315,11 +389,11 @@ function computeIKM_(rows, headers, n) {
   }
   const f5bScore = f5bn > 0 ? f5bSum / f5bn : 0;
 
-  // Bobot: F2 (40%), FScale (40%), F5b (20%)
+  // Bobot: F2 (40%) + FScale (40%) + F5b (20%)
   const parts = [];
-  if (f2n > 0)  parts.push({ s: f2Score,    w: 4 });
-  if (fsn > 0)  parts.push({ s: fScaleScore, w: 4 });
-  if (f5bn > 0) parts.push({ s: f5bScore,    w: 2 });
+  if (f2n  > 0) parts.push({ s: f2Score,     w: 4 });
+  if (fsn  > 0) parts.push({ s: fScaleScore,  w: 4 });
+  if (f5bn > 0) parts.push({ s: f5bScore,     w: 2 });
   if (parts.length === 0) return 0;
 
   const totalW = parts.reduce((a, p) => a + p.w, 0);
@@ -331,10 +405,12 @@ function getQuality_(score) {
   if (score >= 88.31) return { label: 'A', category: 'Sangat Baik',  interval: '88,31–100'   };
   if (score >= 76.61) return { label: 'B', category: 'Baik',         interval: '76,61–88,30' };
   if (score >= 65.00) return { label: 'C', category: 'Kurang Baik',  interval: '65,00–76,60' };
-  return              { label: 'D', category: 'Tidak Baik', interval: '0–64,99'    };
+  return               { label: 'D', category: 'Tidak Baik',  interval: '0–64,99'    };
 }
 
-// ── Buang object/array kosong ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLEAN — buang value kosong dari output
+// ═══════════════════════════════════════════════════════════════════════════════
 function clean_(obj) {
   if (Array.isArray(obj))  return obj.length > 0 ? obj : undefined;
   if (obj === null || obj === undefined || obj === '' || obj === 0) return undefined;
@@ -347,34 +423,52 @@ function clean_(obj) {
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 // BUILDER UTAMA
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 function buildData_(sheetName, dataMode) {
   const { headers, rows } = readSheet_(sheetName);
   const n = rows.length;
 
-  // ── Indeks kolom identitas ─────────────────────────────────────────────────
+  // ── Peta kolom identitas ──────────────────────────────────────────────────
+  //
+  // Google Forms "Form responses 1" selalu dimulai dengan kolom Timestamp (index 0).
+  // Nama kolom bergantung pada bahasa form dan nama pertanyaan persis.
+  //
   const IDX = {
-    timestamp:   0,
-    nama:        cp_(headers, 'nama:'),
-    gender:      cp_(headers, 'jenis kelamin'),
-    umur:        cp_(headers, 'umur:'),
-    pekerjaan:   cp_(headers, 'pekerjaan:'),
-    pendidikan:  cp_(headers, 'pendidikan terakhir'),
-    agama:       cp_(headers, 'agama:'),
-    suku:        cp_(headers, 'suku'),
-    afiliasi:    cp_(headers, 'afiliasi politik'),
-    tinggal:     cp_(headers, 'tempat tinggal'),
-    provinsi:    headers.findLastIndex(h => h.toLowerCase().includes('provinsi')),
-    kabupaten:   cp_(headers, 'kabupaten'),
-    surveyor:    cp_(headers, 'nama surveyor'),
+    timestamp:  0,
+    nama:       cp_(headers, 'nama:'),
+    gender:     cp_(headers, 'jenis kelamin'),
+    umur:       cp_(headers, 'umur:'),
+    pekerjaan:  cp_(headers, 'pekerjaan:'),
+    penghasilan:cp_(headers, 'penghasilan'),
+    pendidikan: cp_(headers, 'pendidikan terakhir'),
+    agama:      cp_(headers, 'agama:'),
+    suku:       cp_(headers, 'suku'),
+    afiliasi:   cp_(headers, 'afiliasi politik'),
+    tinggal:    cp_(headers, 'tempat tinggal'),
+    alamat:     cp_(headers, 'alamat'),
+    kabupaten:  cp_(headers, 'kabupaten'),
+    // Provinsi muncul 2x (DATA RESPONDEN + Bagian I), ambil yang pertama untuk demografi
+    provinsi_resp: cp_(headers, 'provinsi'),
+    // Provinsi di Bagian I (surveyor) — ambil yang terakhir
+    provinsi_sv: lastIdx_(headers, 'provinsi'),
+    nohp:       cp_(headers, 'no hp'),
+    no_rekening:cp_(headers, 'rekening'),
 
-    // A
+    // A1
     a1a: cp_(headers, 'a1a'),
+    // A1b-A1c adalah matrix: kolom Google Forms = "[A1b-A1c. Skala...] [row label]"
     a1b: cp_(headers, 'a1b', 'puas'),
-    a1c: cp_(headers, 'a1c') >= 0 ? cp_(headers, 'a1c') : cp_(headers, 'a1b', 'optimis'),
+    a1c: (() => {
+      let idx = cp_(headers, 'a1c');
+      if (idx < 0) idx = cp_(headers, 'a1b', 'optimis');
+      if (idx < 0) idx = cp_(headers, 'optimis');
+      return idx;
+    })(),
     a1d: cp_(headers, 'a1d'),
+
+    // A2
     a2a: cp_(headers, 'a2a'),
     a2b: cp_(headers, 'a2b'),
     a2c: cp_(headers, 'a2c'),
@@ -384,11 +478,11 @@ function buildData_(sheetName, dataMode) {
     a2g: cp_(headers, 'a2g'),
     a2h: cp_(headers, 'a2h'),
     a2i: cp_(headers, 'a2i'),
-    a2j_ekonomi:      cp_(headers, 'a2j', 'ekonomi'),
-    a2j_korupsi:      cp_(headers, 'a2j', 'korupsi'),
-    a2j_diplomasi:    cp_(headers, 'a2j', 'diplomasi'),
-    a2j_pertahanan:   cp_(headers, 'a2j', 'pertahanan'),
-    a2j_kesejahteraan:cp_(headers, 'a2j', 'kesejahteraan'),
+    a2j_ekonomi:       cp_(headers, 'a2j', 'ekonomi'),
+    a2j_korupsi:       cp_(headers, 'a2j', 'korupsi'),
+    a2j_diplomasi:     cp_(headers, 'a2j', 'diplomasi'),
+    a2j_pertahanan:    cp_(headers, 'a2j', 'pertahanan'),
+    a2j_kesejahteraan: cp_(headers, 'a2j', 'kesejahteraan'),
 
     // B
     b1a: cp_(headers, 'b1a'),
@@ -396,64 +490,91 @@ function buildData_(sheetName, dataMode) {
     b1c: cp_(headers, 'b1c'),
     b1d: cp_(headers, 'b1d'),
 
-    // C
+    // C — checkboxes (Google Forms: satu kolom, nilai dipisah koma)
     c1a: cp_(headers, 'c1a'),
     c1b: cp_(headers, 'c1b'),
     c1c: cp_(headers, 'c1c'),
 
-    // D
+    // D — radio button (single choice per simulasi)
     d1a_10: cp_(headers, 'd1a', '10 nama'),
     d1a_8:  cp_(headers, 'd1a', '8 nama'),
     d1a_5:  cp_(headers, 'd1a', '5 nama'),
-    d1b_politisi:  cp_(headers, 'd1b', 'politisi'),
-    d1b_tokoh:     cp_(headers, 'd1b', 'tokoh'),
-    d1b_profesional: cp_(headers, 'd1b', 'profesional'),
+    d1b_politisi:   cp_(headers, 'd1b', 'politisi'),
+    d1b_tokoh:      cp_(headers, 'd1b', 'tokoh'),
+    d1b_profesional:cp_(headers, 'd1b', 'profesional'),
 
     // E
-    e1a: cp_(headers, 'e1a'),
-    e1b: cp_(headers, 'e1b'),
-    e1c: cp_(headers, 'e1c'),
-    e1d: cp_(headers, 'e1d'),
+    e1a: cp_(headers, 'e1a'),            // open-ended
+    e1b: cp_(headers, 'e1b'),            // checkboxes (tahu)
+    e1c: cp_(headers, 'e1c'),            // checkboxes (suka)
+    e1d: cp_(headers, 'e1d'),            // single choice (pilih)
 
-    // F1
+    // F1 open-ended
     f1a: cp_(headers, 'f1a'),
     f1b: cp_(headers, 'f1b'),
     f1c: cp_(headers, 'f1c'),
+
+    // F5
     f5a: cp_(headers, 'f5a'),
     f5b: cp_(headers, 'f5b'),
     f5c: cp_(headers, 'f5c'),
 
-    // G
+    // G1
     g1a: cp_(headers, 'g1a'),
     g1b: cp_(headers, 'g1b'),
 
-    // H1 (3 tokoh: kolom ke-0, ke-1, ke-2 dari H1a yang match)
-    h1a_prabowo:    cp_(headers, 'h1a', 'prabowo'),
-    h1a_gibran:     cp_(headers, 'h1a', 'gibran'),
-    h1a_sudirman:   cp_(headers, 'h1a', 'sudirman'),
-    h1b_prabowo:    cp_(headers, 'h1b', 'prabowo'),
-    h1b_gibran:     cp_(headers, 'h1b', 'gibran'),
-    h1b_sudirman:   cp_(headers, 'h1b', 'sudirman'),
-    h1c_prabowo:    cp_(headers, 'h1c', 'prabowo'),
-    h1c_gibran:     cp_(headers, 'h1c', 'gibran'),
-    h1c_sudirman:   cp_(headers, 'h1c', 'sudirman'),
-    h1d_prabowo:    cp_(headers, 'h1d', 'prabowo'),
-    h1d_gibran:     cp_(headers, 'h1d', 'gibran'),
-    h1d_sudirman:   cp_(headers, 'h1d', 'sudirman'),
-
-    // H2 trust score
-    h2_prabowo:  cp_(headers, 'prabowo subianto'),
-    h2_gibran:   cp_(headers, 'gibran rakabumi'),
-    h2_dedi:     cp_(headers, 'dedi mulyadi'),
-    h2_purbaya:  cp_(headers, 'purbaya yudhi'),
-    h2_sudirman: cp_(headers, 'sudirman said'),
+    // H2 — trust matrix (skala 0–10)
+    // Google Forms matrix kolom: "Seberapa besar Anda percaya... [Nama Tokoh]"
+    h2_prabowo:  cp_(headers, 'h2', 'prabowo') >= 0 ? cp_(headers, 'h2', 'prabowo')  : cp_(headers, 'prabowo subianto'),
+    h2_gibran:   cp_(headers, 'h2', 'gibran')  >= 0 ? cp_(headers, 'h2', 'gibran')   : cp_(headers, 'gibran'),
+    h2_dedi:     cp_(headers, 'h2', 'dedi')    >= 0 ? cp_(headers, 'h2', 'dedi')     : cp_(headers, 'dedi mulyadi'),
+    h2_purbaya:  cp_(headers, 'h2', 'purbaya') >= 0 ? cp_(headers, 'h2', 'purbaya')  : cp_(headers, 'purbaya'),
+    h2_sudirman: cp_(headers, 'h2', 'sudirman')>= 0 ? cp_(headers, 'h2', 'sudirman') : cp_(headers, 'sudirman said'),
 
     // I
-    i1a: cp_(headers, 'i1a'),
-    i1b: cp_(headers, 'i1b'),
+    i1a:     cp_(headers, 'i1a'),
+    i1b:     cp_(headers, 'i1b'),
+    surveyor:cp_(headers, 'nama surveyor'),
   };
 
-  // ── F2-F4 kolom ───────────────────────────────────────────────────────────
+  // ── H1a/H1b/H1c/H1d — 3 tokoh (Prabowo, Gibran, Sudirman Said) ───────────
+  //
+  // Karena 3 pertanyaan H1a punya label sama, Google Sheets bisa membuat:
+  //   "H1a. Bagaimana pendapat Anda..." / "H1a. Bagaimana pendapat Anda... .1" / ".2"
+  // atau menyertakan nama tokoh di header jika ada deskripsi.
+  // Strategi: coba match nama tokoh dulu, fallback ke urutan (index ke-0, ke-1, ke-2).
+  //
+  function resolveH1_(code, figName, allIdx) {
+    let i = cp_(headers, code, figName.split(' ')[0].toLowerCase());
+    if (i < 0 && allIdx.length > 0) i = allIdx.shift();
+    return i;
+  }
+
+  const h1aAll = findAll_(headers, 'h1a').filter(i => !headers[i].toLowerCase().includes('h1b') && !headers[i].toLowerCase().includes('h1c') && !headers[i].toLowerCase().includes('h1d'));
+  const h1bAll = findAll_(headers, 'h1b').filter(i => !headers[i].toLowerCase().includes('h1a') && !headers[i].toLowerCase().includes('h1c'));
+  const h1cAll = findAll_(headers, 'h1c').filter(i => !headers[i].toLowerCase().includes('h1a') && !headers[i].toLowerCase().includes('h1b'));
+  const h1dAll = findAll_(headers, 'h1d').filter(i => !headers[i].toLowerCase().includes('h1a'));
+
+  // Buat salinan array agar shift() tidak merusak h1aAll asli
+  const h1aQ = h1aAll.slice();
+  const h1bQ = h1bAll.slice();
+  const h1cQ = h1cAll.slice();
+  const h1dQ = h1dAll.slice();
+
+  IDX.h1a_prabowo  = resolveH1_('h1a', 'prabowo',  h1aQ);
+  IDX.h1a_gibran   = resolveH1_('h1a', 'gibran',   h1aQ);
+  IDX.h1a_sudirman = resolveH1_('h1a', 'sudirman', h1aQ);
+  IDX.h1b_prabowo  = resolveH1_('h1b', 'prabowo',  h1bQ);
+  IDX.h1b_gibran   = resolveH1_('h1b', 'gibran',   h1bQ);
+  IDX.h1b_sudirman = resolveH1_('h1b', 'sudirman', h1bQ);
+  IDX.h1c_prabowo  = resolveH1_('h1c', 'prabowo',  h1cQ);
+  IDX.h1c_gibran   = resolveH1_('h1c', 'gibran',   h1cQ);
+  IDX.h1c_sudirman = resolveH1_('h1c', 'sudirman', h1cQ);
+  IDX.h1d_prabowo  = resolveH1_('h1d', 'prabowo',  h1dQ);
+  IDX.h1d_gibran   = resolveH1_('h1d', 'gibran',   h1dQ);
+  IDX.h1d_sudirman = resolveH1_('h1d', 'sudirman', h1dQ);
+
+  // ── Definisi field matrix ──────────────────────────────────────────────────
   const F2_FIELDS = [
     { code:'F2a', label:'Pelayanan Publik' },
     { code:'F2b', label:'Ekonomi, Industri, Teknologi & Lapangan Kerja' },
@@ -508,109 +629,129 @@ function buildData_(sheetName, dataMode) {
     { code:'G4l', label:'Lainnya' },
   ];
 
-  const LIKERT4  = ['Sangat tidak puas','Tidak puas','Puas','Sangat puas','Tidak tahu'];
-  const LIKE4CAM = ['Sangat tidak suka','Tidak suka','Suka','Sangat suka','Tidak tahu'];
-  const CONSIDER = ['Sama sekali tidak jadi pertimbangan','Agak jadi pertimbangan','Dipertimbangkan','Sangat dipertimbangkan','Luar biasa dipertimbangkan','Tidak tahu'];
-  const I1A_OPTS = ['Kesulitan memahami','Beberapa kesalahpahaman','Sesekali kebingungan','Mengerti sempurna'];
-  const I1B_OPTS = ['Tidak terpercaya','Meragukan','Agak terpercaya','Terpercaya','Sangat terpercaya'];
+  const LIKERT4   = ['Sangat tidak puas','Tidak puas','Puas','Sangat puas','Tidak tahu'];
+  const LIKE4CAM  = ['Sangat tidak suka','Tidak suka','Suka','Sangat suka','Tidak tahu'];
+  const CONSIDER5 = ['Sama sekali tidak jadi pertimbangan','Agak jadi pertimbangan','Dipertimbangkan','Sangat dipertimbangkan','Luar biasa dipertimbangkan','Tidak tahu'];
+  const I1A_OPTS  = ['1.  Kesulitan dalam memahami pertanyaan-pertanyaan ini','2. Beberapa kesalahpahaman atas pertanyaan-pertanyaan mungkin telah terjadi','3. Hanya terdapat sesekali kebingungan','4. Ia mengerti dengan sempurna semua pertanyaan'];
+  const I1B_OPTS  = ['1. Tidak terpercaya','2. Meragukan','3. Agak terpercaya','4. Terpercaya','5. Sangat terpercaya'];
 
   // ── Demografi ──────────────────────────────────────────────────────────────
   const demographics = {
-    gender:    countCol_(rows, IDX.gender),
-    education: countCol_(rows, IDX.pendidikan),
-    umur:      countCol_(rows, IDX.umur),
-    pekerjaan: countCol_(rows, IDX.pekerjaan),
-    suku:      countCol_(rows, IDX.suku),
-    agama:     countCol_(rows, IDX.agama),
-    location:  countCol_(rows, IDX.provinsi),
+    gender:           countCol_(rows, IDX.gender),
+    education:        countCol_(rows, IDX.pendidikan),
+    umur:             countCol_(rows, IDX.umur),
+    pekerjaan:        countCol_(rows, IDX.pekerjaan),
+    penghasilan:      countCol_(rows, IDX.penghasilan),
+    suku:             countCol_(rows, IDX.suku),
+    agama:            countCol_(rows, IDX.agama),
+    location:         countCol_(rows, IDX.provinsi_resp),
     afiliasi_politik: countCol_(rows, IDX.afiliasi),
     tempat_tinggal:   countCol_(rows, IDX.tinggal),
   };
 
-  // ── IKM score ──────────────────────────────────────────────────────────────
-  const ikmScore  = computeIKM_(rows, headers, n);
-  const quality   = getQuality_(ikmScore);
-  const ikmGap    = Math.round((CFG.TARGET_SCORE - ikmScore) * 100) / 100;
+  // ── IKM ───────────────────────────────────────────────────────────────────
+  const ikmScore = computeIKM_(rows, headers);
+  const quality  = getQuality_(ikmScore);
+  const ikmGap   = Math.round((CFG.TARGET_SCORE - ikmScore) * 100) / 100;
+
+  // ── Indicators (dari F2 → kompatibel IKM dashboard) ─────────────────────
+  const indicators = F2_FIELDS.map((f, i) => {
+    const idx   = cp_(headers, f.code + '.');
+    if (idx < 0) return null;
+    const score = likertToScore_(rows, idx);
+    const dObj  = dist_(rows, idx, LIKERT4);
+    return {
+      id:    i + 1,
+      label: f.label,
+      avg:   Math.round(score / 100 * 4 * 100) / 100,
+      distribution: LIKERT4.map(l => dObj[l] || 0),
+    };
+  }).filter(Boolean);
 
   // ── Candidate preference ───────────────────────────────────────────────────
-  const capres         = toRank_(countMulti_(rows, IDX.b1a), n).slice(0, 25);  // open
-  const capresAlt      = toRank_(countMulti_(rows, IDX.b1b), n).slice(0, 25);
-  const capresKnown    = toRank_(countMulti_(rows, IDX.c1a), n).slice(0, 30);
-  const capresSuka     = toRank_(countMulti_(rows, IDX.c1b), n).slice(0, 30);
-  const capresClosed   = toRank_(countCol_(rows,   IDX.c1c), n).slice(0, 25);  // C1c single
-  const sim10          = toRank_(countCol_(rows,   IDX.d1a_10), n);
-  const sim8           = toRank_(countCol_(rows,   IDX.d1a_8),  n);
-  const sim5           = toRank_(countCol_(rows,   IDX.d1a_5),  n);
-  const politisi       = toRank_(countCol_(rows,   IDX.d1b_politisi),   n);
-  const tokoh          = toRank_(countCol_(rows,   IDX.d1b_tokoh),      n);
-  const profesional    = toRank_(countCol_(rows,   IDX.d1b_profesional),n);
-  const parpolOpen     = topOpenAnswers_(rows, IDX.e1a, 25);
-  const parpolSuka     = toRank_(countMulti_(rows, IDX.e1c), n).slice(0, 25);
-  const parpolClosed   = toRank_(countCol_(rows,   IDX.e1d), n).slice(0, 25);
+  const capres       = toRank_(countMulti_(rows, IDX.b1a), n).slice(0, 30);
+  const capresAlt    = toRank_(countMulti_(rows, IDX.b1b), n).slice(0, 30);
+  const capresKnown  = toRank_(countMulti_(rows, IDX.c1a), n).slice(0, 30);
+  const capresSuka   = toRank_(countMulti_(rows, IDX.c1b), n).slice(0, 30);
+  const capresClosed = toRank_(countCol_(rows,   IDX.c1c), n).slice(0, 30);
+  const sim10        = toRank_(countCol_(rows, IDX.d1a_10), n);
+  const sim8         = toRank_(countCol_(rows, IDX.d1a_8),  n);
+  const sim5         = toRank_(countCol_(rows, IDX.d1a_5),  n);
+  const politisi     = toRank_(countCol_(rows, IDX.d1b_politisi),    n);
+  const tokoh        = toRank_(countCol_(rows, IDX.d1b_tokoh),       n);
+  const profesional  = toRank_(countCol_(rows, IDX.d1b_profesional), n);
+  const parpolOpen   = topOpenAnswers_(rows, IDX.e1a, 25);
+  const parpolDikenal= toRank_(countMulti_(rows, IDX.e1b), n).slice(0, 25);
+  const parpolSuka   = toRank_(countMulti_(rows, IDX.e1c), n).slice(0, 25);
+  const parpolClosed = toRank_(countCol_(rows, IDX.e1d), n).slice(0, 25);
 
-  // ── question_analysis ──────────────────────────────────────────────────────
+  // ── Question Analysis ──────────────────────────────────────────────────────
 
   // A — Kepemimpinan Nasional
   const nationalLeadership = {
-    kepuasan_kepemimpinan_skala_010: { rata_rata: avg_(rows, IDX.a1b), distribusi: countCol_(rows, IDX.a1b) },
-    optimisme_pemimpin_masa_depan:   { rata_rata: avg_(rows, IDX.a1c), distribusi: countCol_(rows, IDX.a1c) },
-    masalah_utama_bangsa:            toRank_(countMulti_(rows, IDX.a1d), n),
-    karakter_pemimpin_dibutuhkan:    toRank_(countMulti_(rows, IDX.a2e), n),
-    kebutuhan_tokoh_baru:            toRank_(countCol_(rows, IDX.a2f), n),
-    asal_kalangan_pemimpin_ideal:    toRank_(countCol_(rows, IDX.a2g), n),
-    tokoh_paling_layak_a2h:          topOpenAnswers_(rows, IDX.a2h, 25),
-    tokoh_alternatif_a2i:            topOpenAnswers_(rows, IDX.a2i, 20),
-    unggul_ekonomi:                  topOpenAnswers_(rows, IDX.a2j_ekonomi, 20),
-    unggul_pemberantasan_korupsi:    topOpenAnswers_(rows, IDX.a2j_korupsi, 20),
-    unggul_diplomasi_internasional:  topOpenAnswers_(rows, IDX.a2j_diplomasi, 20),
-    unggul_pertahanan_keamanan:      topOpenAnswers_(rows, IDX.a2j_pertahanan, 20),
-    unggul_kesejahteraan_rakyat:     topOpenAnswers_(rows, IDX.a2j_kesejahteraan, 20),
-    opini_kepemimpinan_nasional:     collectText_(rows, IDX.a1a, 30),
-    opini_kebijakan_prabowo:         collectText_(rows, IDX.a2a, 20),
+    kondisi_kepemimpinan_opini:       collectText_(rows, IDX.a1a, 30),
+    kepuasan_kepemimpinan_skala:      { rata_rata: avg_(rows, IDX.a1b), distribusi: countCol_(rows, IDX.a1b) },
+    optimisme_pemimpin_masa_depan:    { rata_rata: avg_(rows, IDX.a1c), distribusi: countCol_(rows, IDX.a1c) },
+    masalah_utama_bangsa:             toRank_(countMulti_(rows, IDX.a1d), n),
+    opini_kebijakan_prabowo:          collectText_(rows, IDX.a2a, 20),
+    kriteria_pemimpin_ideal:          collectText_(rows, IDX.a2b, 20),
+    tidak_suka_pemimpin:              collectText_(rows, IDX.a2c, 20),
+    harapan_pemimpin:                 collectText_(rows, IDX.a2d, 20),
+    karakter_pemimpin_dibutuhkan:     toRank_(countMulti_(rows, IDX.a2e), n),
+    kebutuhan_tokoh_baru:             toRank_(countCol_(rows, IDX.a2f), n),
+    asal_kalangan_pemimpin_ideal:     toRank_(countCol_(rows, IDX.a2g), n),
+    tokoh_paling_layak:               topOpenAnswers_(rows, IDX.a2h, 25),
+    tokoh_alternatif:                 topOpenAnswers_(rows, IDX.a2i, 20),
+    unggul_ekonomi:                   topOpenAnswers_(rows, IDX.a2j_ekonomi, 20),
+    unggul_pemberantasan_korupsi:     topOpenAnswers_(rows, IDX.a2j_korupsi, 20),
+    unggul_diplomasi_internasional:   topOpenAnswers_(rows, IDX.a2j_diplomasi, 20),
+    unggul_pertahanan_keamanan:       topOpenAnswers_(rows, IDX.a2j_pertahanan, 20),
+    unggul_kesejahteraan_rakyat:      topOpenAnswers_(rows, IDX.a2j_kesejahteraan, 20),
   };
 
-  // A2h+i+j — Leader Figures
+  // Tokoh & Figur (A2h/i/j)
   const leaderFigures = {
-    tokoh_paling_layak:    topOpenAnswers_(rows, IDX.a2h, 25),
-    tokoh_alternatif:      topOpenAnswers_(rows, IDX.a2i, 20),
-    unggul_ekonomi:        topOpenAnswers_(rows, IDX.a2j_ekonomi, 20),
-    unggul_korupsi:        topOpenAnswers_(rows, IDX.a2j_korupsi, 20),
-    unggul_diplomasi:      topOpenAnswers_(rows, IDX.a2j_diplomasi, 20),
-    unggul_pertahanan:     topOpenAnswers_(rows, IDX.a2j_pertahanan, 20),
-    unggul_kesejahteraan:  topOpenAnswers_(rows, IDX.a2j_kesejahteraan, 20),
-    asal_kalangan_ideal:   toRank_(countCol_(rows, IDX.a2g), n),
-    capres_disukai_c1b:    capresSuka.slice(0, 20),
+    tokoh_paling_layak:   topOpenAnswers_(rows, IDX.a2h, 25),
+    tokoh_alternatif:     topOpenAnswers_(rows, IDX.a2i, 20),
+    unggul_ekonomi:       topOpenAnswers_(rows, IDX.a2j_ekonomi, 20),
+    unggul_korupsi:       topOpenAnswers_(rows, IDX.a2j_korupsi, 20),
+    unggul_diplomasi:     topOpenAnswers_(rows, IDX.a2j_diplomasi, 20),
+    unggul_pertahanan:    topOpenAnswers_(rows, IDX.a2j_pertahanan, 20),
+    unggul_kesejahteraan: topOpenAnswers_(rows, IDX.a2j_kesejahteraan, 20),
+    asal_kalangan_ideal:  toRank_(countCol_(rows, IDX.a2g), n),
+    capres_disukai:       capresSuka.slice(0, 20),
   };
 
-  // B+C — Presidential Electability
+  // B+C — Elektabilitas Capres
   const presidentialElectability = {
     capres_terbuka_b1a:          capres,
     capres_alternatif_b1b:       capresAlt,
     capres_dikenal_c1a:          capresKnown,
     capres_disukai_c1b:          capresSuka,
     capres_dipilih_tertutup_c1c: capresClosed,
-    kapres_ideal_b1c:            collectText_(rows, IDX.b1c, 20),
+    capres_ideal_b1c:            collectText_(rows, IDX.b1c, 20),
     asal_kalangan_capres_ideal:  collectText_(rows, IDX.b1d, 20),
   };
 
-  // D — Presidential Simulation
+  // D — Simulasi Capres
   const presidentialSimulation = {
-    simulasi_10_nama: sim10,
-    simulasi_8_nama:  sim8,
-    simulasi_5_nama:  sim5,
-    klaster_politisi: politisi,
-    klaster_tokoh:    tokoh,
+    simulasi_10_nama:    sim10,
+    simulasi_8_nama:     sim8,
+    simulasi_5_nama:     sim5,
+    klaster_politisi:    politisi,
+    klaster_tokoh:       tokoh,
     klaster_profesional: profesional,
   };
 
-  // E — Party Electability
+  // E — Elektabilitas Parpol
   const partyElectability = {
-    parpol_terbuka_e1a:     parpolOpen,
-    parpol_disukai_e1c:     parpolSuka,
-    parpol_dipilih_e1d:     parpolClosed,
+    parpol_terbuka_e1a:  parpolOpen,
+    parpol_dikenal_e1b:  parpolDikenal,
+    parpol_disukai_e1c:  parpolSuka,
+    parpol_dipilih_e1d:  parpolClosed,
   };
 
-  // F — Government Performance
+  // F — Kinerja Pemerintah
   const govPerf_sektoral = {};
   for (const f of F2_FIELDS) {
     const idx = cp_(headers, f.code + '.');
@@ -635,15 +776,18 @@ function buildData_(sheetName, dataMode) {
   }
 
   const governmentPerformance = {
-    kinerja_sektoral:     govPerf_sektoral,
+    kinerja_sektoral_f2:       govPerf_sektoral,
     kepemimpinan_strategis_f3: govPerf_strategis,
     kepercayaan_publik_f4:     govPerf_kepercayaan,
-    skor_keseluruhan_f5b: avg_(rows, IDX.f5b),
-    opini_kinerja:        collectText_(rows, IDX.f1a, 25),
-    isu_mendesak_f5c:     collectText_(rows, IDX.f5c, 25),
+    skor_keseluruhan_f5b:      avg_(rows, IDX.f5b),
+    penilaian_keseluruhan_f5a: toRank_(countCol_(rows, IDX.f5a), n),
+    opini_kinerja_f1a:         collectText_(rows, IDX.f1a, 25),
+    tidak_suka_kinerja_f1b:    collectText_(rows, IDX.f1b, 20),
+    harapan_pemerintah_f1c:    collectText_(rows, IDX.f1c, 20),
+    isu_mendesak_f5c:          collectText_(rows, IDX.f5c, 25),
   };
 
-  // G — Voter Behavior
+  // G — Perilaku Pemilih
   const g2_kampanye = {};
   for (const f of G2_FIELDS) {
     const idx = cp_(headers, '[' + f.code + '.');
@@ -653,31 +797,31 @@ function buildData_(sheetName, dataMode) {
   const g3_pertimbangan = {};
   for (const f of G3_FIELDS) {
     const idx = cp_(headers, '[' + f.code + '.');
-    if (idx >= 0) g3_pertimbangan[f.label] = dist_(rows, idx, CONSIDER);
+    if (idx >= 0) g3_pertimbangan[f.label] = dist_(rows, idx, CONSIDER5);
   }
 
   const g4_pengaruh = {};
   for (const f of G4_FIELDS) {
     const idx = cp_(headers, '[' + f.code + '.');
-    if (idx >= 0) g4_pengaruh[f.label] = dist_(rows, idx, CONSIDER);
+    if (idx >= 0) g4_pengaruh[f.label] = dist_(rows, idx, CONSIDER5);
   }
 
   const voterBehavior = {
-    pertimbangan_utama_g1b:  toRank_(countMulti_(rows, IDX.g1b), n),
-    preferensi_kampanye_g2:  g2_kampanye,
-    faktor_pilihan_g3:       g3_pertimbangan,
-    pengaruh_lingkungan_g4:  g4_pengaruh,
-    alasan_memilih_g1a:      collectText_(rows, IDX.g1a, 25),
+    alasan_memilih_g1a:         collectText_(rows, IDX.g1a, 25),
+    pertimbangan_utama_g1b:     toRank_(countMulti_(rows, IDX.g1b), n),
+    preferensi_kampanye_g2:     g2_kampanye,
+    faktor_pilihan_g3:          g3_pertimbangan,
+    pengaruh_lingkungan_g4:     g4_pengaruh,
   };
 
-  // H — Public Emotion
+  // H — Emosi Publik
   const h2Trust = {};
   const h2Map = [
-    ['Prabowo Subianto',     IDX.h2_prabowo ],
-    ['Gibran Rakabuming Raka',IDX.h2_gibran  ],
-    ['Dedi Mulyadi',         IDX.h2_dedi    ],
-    ['Purbaya Yudhi Sadewa', IDX.h2_purbaya ],
-    ['Sudirman Said',        IDX.h2_sudirman],
+    ['Prabowo Subianto',      IDX.h2_prabowo  ],
+    ['Gibran Rakabuming Raka',IDX.h2_gibran   ],
+    ['Dedi Mulyadi',          IDX.h2_dedi     ],
+    ['Purbaya Yudhi Sadewa',  IDX.h2_purbaya  ],
+    ['Sudirman Said',         IDX.h2_sudirman ],
   ];
   for (const [name, idx] of h2Map) {
     if (idx >= 0) {
@@ -686,66 +830,80 @@ function buildData_(sheetName, dataMode) {
   }
 
   const persepsiTokoh = {};
-  if (IDX.h1a_prabowo  >= 0) persepsiTokoh['Prabowo Subianto']        = { pendapat: collectText_(rows, IDX.h1a_prabowo,  20), suka: collectText_(rows, IDX.h1b_prabowo,  15), tidak_suka: collectText_(rows, IDX.h1c_prabowo,  15) };
-  if (IDX.h1a_gibran   >= 0) persepsiTokoh['Gibran Rakabuming Raka']  = { pendapat: collectText_(rows, IDX.h1a_gibran,   20), suka: collectText_(rows, IDX.h1b_gibran,   15), tidak_suka: collectText_(rows, IDX.h1c_gibran,   15) };
-  if (IDX.h1a_sudirman >= 0) persepsiTokoh['Sudirman Said']           = { pendapat: collectText_(rows, IDX.h1a_sudirman, 20), suka: collectText_(rows, IDX.h1b_sudirman, 15), tidak_suka: collectText_(rows, IDX.h1c_sudirman, 15) };
+  if (IDX.h1a_prabowo  >= 0) {
+    persepsiTokoh['Prabowo Subianto'] = {
+      pendapat:    collectText_(rows, IDX.h1a_prabowo,  20),
+      suka:        collectText_(rows, IDX.h1b_prabowo,  15),
+      tidak_suka:  collectText_(rows, IDX.h1c_prabowo,  15),
+      harapan:     collectText_(rows, IDX.h1d_prabowo,  15),
+    };
+  }
+  if (IDX.h1a_gibran >= 0) {
+    persepsiTokoh['Gibran Rakabuming Raka'] = {
+      pendapat:    collectText_(rows, IDX.h1a_gibran,   20),
+      suka:        collectText_(rows, IDX.h1b_gibran,   15),
+      tidak_suka:  collectText_(rows, IDX.h1c_gibran,   15),
+      harapan:     collectText_(rows, IDX.h1d_gibran,   15),
+    };
+  }
+  if (IDX.h1a_sudirman >= 0) {
+    persepsiTokoh['Sudirman Said'] = {
+      pendapat:    collectText_(rows, IDX.h1a_sudirman, 20),
+      suka:        collectText_(rows, IDX.h1b_sudirman, 15),
+      tidak_suka:  collectText_(rows, IDX.h1c_sudirman, 15),
+      harapan:     collectText_(rows, IDX.h1d_sudirman, 15),
+    };
+  }
 
   const publicEmotion = {
     tingkat_kepercayaan_h2: h2Trust,
     persepsi_tokoh_h1:      persepsiTokoh,
-    figur_disukai:          tokoh.length > 0 ? tokoh : capres,
   };
 
-  // I — Surveyor Validation
+  // I — Validasi Surveyor
+  const I1B_TRUSTED = ['4. Terpercaya', '5. Sangat terpercaya', 'Terpercaya', 'Sangat terpercaya'];
   const validRespondents = rows.filter(r => {
     const v = String(r[IDX.i1b] ?? '').trim();
-    return v === 'Terpercaya' || v === 'Sangat terpercaya';
+    return I1B_TRUSTED.includes(v);
   }).length;
   const sampleValidity = n > 0 ? Math.round(validRespondents / n * 1000) / 10 + '%' : '0%';
 
   const surveyorValidation = {
-    pemahaman_responden_i1a:   dist_(rows, IDX.i1a, I1A_OPTS),
+    pemahaman_responden_i1a:    dist_(rows, IDX.i1a, I1A_OPTS),
     keterpercayaan_jawaban_i1b: dist_(rows, IDX.i1b, I1B_OPTS),
-    surveyor_aktif:    toRank_(countCol_(rows, IDX.surveyor),  n),
-    sebaran_provinsi:  toRank_(countCol_(rows, IDX.provinsi),  n),
-    sebaran_kabupaten: toRank_(countCol_(rows, IDX.kabupaten), n),
-    total_valid:       validRespondents,
-    pct_valid:         sampleValidity,
+    surveyor_aktif:     toRank_(countCol_(rows, IDX.surveyor),       n),
+    sebaran_provinsi:   toRank_(countCol_(rows, IDX.provinsi_sv),    n),
+    sebaran_kabupaten:  toRank_(countCol_(rows, IDX.kabupaten),      n),
+    total_valid:        validRespondents,
+    pct_valid:          sampleValidity,
   };
-
-  // ── Indicators (dari F2 agar compat dengan IKM dashboard) ─────────────────
-  const indicators = F2_FIELDS.map((f, i) => {
-    const idx = cp_(headers, f.code + '.');
-    if (idx < 0) return null;
-    const score = likertToScore_(rows, idx);
-    const dObj  = dist_(rows, idx, LIKERT4);
-    return {
-      id:    i + 1,
-      label: f.label,
-      avg:   Math.round(score / 100 * 4 * 100) / 100,
-      distribution: LIKERT4.map(l => dObj[l] || 0),
-    };
-  }).filter(Boolean);
 
   // ── Open-ended (untuk slide Harapan Publik) ────────────────────────────────
   const openEnded = {
-    general_opinion: collectText_(rows, IDX.a1a, 30).concat(collectText_(rows, IDX.f1a, 10)),
-    expectations:    collectText_(rows, IDX.f5c, 30),
+    general_opinion: [
+      ...collectText_(rows, IDX.a1a, 20),
+      ...collectText_(rows, IDX.f1a, 10),
+    ].slice(0, 40),
+    expectations: [
+      ...collectText_(rows, IDX.f5c, 20),
+      ...collectText_(rows, IDX.f1c, 10),
+    ].slice(0, 30),
   };
 
-  // ── Respondents list ───────────────────────────────────────────────────────
-  const respondents = rows.slice(0, 200).map((row, i) => {
+  // ── Daftar responden (max 300 untuk performa) ─────────────────────────────
+  const respondents = rows.slice(0, 300).map((row, i) => {
     const f5bVal = parseFloat(String(row[IDX.f5b] ?? ''));
     return {
       id:            'R' + String(i + 1).padStart(4, '0'),
-      name:          String(row[IDX.nama] ?? '').trim() || 'Responden ' + (i + 1),
+      name:          String(row[IDX.nama]      ?? '').trim() || 'Responden ' + (i + 1),
       timestamp:     row[IDX.timestamp] ? new Date(row[IDX.timestamp]).toISOString() : '',
-      gender:        String(row[IDX.gender] ?? '').trim(),
-      education:     String(row[IDX.pendidikan] ?? '').trim(),
-      location:      String(row[IDX.provinsi] ?? '').trim(),
-      province:      String(row[IDX.provinsi] ?? '').trim(),
-      surveyor:      String(row[IDX.surveyor] ?? '').trim(),
-      score_average: !isNaN(f5bVal) ? f5bVal * 10 : null,  // scale ke 0-100
+      gender:        String(row[IDX.gender]    ?? '').trim(),
+      education:     String(row[IDX.pendidikan]?? '').trim(),
+      location:      String(row[IDX.provinsi_resp] ?? '').trim(),
+      province:      String(row[IDX.provinsi_resp] ?? '').trim(),
+      kabupaten:     String(row[IDX.kabupaten] ?? '').trim(),
+      surveyor:      String(row[IDX.surveyor]  ?? '').trim(),
+      score_average: !isNaN(f5bVal) ? Math.round(f5bVal * 10) : null,
     };
   });
 
@@ -759,6 +917,7 @@ function buildData_(sheetName, dataMode) {
       sample_validity:   sampleValidity,
       data_mode:         dataMode,
       margin_of_error:   CFG.MARGIN_OF_ERROR,
+      confidence_level:  CFG.CONFIDENCE_LEVEL,
     },
     ikm: {
       score:    ikmScore,
@@ -774,52 +933,75 @@ function buildData_(sheetName, dataMode) {
     candidate_preference: {
       capres,
       capres_alternative: capresAlt,
-      capres_closed:      capresClosed,
+      capres_known:       capresKnown,
       capres_suka:        capresSuka,
+      capres_closed:      capresClosed,
       simulation_10:      sim10,
       simulation_8:       sim8,
       simulation_5:       sim5,
       politisi,
       tokoh,
       profesional,
-      parpol:        parpolOpen,
-      parpol_suka:   parpolSuka,
-      parpol_closed: parpolClosed,
+      parpol:             parpolOpen,
+      parpol_dikenal:     parpolDikenal,
+      parpol_suka:        parpolSuka,
+      parpol_closed:      parpolClosed,
     },
     question_analysis: {
-      national_leadership:        clean_(nationalLeadership)       || {},
-      leader_figures:             clean_(leaderFigures)            || {},
-      presidential_electability:  clean_(presidentialElectability) || {},
-      presidential_simulation:    clean_(presidentialSimulation)   || {},
-      party_electability:         clean_(partyElectability)        || {},
-      government_performance:     clean_(governmentPerformance)    || {},
-      voter_behavior:             clean_(voterBehavior)            || {},
-      public_emotion:             clean_(publicEmotion)            || {},
-      surveyor_validation:        clean_(surveyorValidation)       || {},
+      national_leadership:       clean_(nationalLeadership)        || {},
+      leader_figures:            clean_(leaderFigures)             || {},
+      presidential_electability: clean_(presidentialElectability)  || {},
+      presidential_simulation:   clean_(presidentialSimulation)    || {},
+      party_electability:        clean_(partyElectability)         || {},
+      government_performance:    clean_(governmentPerformance)     || {},
+      voter_behavior:            clean_(voterBehavior)             || {},
+      public_emotion:            clean_(publicEmotion)             || {},
+      surveyor_validation:       clean_(surveyorValidation)        || {},
     },
   };
 }
 
-// ── Test lokal (jalankan dari editor untuk debug) ──────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// TEST (jalankan dari Apps Script editor untuk debug)
+// ═══════════════════════════════════════════════════════════════════════════════
 function testDoGet() {
   const result = doGet({ parameter: { mode: 'actual' } });
-  const data = JSON.parse(result.getContent());
-  Logger.log('Total responden: ' + data.meta.total_respondents);
-  Logger.log('IKM score: '       + data.ikm.score);
-  Logger.log('Sample validity: ' + data.meta.sample_validity);
-  Logger.log('Capres top-3: '    + JSON.stringify(data.candidate_preference.capres.slice(0, 3)));
-  Logger.log('Sim 10 top-3: '    + JSON.stringify(data.candidate_preference.simulation_10.slice(0, 3)));
-  Logger.log('Parpol top-3: '    + JSON.stringify(data.candidate_preference.parpol_closed.slice(0, 3)));
-  Logger.log('QA keys: '         + Object.keys(data.question_analysis).join(', '));
+  const data   = JSON.parse(result.getContent());
+  Logger.log('=== SurveyDash Debug ===');
+  Logger.log('Total responden : ' + data.meta.total_respondents);
+  Logger.log('IKM score       : ' + data.ikm.score + ' (' + data.ikm.label + ')');
+  Logger.log('Sample validity : ' + data.meta.sample_validity);
+  Logger.log('Capres top-3    : ' + JSON.stringify((data.candidate_preference.capres || []).slice(0, 3)));
+  Logger.log('Sim 10 top-3    : ' + JSON.stringify((data.candidate_preference.simulation_10 || []).slice(0, 3)));
+  Logger.log('Parpol top-5    : ' + JSON.stringify((data.candidate_preference.parpol_closed || []).slice(0, 5)));
+  Logger.log('QA keys         : ' + Object.keys(data.question_analysis).join(', '));
+  Logger.log('H2 trust keys   : ' + Object.keys(data.question_analysis.public_emotion?.tingkat_kepercayaan_h2 || {}).join(', '));
+}
+
+function testDoGetPresentation() {
+  const result = doGet({ parameter: { mode: 'presentation' } });
+  const data   = JSON.parse(result.getContent());
+  Logger.log('=== Presentation Mode ===');
+  Logger.log('Data mode   : ' + data.meta.data_mode);
+  Logger.log('Responden   : ' + data.meta.total_respondents);
 }
 
 function testDoPost() {
   const result = doPost({
     postData: {
       contents: JSON.stringify({
-        action: 'saveSettings',
+        action:   'saveSettings',
         settings: { presentationModeEnabled: false, dataMode: 'actual' },
       }),
+    },
+  });
+  Logger.log(result.getContent());
+}
+
+function testFillPresentation() {
+  const result = doPost({
+    postData: {
+      contents: JSON.stringify({ action: 'fillPresentation' }),
     },
   });
   Logger.log(result.getContent());
