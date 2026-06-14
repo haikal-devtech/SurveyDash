@@ -260,6 +260,12 @@ export const SurveyDetailPage: React.FC = () => {
         setTimeout(() => setLastNotification(null), 5000);
       }
 
+      if (!resp.data?.meta) {
+        const errDetail = resp.data?.error ?? (typeof resp.data === "string" ? resp.data.slice(0, 200) : JSON.stringify(resp.data).slice(0, 200));
+        setError(`Apps Script mengembalikan data tidak valid (tidak ada field 'meta'): ${errDetail}. Pastikan code.gs sudah dideploy dan doGet() mengembalikan JSON yang benar.`);
+        return;
+      }
+
       setData(resp.data);
       setError(null);
     } catch (err: any) {
@@ -594,14 +600,14 @@ export const SurveyDetailPage: React.FC = () => {
           <div className="space-y-2">
              <div className="flex items-center gap-3">
                <Badge className="bg-primary/20 text-primary hover:bg-primary/30 border-primary/20 uppercase text-[10px] font-black tracking-[0.2em] px-3 py-1 rounded-full">
-                 {data.meta.period}
+                 {data?.meta?.period ?? dashboardSummary.period}
                </Badge>
                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-bold uppercase tracking-wider bg-muted/30 px-3 py-1 rounded-full backdrop-blur-sm border border-border/50">
                  <RefreshCw className="w-3 h-3 animate-spin-slow" />
-                 Sinkronisasi: {new Date(data.meta.last_updated).toLocaleString("id-ID")}
+                 Sinkronisasi: {data?.meta?.last_updated ? new Date(data.meta.last_updated).toLocaleString("id-ID") : "—"}
                </div>
              </div>
-               <h2 className="text-2xl md:text-3xl font-black tracking-tighter text-gradient uppercase leading-none mt-1">{data.meta.survey_name}</h2>
+               <h2 className="text-2xl md:text-3xl font-black tracking-tighter text-gradient uppercase leading-none mt-1">{data?.meta?.survey_name ?? dashboardSummary.title}</h2>
                <div className="flex items-center gap-2 text-sm text-muted-foreground/80 font-semibold tracking-tight">
                <div className="p-1 rounded-md bg-primary/10">
                  <BriefcaseBusiness className="w-4 h-4 text-primary" />
@@ -754,7 +760,7 @@ export const SurveyDetailPage: React.FC = () => {
           </div>
           <CardHeader className="pb-2">
             <CardDescription className="text-primary-foreground/70 uppercase text-[10px] font-black tracking-widest">Total Responden</CardDescription>
-            <CardTitle className="text-3xl md:text-4xl font-black tracking-tighter">{data.meta.total_respondents}</CardTitle>
+            <CardTitle className="text-3xl md:text-4xl font-black tracking-tighter">{data?.meta?.total_respondents ?? dashboardSummary.totalRespondents}</CardTitle>
           </CardHeader>
           <CardContent>
              <div className="flex items-center gap-2 text-xs font-bold bg-white/10 w-fit px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
