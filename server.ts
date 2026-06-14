@@ -166,12 +166,14 @@ async function startServer() {
       });
       const appsScriptData = response.data;
       if (appsScriptData?.success === false) {
-        return res.status(502).json({ error: appsScriptData.error ?? "Apps Script menolak permintaan.", details: appsScriptData });
+        // Apps Script merespons tapi menolak — kembalikan sebagai warning (200), bukan error fatal
+        return res.json({ ok: false, warning: appsScriptData.error ?? "Apps Script menolak permintaan. Pengaturan tetap disimpan di Firestore.", details: appsScriptData });
       }
-      return res.json(appsScriptData);
+      return res.json({ ok: true, ...appsScriptData });
     } catch (error: any) {
-      console.error("survey-settings: Apps Script POST failed:", error.message);
-      return res.status(502).json({ error: "Gagal menghubungi Apps Script. Pastikan doPost sudah diimplementasikan dan URL benar.", details: error.message });
+      console.warn("survey-settings: Apps Script POST failed (non-fatal):", error.message);
+      // Apps Script belum deploy doPost — bukan alasan blokir save ke Firestore
+      return res.json({ ok: false, warning: "Apps Script belum mendukung doPost. Deploy code.gs terbaru agar sinkron. Pengaturan tetap disimpan di Firestore.", details: error.message });
     }
   });
 

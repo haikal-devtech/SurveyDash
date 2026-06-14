@@ -85,11 +85,13 @@ export const AdminPage: React.FC = () => {
   // Per-survey dashboard config state (loaded when edit modal opens)
   const [editingDashConfig, setEditingDashConfig] = useState<SurveyDashboardConfig | null>(null);
   const [dashSaveStatus, setDashSaveStatus] = useState<"idle" | "saved" | "reset">("idle");
+  const [appsScriptWarning, setAppsScriptWarning] = useState<string | null>(null);
 
   const openEditSurvey = (s: SurveyConfig) => {
     setEditingSurvey(s);
     setEditingDashConfig(buildConfigFromSurvey(s));
     setDashSaveStatus("idle");
+    setAppsScriptWarning(null);
   };
 
   const closeEditSurvey = () => {
@@ -297,31 +299,36 @@ export const AdminPage: React.FC = () => {
         slideVisibility: editingSurvey.slideVisibility ?? DEFAULT_SLIDE_VISIBILITY,
       };
 
-      // Step 1: POST settings to Apps Script first (required — this sets presentationModeEnabled on the backend)
+      // Step 1: POST settings to Apps Script (non-blocking — tampilkan warning jika gagal)
       const scriptUrl = editingSurvey.scriptUrl;
       if (scriptUrl && scriptUrl !== "demo" && scriptUrl.startsWith("http")) {
-        const settingsResp = await fetch("/api/survey-settings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            scriptUrl,
-            settings: {
-              presentationModeEnabled: presentationMode,
-              dataMode: presentationMode ? "presentation" : "actual",
-              surveyId: editingSurvey.id,
-              targetScore: editingDashConfig.targetScore,
-            },
-          }),
-        });
-        if (!settingsResp.ok) {
-          const errData = await settingsResp.json().catch(() => ({}));
-          alert(`Gagal menyimpan pengaturan ke Apps Script:\n${errData.error ?? settingsResp.statusText}\n\nPastikan Apps Script sudah diimplementasikan doPost().`);
-          setIsUpdatingSurvey(false);
-          return;
+        try {
+          const settingsResp = await fetch("/api/survey-settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              scriptUrl,
+              settings: {
+                presentationModeEnabled: presentationMode,
+                dataMode: presentationMode ? "presentation" : "actual",
+                surveyId: editingSurvey.id,
+                targetScore: editingDashConfig.targetScore,
+              },
+            }),
+          });
+          const respData = await settingsResp.json().catch(() => ({}));
+          if (!settingsResp.ok || respData?.ok === false) {
+            // Tampilkan warning toast, tapi jangan blokir save ke Firestore
+            setAppsScriptWarning(respData?.warning ?? "Apps Script belum sync. Deploy code.gs terbaru agar Mode Data Presentasi bekerja.");
+          } else {
+            setAppsScriptWarning(null);
+          }
+        } catch {
+          setAppsScriptWarning("Tidak dapat menghubungi Apps Script. Pengaturan tetap disimpan di Firestore.");
         }
       }
 
-      // Step 2: Save to Firestore as cache
+      // Step 2: Save to Firestore (selalu jalan, tidak bergantung hasil Apps Script)
       await updateDoc(docRef, payload);
       const updatedSurvey: SurveyConfig = { ...editingSurvey, ...payload };
       setSurveys(surveys.map(s => s.id === editingSurvey.id ? updatedSurvey : s));
@@ -959,6 +966,14 @@ export const AdminPage: React.FC = () => {
                     })()}
                   </TabsContent>
                 </ScrollArea>
+
+                {appsScriptWarning && (
+                  <div className="mx-6 mb-0 mt-2 flex items-start gap-3 rounded-xl bg-amber-500/10 border border-amber-500/30 px-4 py-3">
+                    <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed flex-1">{appsScriptWarning}</p>
+                    <button onClick={() => setAppsScriptWarning(null)} className="text-amber-500 hover:text-amber-700 shrink-0"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                )}
 
                 <DialogFooter className="px-6 py-4 border-t border-border gap-2 flex-wrap">
                   <Button type="button" variant="outline" onClick={closeEditSurvey}>Batal</Button>
