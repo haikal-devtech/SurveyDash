@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
-import { SurveyConfig, UserProfile } from "@/types";
+import { SurveyConfig, UserProfile, SlideVisibility, DEFAULT_SLIDE_VISIBILITY } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, Edit3, Shield, User as UserIcon, Check, X, Users, Globe, RotateCcw, Save, Info, BarChart2 } from "lucide-react";
+import { Plus, Trash2, Edit3, Shield, User as UserIcon, Check, X, Users, Globe, RotateCcw, Save, Info, BarChart2, Layers, ToggleLeft, ToggleRight } from "lucide-react";
 import {
   SurveyDashboardConfig,
   DEFAULT_SURVEY_DASHBOARD_CONFIGS,
@@ -22,6 +22,44 @@ import {
   resolveSurveyDashboard,
 } from "@/lib/survey-dashboard-config";
 import axios from "axios";
+
+const SLIDE_GROUPS: { label: string; slides: { key: keyof SlideVisibility; label: string }[] }[] = [
+  {
+    label: "Slide Umum",
+    slides: [
+      { key: "summary", label: "Ringkasan Survei" },
+      { key: "indicators", label: "9 Indikator IKM" },
+      { key: "demographics", label: "Demografi" },
+      { key: "publicExpectation", label: "Harapan Publik" },
+      { key: "respondents", label: "Daftar Responden" },
+    ],
+  },
+  {
+    label: "Slide Politik & Elektoral",
+    slides: [
+      { key: "nationalLeadership", label: "Kepemimpinan Nasional" },
+      { key: "leaderFigures", label: "Tokoh & Figur Pemimpin" },
+      { key: "presidentialElectability", label: "Elektabilitas Capres" },
+      { key: "presidentialSimulation", label: "Simulasi Capres" },
+      { key: "partyElectability", label: "Elektabilitas Parpol" },
+    ],
+  },
+  {
+    label: "Slide Pemerintah & Perilaku Pemilih",
+    slides: [
+      { key: "governmentPerformance", label: "Kinerja Pemerintah" },
+      { key: "voterBehavior", label: "Perilaku Pemilih" },
+      { key: "publicEmotion", label: "Emosi Publik Terhadap Tokoh" },
+    ],
+  },
+  {
+    label: "Slide Validasi & Audit",
+    slides: [
+      { key: "surveyorValidation", label: "Validasi Surveyor & Quality Control" },
+      { key: "rawData", label: "Data Mentah / Audit Responden" },
+    ],
+  },
+];
 
 export const AdminPage: React.FC = () => {
   const { user, role } = useAuth();
@@ -72,6 +110,48 @@ export const AdminPage: React.FC = () => {
       setEditingDashConfig(buildConfigFromSurvey(editingSurvey));
     }
     setDashSaveStatus("reset");
+  };
+
+  const getSlideVis = (): SlideVisibility => ({
+    ...DEFAULT_SLIDE_VISIBILITY,
+    ...(editingSurvey?.slideVisibility ?? {}),
+  });
+
+  const updateSlide = (key: keyof SlideVisibility, value: boolean) => {
+    if (!editingSurvey) return;
+    const current = getSlideVis();
+    const updated = { ...current, [key]: value };
+    if (!Object.values(updated).some(v => v)) return; // prevent all OFF
+    setEditingSurvey({ ...editingSurvey, slideVisibility: updated });
+  };
+
+  const setAllSlidesActive = () => {
+    if (!editingSurvey) return;
+    const all: SlideVisibility = {
+      summary: true, indicators: true, demographics: true, publicExpectation: true,
+      respondents: true, nationalLeadership: true, leaderFigures: true,
+      presidentialElectability: true, presidentialSimulation: true, partyElectability: true,
+      governmentPerformance: true, voterBehavior: true, publicEmotion: true,
+      surveyorValidation: true, rawData: true,
+    };
+    setEditingSurvey({ ...editingSurvey, slideVisibility: all });
+  };
+
+  const setAllSlidesOff = () => {
+    if (!editingSurvey) return;
+    const minActive: SlideVisibility = {
+      summary: true, indicators: false, demographics: false, publicExpectation: false,
+      respondents: false, nationalLeadership: false, leaderFigures: false,
+      presidentialElectability: false, presidentialSimulation: false, partyElectability: false,
+      governmentPerformance: false, voterBehavior: false, publicEmotion: false,
+      surveyorValidation: false, rawData: false,
+    };
+    setEditingSurvey({ ...editingSurvey, slideVisibility: minActive });
+  };
+
+  const resetSlideVisibility = () => {
+    if (!editingSurvey) return;
+    setEditingSurvey({ ...editingSurvey, slideVisibility: { ...DEFAULT_SLIDE_VISIBILITY } });
   };
 
   const [fillSheetStatus, setFillSheetStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -213,6 +293,7 @@ export const AdminPage: React.FC = () => {
         manualQualityCategory: editingDashConfig.manualQualityCategory,
         manualQualityInterval: editingDashConfig.manualQualityInterval,
         presentationMode: (editingDashConfig as any).presentationMode ?? false,
+        slideVisibility: editingSurvey.slideVisibility ?? DEFAULT_SLIDE_VISIBILITY,
       };
       await updateDoc(docRef, payload);
       const updatedSurvey: SurveyConfig = { ...editingSurvey, ...payload };
@@ -487,6 +568,10 @@ export const AdminPage: React.FC = () => {
                     <TabsTrigger value="dashboard" className="gap-2 text-xs">
                       <BarChart2 className="w-3.5 h-3.5" />
                       Ringkasan & Rumus
+                    </TabsTrigger>
+                    <TabsTrigger value="slides" className="gap-2 text-xs">
+                      <Layers className="w-3.5 h-3.5" />
+                      Pengaturan Slide
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -777,6 +862,74 @@ export const AdminPage: React.FC = () => {
                         ))}
                       </div>
                     </div>
+                  </TabsContent>
+
+                  {/* ── Tab 3: Pengaturan Slide Dashboard ── */}
+                  <TabsContent value="slides" className="px-6 py-4 mt-0 space-y-5">
+                    {(() => {
+                      const sv = getSlideVis();
+                      const activeCount = Object.values(sv).filter(v => v).length;
+                      return (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-black text-foreground">Slide Aktif: <span className="text-primary">{activeCount}</span> dari 15</p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">Slide yang dinonaktifkan tidak tampil di dashboard. Data tetap aman.</p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap justify-end">
+                              <Button type="button" variant="outline" size="sm" className="text-[10px] h-7 px-2" onClick={setAllSlidesActive}>
+                                Aktifkan Semua
+                              </Button>
+                              <Button type="button" variant="outline" size="sm" className="text-[10px] h-7 px-2" onClick={setAllSlidesOff}>
+                                Nonaktifkan Semua
+                              </Button>
+                              <Button type="button" variant="outline" size="sm" className="text-[10px] h-7 px-2 text-amber-600 border-amber-300" onClick={resetSlideVisibility}>
+                                Gunakan Default
+                              </Button>
+                            </div>
+                          </div>
+
+                          {activeCount === 0 && (
+                            <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive font-bold">
+                              Minimal satu slide harus aktif.
+                            </div>
+                          )}
+
+                          <div className="space-y-5">
+                            {SLIDE_GROUPS.map(group => (
+                              <div key={group.label} className="space-y-2">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{group.label}</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {group.slides.map(slide => {
+                                    const isOn = sv[slide.key];
+                                    const wouldLeaveNoneActive = isOn && activeCount === 1;
+                                    return (
+                                      <div
+                                        key={slide.key}
+                                        className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border transition-colors ${isOn ? "bg-primary/5 border-primary/20" : "bg-muted/30 border-border"}`}
+                                      >
+                                        <span className={`text-xs font-semibold ${isOn ? "text-foreground" : "text-muted-foreground"}`}>{slide.label}</span>
+                                        <button
+                                          type="button"
+                                          role="switch"
+                                          aria-checked={isOn}
+                                          disabled={wouldLeaveNoneActive}
+                                          onClick={() => updateSlide(slide.key, !isOn)}
+                                          title={wouldLeaveNoneActive ? "Minimal satu slide harus aktif" : isOn ? "Nonaktifkan slide ini" : "Aktifkan slide ini"}
+                                          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-40 disabled:cursor-not-allowed ${isOn ? "bg-primary" : "bg-muted-foreground/30"}`}
+                                        >
+                                          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${isOn ? "translate-x-4" : "translate-x-0.5"}`} />
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </TabsContent>
                 </ScrollArea>
 

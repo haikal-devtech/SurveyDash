@@ -78,7 +78,44 @@ export interface SurveyConfig {
   manualQualityCategory?: string;
   manualQualityInterval?: string;
   presentationMode?: boolean;
+  slideVisibility?: SlideVisibility;
 }
+
+export interface SlideVisibility {
+  summary: boolean;
+  indicators: boolean;
+  demographics: boolean;
+  publicExpectation: boolean;
+  respondents: boolean;
+  nationalLeadership: boolean;
+  leaderFigures: boolean;
+  presidentialElectability: boolean;
+  presidentialSimulation: boolean;
+  partyElectability: boolean;
+  governmentPerformance: boolean;
+  voterBehavior: boolean;
+  publicEmotion: boolean;
+  surveyorValidation: boolean;
+  rawData: boolean;
+}
+
+export const DEFAULT_SLIDE_VISIBILITY: SlideVisibility = {
+  summary: true,
+  indicators: true,
+  demographics: true,
+  publicExpectation: true,
+  respondents: true,
+  nationalLeadership: true,
+  leaderFigures: true,
+  presidentialElectability: true,
+  presidentialSimulation: true,
+  partyElectability: true,
+  governmentPerformance: true,
+  voterBehavior: true,
+  publicEmotion: true,
+  surveyorValidation: true,
+  rawData: false,
+};
 
 export interface UserProfile {
   id: string;

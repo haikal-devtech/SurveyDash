@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-import { SurveyConfig, SurveyData } from "@/types";
+import { SurveyConfig, SurveyData, SlideVisibility, DEFAULT_SLIDE_VISIBILITY } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,10 +21,11 @@ import {
 import { 
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
-import { 
+import {
   ArrowLeft, RefreshCw, Users, TrendingUp, Info, Shield, Share2, Copy, Check,
-  LayoutDashboard as LucideBarChart, MessageSquare, BriefcaseBusiness, GraduationCap, PieChart as PieChartIcon, 
-  Download, Bell, Timer, Play, Pause, Camera, MapPin, MonitorPlay
+  LayoutDashboard as LucideBarChart, MessageSquare, BriefcaseBusiness, GraduationCap, PieChart as PieChartIcon,
+  Download, Bell, Timer, Play, Pause, Camera, MapPin, MonitorPlay,
+  FileText, Award, UserCheck, Shuffle, Flag, Building2, Heart, ShieldCheck, Database
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import axios from "axios";
@@ -284,6 +285,31 @@ export const SurveyDetailPage: React.FC = () => {
     : [];
 
   const COLORS_GOOGLE = ['#4285F4', '#DB4437', '#F4B400', '#0F9D58', '#AB47BC', '#00ACC1', '#FF7043', '#9E9D24', '#5C6BC0'];
+
+  // ── Slide visibility (reads from Firestore config, falls back to defaults) ──
+  const slideVis: SlideVisibility = {
+    ...DEFAULT_SLIDE_VISIBILITY,
+    ...(config.slideVisibility ?? {}),
+  };
+
+  const SLIDE_ORDER: Array<{ key: keyof SlideVisibility; value: string }> = [
+    { key: "summary", value: "summary" },
+    { key: "indicators", value: "indicators" },
+    { key: "demographics", value: "demographics" },
+    { key: "publicExpectation", value: "public" },
+    { key: "respondents", value: "respondents" },
+    { key: "nationalLeadership", value: "nationalLeadership" },
+    { key: "leaderFigures", value: "leaderFigures" },
+    { key: "presidentialElectability", value: "presidentialElectability" },
+    { key: "presidentialSimulation", value: "presidentialSimulation" },
+    { key: "partyElectability", value: "partyElectability" },
+    { key: "governmentPerformance", value: "governmentPerformance" },
+    { key: "voterBehavior", value: "voterBehavior" },
+    { key: "publicEmotion", value: "publicEmotion" },
+    { key: "surveyorValidation", value: "surveyorValidation" },
+    { key: "rawData", value: "rawData" },
+  ];
+  const firstActiveTab = SLIDE_ORDER.find(s => slideVis[s.key])?.value ?? "indicators";
 
   const INDIKATOR_OPTIONS = [
     ["Tidak Sesuai", "Kurang Sesuai", "Sesuai", "Sangat Sesuai"],
@@ -658,26 +684,59 @@ export const SurveyDetailPage: React.FC = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="indicators" className="space-y-4">
-        <TabsList className="bg-muted p-1 flex-wrap h-auto w-full md:w-auto justify-start">
-          <TabsTrigger value="indicators" className="gap-2">
-            <LucideBarChart className="w-4 h-4" />
-            9 Indikator IKM
-          </TabsTrigger>
-          <TabsTrigger value="demographics" className="gap-2">
-            <PieChartIcon className="w-4 h-4" />
-            Demografi
-          </TabsTrigger>
-          <TabsTrigger value="public" className="gap-2">
-            <MessageSquare className="w-4 h-4" />
-            Harapan Publik
-          </TabsTrigger>
-          <TabsTrigger value="respondents" className="gap-2">
-            <Users className="w-4 h-4" />
-            Daftar Responden
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue={firstActiveTab} className="space-y-4">
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="bg-muted p-1 inline-flex h-auto gap-0.5 min-w-max flex-nowrap">
+            {slideVis.summary && <TabsTrigger value="summary" className="gap-1.5 text-xs whitespace-nowrap"><FileText className="w-3.5 h-3.5" />Ringkasan</TabsTrigger>}
+            {slideVis.indicators && <TabsTrigger value="indicators" className="gap-1.5 text-xs whitespace-nowrap"><LucideBarChart className="w-3.5 h-3.5" />9 Indikator IKM</TabsTrigger>}
+            {slideVis.demographics && <TabsTrigger value="demographics" className="gap-1.5 text-xs whitespace-nowrap"><PieChartIcon className="w-3.5 h-3.5" />Demografi</TabsTrigger>}
+            {slideVis.publicExpectation && <TabsTrigger value="public" className="gap-1.5 text-xs whitespace-nowrap"><MessageSquare className="w-3.5 h-3.5" />Harapan Publik</TabsTrigger>}
+            {slideVis.respondents && <TabsTrigger value="respondents" className="gap-1.5 text-xs whitespace-nowrap"><Users className="w-3.5 h-3.5" />Daftar Responden</TabsTrigger>}
+            {slideVis.nationalLeadership && <TabsTrigger value="nationalLeadership" className="gap-1.5 text-xs whitespace-nowrap"><Award className="w-3.5 h-3.5" />Kepemimpinan Nasional</TabsTrigger>}
+            {slideVis.leaderFigures && <TabsTrigger value="leaderFigures" className="gap-1.5 text-xs whitespace-nowrap"><UserCheck className="w-3.5 h-3.5" />Tokoh & Figur</TabsTrigger>}
+            {slideVis.presidentialElectability && <TabsTrigger value="presidentialElectability" className="gap-1.5 text-xs whitespace-nowrap"><TrendingUp className="w-3.5 h-3.5" />Elektabilitas Capres</TabsTrigger>}
+            {slideVis.presidentialSimulation && <TabsTrigger value="presidentialSimulation" className="gap-1.5 text-xs whitespace-nowrap"><Shuffle className="w-3.5 h-3.5" />Simulasi Capres</TabsTrigger>}
+            {slideVis.partyElectability && <TabsTrigger value="partyElectability" className="gap-1.5 text-xs whitespace-nowrap"><Flag className="w-3.5 h-3.5" />Elektabilitas Parpol</TabsTrigger>}
+            {slideVis.governmentPerformance && <TabsTrigger value="governmentPerformance" className="gap-1.5 text-xs whitespace-nowrap"><Building2 className="w-3.5 h-3.5" />Kinerja Pemerintah</TabsTrigger>}
+            {slideVis.voterBehavior && <TabsTrigger value="voterBehavior" className="gap-1.5 text-xs whitespace-nowrap"><Users className="w-3.5 h-3.5" />Perilaku Pemilih</TabsTrigger>}
+            {slideVis.publicEmotion && <TabsTrigger value="publicEmotion" className="gap-1.5 text-xs whitespace-nowrap"><Heart className="w-3.5 h-3.5" />Emosi Publik</TabsTrigger>}
+            {slideVis.surveyorValidation && <TabsTrigger value="surveyorValidation" className="gap-1.5 text-xs whitespace-nowrap"><ShieldCheck className="w-3.5 h-3.5" />Validasi Surveyor</TabsTrigger>}
+            {slideVis.rawData && <TabsTrigger value="rawData" className="gap-1.5 text-xs whitespace-nowrap"><Database className="w-3.5 h-3.5" />Data Mentah</TabsTrigger>}
+          </TabsList>
+        </div>
 
+        {/* ── Ringkasan Survei ── */}
+        {slideVis.summary && (
+        <TabsContent value="summary" className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[
+              { label: "Judul Survei", value: dashboardSummary.title || config.name },
+              { label: "Instansi", value: dashboardSummary.institution || config.agency },
+              { label: "Periode", value: dashboardSummary.period || config.period },
+              { label: "Total Responden", value: String(dashboardSummary.totalRespondents) },
+              { label: "Margin of Error", value: dashboardSummary.marginOfError },
+              { label: "Confidence Level", value: `${surveyDashConfig.confidenceLevel ?? 95}%` },
+              { label: "Sampel Validitas", value: dashboardSummary.sampleValidity },
+              { label: "Index Reliability", value: String(dashboardSummary.reliabilityIndex) },
+              { label: "Trend Kepuasan", value: dashboardSummary.trend },
+              { label: "Indeks Kepuasan (NIK)", value: dashboardSummary.indexScore.toFixed(2) },
+              { label: "Target Mutu", value: dashboardSummary.targetScore.toFixed(2) },
+              { label: "Gap", value: `${dashboardSummary.gap.toFixed(2)} poin` },
+              { label: "Mutu", value: `${dashboardSummary.qualityLabel} — ${dashboardSummary.qualityCategory}` },
+              { label: "Nilai Interval", value: dashboardSummary.qualityInterval },
+              { label: "Mode Data", value: surveyDashConfig.presentationMode ? "Mode Data Presentasi" : "Data Aktual" },
+            ].map(item => (
+              <div key={item.label} className="bg-card rounded-xl border border-border p-4 space-y-1">
+                <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">{item.label}</p>
+                <p className="text-sm font-bold text-foreground leading-tight">{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </TabsContent>
+        )}
+
+        {/* ── 9 Indikator IKM ── */}
+        {slideVis.indicators && (
         <TabsContent value="indicators" className="space-y-4">
           {data.indicators && data.indicators.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -787,7 +846,10 @@ export const SurveyDetailPage: React.FC = () => {
             </div>
           )}
         </TabsContent>
+        )}
 
+        {/* ── Demografi ── */}
+        {slideVis.demographics && (
         <TabsContent value="demographics" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
              <GoogleFormChartCard id="chart-gender" title="Jenis Kelamin" data={demoGenderData} type="pie" />
@@ -799,7 +861,10 @@ export const SurveyDetailPage: React.FC = () => {
              <GoogleFormChartCard id="chart-lokasi" title="Lokasi Survei" data={demoLokasiData} type="bar" />
           </div>
         </TabsContent>
+        )}
 
+        {/* ── Harapan Publik ── */}
+        {slideVis.publicExpectation && (
         <TabsContent value="public" className="space-y-6">
            {data.open_ended ? (
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -875,7 +940,10 @@ export const SurveyDetailPage: React.FC = () => {
              </div>
            )}
         </TabsContent>
+        )}
 
+        {/* ── Daftar Responden ── */}
+        {slideVis.respondents && (
         <TabsContent value="respondents" className="space-y-4">
           <Card>
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1069,6 +1137,34 @@ export const SurveyDetailPage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
+
+        {/* ── Slide Politik & Elektoral (F–O) — empty states until API supports ── */}
+        {([
+          { key: "nationalLeadership" as keyof SlideVisibility, value: "nationalLeadership", label: "Kepemimpinan Nasional", icon: Award },
+          { key: "leaderFigures" as keyof SlideVisibility, value: "leaderFigures", label: "Tokoh & Figur Pemimpin", icon: UserCheck },
+          { key: "presidentialElectability" as keyof SlideVisibility, value: "presidentialElectability", label: "Elektabilitas Capres", icon: TrendingUp },
+          { key: "presidentialSimulation" as keyof SlideVisibility, value: "presidentialSimulation", label: "Simulasi Capres", icon: Shuffle },
+          { key: "partyElectability" as keyof SlideVisibility, value: "partyElectability", label: "Elektabilitas Parpol", icon: Flag },
+          { key: "governmentPerformance" as keyof SlideVisibility, value: "governmentPerformance", label: "Kinerja Pemerintah", icon: Building2 },
+          { key: "voterBehavior" as keyof SlideVisibility, value: "voterBehavior", label: "Perilaku Pemilih", icon: Users },
+          { key: "publicEmotion" as keyof SlideVisibility, value: "publicEmotion", label: "Emosi Publik Terhadap Tokoh", icon: Heart },
+          { key: "surveyorValidation" as keyof SlideVisibility, value: "surveyorValidation", label: "Validasi Surveyor & Quality Control", icon: ShieldCheck },
+          { key: "rawData" as keyof SlideVisibility, value: "rawData", label: "Data Mentah / Audit Responden", icon: Database },
+        ] as const).map(slide => slideVis[slide.key] ? (
+          <TabsContent key={slide.value} value={slide.value}>
+            <div className="py-20 text-center flex flex-col items-center gap-4 bg-muted/20 rounded-2xl border-2 border-dashed border-border">
+              <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+                <slide.icon className="w-7 h-7 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-black text-foreground">{slide.label}</p>
+                <p className="text-sm text-muted-foreground italic">Data untuk bagian ini belum tersedia.</p>
+              </div>
+            </div>
+          </TabsContent>
+        ) : null)}
+
       </Tabs>
     </div>
   );
