@@ -1,26 +1,27 @@
 import React, { useEffect, useState } from "react";
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, query, where, writeBatch } from "firebase/firestore";
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { SurveyConfig, UserProfile } from "@/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Edit3, Shield, User as UserIcon, Check, X, Users, Settings2, Globe, BarChart2, RotateCcw, Save, Info } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Plus, Trash2, Edit3, Shield, User as UserIcon, Check, X, Users, Globe, RotateCcw, Save, Info, BarChart2 } from "lucide-react";
 import {
-  DashboardSummaryConfig,
-  DEFAULT_DASHBOARD_SUMMARY_CONFIG,
-  getDashboardSummaryConfig,
-  saveDashboardSummaryConfig,
-  resetDashboardSummaryConfig,
+  SurveyDashboardConfig,
+  getSurveyDashboardConfig,
+  saveSurveyDashboardConfig,
+  resetSurveyDashboardConfig,
   calculateSlovinMarginError,
   calculateGap,
   getQualityByScore,
-} from "@/lib/dashboard-summary-config";
+  resolveSurveyDashboard,
+} from "@/lib/survey-dashboard-config";
 
 export const AdminPage: React.FC = () => {
   const { user, role } = useAuth();
@@ -43,29 +44,39 @@ export const AdminPage: React.FC = () => {
   const [editingSurvey, setEditingSurvey] = useState<SurveyConfig | null>(null);
   const [isUpdatingSurvey, setIsUpdatingSurvey] = useState(false);
 
-  // Dashboard Summary Config State
-  const [dashConfig, setDashConfig] = useState<DashboardSummaryConfig>(() => getDashboardSummaryConfig());
+  // Per-survey dashboard config state (loaded when edit modal opens)
+  const [editingDashConfig, setEditingDashConfig] = useState<SurveyDashboardConfig | null>(null);
   const [dashSaveStatus, setDashSaveStatus] = useState<"idle" | "saved" | "reset">("idle");
 
-  const derivedMarginOfError = calculateSlovinMarginError(dashConfig.population, dashConfig.totalRespondents);
-  const derivedGap = calculateGap(dashConfig.targetScore, dashConfig.indexScore);
-  const derivedQuality = getQualityByScore(dashConfig.indexScore);
+  const openEditSurvey = (s: SurveyConfig) => {
+    setEditingSurvey(s);
+    setEditingDashConfig(getSurveyDashboardConfig(s.id));
+    setDashSaveStatus("idle");
+  };
+
+  const closeEditSurvey = () => {
+    setEditingSurvey(null);
+    setEditingDashConfig(null);
+    setDashSaveStatus("idle");
+  };
+
+  const updateDash = (patch: Partial<SurveyDashboardConfig>) =>
+    setEditingDashConfig(prev => prev ? { ...prev, ...patch } : prev);
 
   const handleDashSave = () => {
-    saveDashboardSummaryConfig(dashConfig);
+    if (!editingSurvey || !editingDashConfig) return;
+    saveSurveyDashboardConfig(editingSurvey.id, editingDashConfig);
     setDashSaveStatus("saved");
     setTimeout(() => setDashSaveStatus("idle"), 2500);
   };
 
   const handleDashReset = () => {
-    const defaultCfg = resetDashboardSummaryConfig();
-    setDashConfig(defaultCfg);
+    if (!editingSurvey) return;
+    const defaultCfg = resetSurveyDashboardConfig(editingSurvey.id);
+    setEditingDashConfig(defaultCfg);
     setDashSaveStatus("reset");
     setTimeout(() => setDashSaveStatus("idle"), 2500);
   };
-
-  const updateDash = (patch: Partial<DashboardSummaryConfig>) =>
-    setDashConfig(prev => ({ ...prev, ...patch }));
 
   const handlePromoteUser = async (uId: string, newRole: "SUPER_ADMIN" | "ADMIN" | "VIEWER") => {
     setIsUpdatingUser(uId);
@@ -217,10 +228,6 @@ export const AdminPage: React.FC = () => {
             <Users className="w-4 h-4" />
             Pengguna & Akses
           </TabsTrigger>
-          <TabsTrigger value="dashboard-config" className="gap-2">
-            <BarChart2 className="w-4 h-4" />
-            Ringkasan Dashboard
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="surveys" className="space-y-6">
@@ -303,7 +310,7 @@ export const AdminPage: React.FC = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right space-x-2 whitespace-nowrap">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => setEditingSurvey(s)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" onClick={() => openEditSurvey(s)}>
                         <Edit3 className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setSurveyToDelete(s)}>
@@ -324,260 +331,6 @@ export const AdminPage: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="dashboard-config" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div>
-                  <CardTitle className="text-xl font-black">Pengaturan Ringkasan Dashboard</CardTitle>
-                  <CardDescription className="mt-1">
-                    Konfigurasi metric utama yang ditampilkan di ringkasan dashboard. Beberapa nilai dihitung otomatis berdasarkan rumus.
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button variant="outline" size="sm" className="gap-2" onClick={handleDashReset}>
-                    <RotateCcw className="w-4 h-4" />
-                    Reset ke Default
-                  </Button>
-                  <Button size="sm" className="gap-2" onClick={handleDashSave}>
-                    <Save className="w-4 h-4" />
-                    {dashSaveStatus === "saved" ? "Tersimpan!" : dashSaveStatus === "reset" ? "Direset!" : "Simpan Perubahan"}
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-8">
-
-              {/* Manual Override Toggle */}
-              <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/40">
-                <div className="space-y-1">
-                  <p className="text-sm font-black">Gunakan Nilai Manual</p>
-                  <p className="text-xs text-muted-foreground">Aktifkan untuk mengisi Margin of Error, Gap, Mutu, Kategori, dan Nilai Interval secara manual.</p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={dashConfig.useManualOverride}
-                  onClick={() => updateDash({ useManualOverride: !dashConfig.useManualOverride })}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 ${dashConfig.useManualOverride ? "bg-primary" : "bg-muted-foreground/30"}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${dashConfig.useManualOverride ? "translate-x-6" : "translate-x-1"}`} />
-                </button>
-              </div>
-
-              {/* Input Fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Populasi (N)</label>
-                  <Input
-                    type="number"
-                    value={dashConfig.population}
-                    onChange={e => updateDash({ population: Number(e.target.value) })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Total Responden (n)</label>
-                  <Input
-                    type="number"
-                    value={dashConfig.totalRespondents}
-                    onChange={e => updateDash({ totalRespondents: Number(e.target.value) })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Confidence Level (%)</label>
-                  <Input
-                    type="number"
-                    value={dashConfig.confidenceLevel}
-                    onChange={e => updateDash({ confidenceLevel: Number(e.target.value) })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Tingkat Partisipasi</label>
-                  <Input
-                    value={dashConfig.participationRate}
-                    onChange={e => updateDash({ participationRate: e.target.value })}
-                    placeholder="94%"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Index Reliability</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={dashConfig.reliabilityIndex}
-                    onChange={e => updateDash({ reliabilityIndex: Number(e.target.value) })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Trend Kepuasan</label>
-                  <Input
-                    value={dashConfig.trend}
-                    onChange={e => updateDash({ trend: e.target.value })}
-                    placeholder="+4.2%"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Sampel Validitas</label>
-                  <Input
-                    value={dashConfig.sampleValidity}
-                    onChange={e => updateDash({ sampleValidity: e.target.value })}
-                    placeholder="95%"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Indeks Kepuasan / NIK</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={dashConfig.indexScore}
-                    onChange={e => updateDash({ indexScore: Number(e.target.value) })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Target Mutu 2026</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={dashConfig.targetScore}
-                    onChange={e => updateDash({ targetScore: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
-
-              {/* Calculated Fields */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-muted-foreground">
-                  <Info className="w-3.5 h-3.5" />
-                  Nilai Kalkulasi Otomatis
-                  {dashConfig.useManualOverride && <Badge variant="outline" className="text-[10px] ml-1">Mode Manual Aktif</Badge>}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Margin of Error</label>
-                    {dashConfig.useManualOverride ? (
-                      <Input
-                        value={dashConfig.manualMarginOfError}
-                        onChange={e => updateDash({ manualMarginOfError: e.target.value })}
-                        placeholder="±5.00%"
-                      />
-                    ) : (
-                      <div className="flex h-10 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-mono text-foreground">
-                        {derivedMarginOfError.label}
-                      </div>
-                    )}
-                    {!dashConfig.useManualOverride && (
-                      <p className="text-[10px] text-muted-foreground">Dihitung dari rumus Slovin: e = √((N/n − 1) / N)</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Gap</label>
-                    {dashConfig.useManualOverride ? (
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={dashConfig.manualGap}
-                        onChange={e => updateDash({ manualGap: Number(e.target.value) })}
-                      />
-                    ) : (
-                      <div className="flex h-10 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-mono text-foreground">
-                        {derivedGap}
-                      </div>
-                    )}
-                    {!dashConfig.useManualOverride && (
-                      <p className="text-[10px] text-muted-foreground">Target Mutu − Indeks Kepuasan</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Mutu</label>
-                    {dashConfig.useManualOverride ? (
-                      <Input
-                        value={dashConfig.manualQualityLabel}
-                        onChange={e => updateDash({ manualQualityLabel: e.target.value })}
-                        placeholder="C"
-                      />
-                    ) : (
-                      <div className="flex h-10 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-mono text-foreground">
-                        {derivedQuality.label}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Kategori Mutu</label>
-                    {dashConfig.useManualOverride ? (
-                      <Input
-                        value={dashConfig.manualQualityCategory}
-                        onChange={e => updateDash({ manualQualityCategory: e.target.value })}
-                        placeholder="Kurang Baik"
-                      />
-                    ) : (
-                      <div className="flex h-10 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-mono text-foreground">
-                        {derivedQuality.category}
-                      </div>
-                    )}
-                    {!dashConfig.useManualOverride && (
-                      <p className="text-[10px] text-muted-foreground">Dihitung otomatis dari Indeks Kepuasan</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Nilai Interval</label>
-                    {dashConfig.useManualOverride ? (
-                      <Input
-                        value={dashConfig.manualQualityInterval}
-                        onChange={e => updateDash({ manualQualityInterval: e.target.value })}
-                        placeholder="65,00–76,60"
-                      />
-                    ) : (
-                      <div className="flex h-10 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-mono text-foreground">
-                        {derivedQuality.interval}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Preview */}
-              <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
-                <p className="text-xs font-black uppercase tracking-wider text-muted-foreground">Pratinjau Hasil Akhir</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {[
-                    { label: "Margin of Error", value: dashConfig.useManualOverride ? dashConfig.manualMarginOfError : derivedMarginOfError.label },
-                    { label: "Tingkat Partisipasi", value: dashConfig.participationRate },
-                    { label: "Index Reliability", value: String(dashConfig.reliabilityIndex) },
-                    { label: "Trend Kepuasan", value: dashConfig.trend },
-                    { label: "Total Responden", value: String(dashConfig.totalRespondents) },
-                    { label: "Sampel Validitas", value: dashConfig.sampleValidity },
-                    { label: "Indeks Kepuasan", value: dashConfig.indexScore.toFixed(2) },
-                    { label: "Mutu", value: `${dashConfig.useManualOverride ? dashConfig.manualQualityLabel : derivedQuality.label} — ${dashConfig.useManualOverride ? dashConfig.manualQualityCategory : derivedQuality.category}` },
-                    { label: "Nilai Interval", value: dashConfig.useManualOverride ? dashConfig.manualQualityInterval : derivedQuality.interval },
-                    { label: "Target Mutu 2026", value: dashConfig.targetScore.toFixed(2) },
-                    { label: "Gap", value: `${dashConfig.useManualOverride ? dashConfig.manualGap : derivedGap} poin` },
-                  ].map(item => (
-                    <div key={item.label} className="bg-card rounded-lg p-3 border border-border/50">
-                      <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground mb-1">{item.label}</p>
-                      <p className="text-sm font-black font-mono text-foreground">{item.value}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="users" className="space-y-6">
           <Card>
@@ -663,38 +416,290 @@ export const AdminPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!editingSurvey} onOpenChange={(open) => !open && setEditingSurvey(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Survei</DialogTitle>
-            <DialogDescription>Perbarui data survei yang sudah ada.</DialogDescription>
+      <Dialog open={!!editingSurvey} onOpenChange={(open) => !open && closeEditSurvey()}>
+        <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-0">
+            <DialogTitle className="flex items-center gap-2">
+              <Edit3 className="w-4 h-4 text-primary" />
+              Edit Survei
+            </DialogTitle>
+            <DialogDescription>
+              {editingSurvey?.name}
+            </DialogDescription>
           </DialogHeader>
-          {editingSurvey && (
-            <form onSubmit={handleEditSurvey} className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Nama Survei</label>
-                <Input placeholder="Contoh: SKM Layanan Kebencanaan" required value={editingSurvey.name} onChange={e => setEditingSurvey({ ...editingSurvey, name: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Instansi / Unit Kerja</label>
-                <Input placeholder="Nama Instansi / Unit Kerja" required value={editingSurvey.agency} onChange={e => setEditingSurvey({ ...editingSurvey, agency: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Periode</label>
-                <Input placeholder="Triwulan I 2026" required value={editingSurvey.period} onChange={e => setEditingSurvey({ ...editingSurvey, period: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">URL Script (Web App)</label>
-                <Input placeholder="https://script.google.com/macros/s/.../exec" required value={editingSurvey.scriptUrl} onChange={e => setEditingSurvey({ ...editingSurvey, scriptUrl: e.target.value })} />
-              </div>
-              <DialogFooter className="pt-4">
-                <Button type="button" variant="outline" onClick={() => setEditingSurvey(null)}>Batal</Button>
-                <Button type="submit" disabled={isUpdatingSurvey}>
-                  {isUpdatingSurvey ? "Menyimpan..." : "Simpan Perubahan"}
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
+
+          {editingSurvey && editingDashConfig && (() => {
+            const dc = editingDashConfig;
+            const derivedMoE = dc.marginErrorMode === "slovin"
+              ? calculateSlovinMarginError(dc.population, dc.totalRespondents).label
+              : dc.manualMarginOfError;
+            const derivedIdx = dc.indexScoreMode === "manual" ? dc.manualIndexScore : 0;
+            const derivedGap = dc.gapMode === "auto" ? calculateGap(dc.targetScore, derivedIdx) : dc.manualGap;
+            const derivedQuality = dc.qualityMode === "auto" ? getQualityByScore(derivedIdx) : { label: dc.manualQualityLabel, category: dc.manualQualityCategory, interval: dc.manualQualityInterval };
+            const resolved = resolveSurveyDashboard(dc);
+
+            return (
+              <Tabs defaultValue="info" className="flex flex-col flex-1">
+                <div className="px-6 pt-4">
+                  <TabsList className="bg-muted p-1 w-full sm:w-auto">
+                    <TabsTrigger value="info" className="gap-2 text-xs">
+                      <Globe className="w-3.5 h-3.5" />
+                      Info Survei
+                    </TabsTrigger>
+                    <TabsTrigger value="dashboard" className="gap-2 text-xs">
+                      <BarChart2 className="w-3.5 h-3.5" />
+                      Ringkasan & Rumus
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <ScrollArea className="max-h-[70vh]">
+                  {/* ── Tab 1: Info Survei ── */}
+                  <TabsContent value="info" className="px-6 py-4 mt-0">
+                    <form id="edit-survey-form" onSubmit={handleEditSurvey} className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Nama Survei</label>
+                        <Input required value={editingSurvey.name} onChange={e => setEditingSurvey({ ...editingSurvey, name: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Instansi / Unit Kerja</label>
+                        <Input required value={editingSurvey.agency} onChange={e => setEditingSurvey({ ...editingSurvey, agency: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Periode</label>
+                        <Input required value={editingSurvey.period} onChange={e => setEditingSurvey({ ...editingSurvey, period: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">URL Script (Web App)</label>
+                        <Input required value={editingSurvey.scriptUrl} onChange={e => setEditingSurvey({ ...editingSurvey, scriptUrl: e.target.value })} />
+                      </div>
+                    </form>
+                  </TabsContent>
+
+                  {/* ── Tab 2: Ringkasan & Rumus Dashboard ── */}
+                  <TabsContent value="dashboard" className="px-6 py-4 mt-0 space-y-6">
+
+                    {/* Section: Identitas */}
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Identitas Dashboard</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Judul Survei</label>
+                          <Input value={dc.title} onChange={e => updateDash({ title: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Instansi</label>
+                          <Input value={dc.institution} onChange={e => updateDash({ institution: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Periode</label>
+                          <Input value={dc.period} onChange={e => updateDash({ period: e.target.value })} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section: Sampel */}
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data Sampel</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Populasi (N)</label>
+                          <Input type="number" value={dc.population} onChange={e => updateDash({ population: Number(e.target.value) })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Total Responden (n)</label>
+                          <Input type="number" value={dc.totalRespondents} onChange={e => updateDash({ totalRespondents: Number(e.target.value) })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Confidence Level (%)</label>
+                          <Input type="number" value={dc.confidenceLevel} onChange={e => updateDash({ confidenceLevel: Number(e.target.value) })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Tingkat Partisipasi</label>
+                          <Input value={dc.participationRate} onChange={e => updateDash({ participationRate: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Index Reliability</label>
+                          <Input type="number" step="0.01" value={dc.reliabilityIndex} onChange={e => updateDash({ reliabilityIndex: Number(e.target.value) })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Trend Kepuasan</label>
+                          <Input value={dc.trend} onChange={e => updateDash({ trend: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Sampel Validitas</label>
+                          <Input value={dc.sampleValidity} onChange={e => updateDash({ sampleValidity: e.target.value })} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section: Margin of Error */}
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Margin of Error</p>
+                      <div className="flex items-center gap-3">
+                        {(["slovin", "manual"] as const).map(mode => (
+                          <button key={mode} type="button"
+                            onClick={() => updateDash({ marginErrorMode: mode })}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-black border transition-colors ${dc.marginErrorMode === mode ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50"}`}>
+                            {mode === "slovin" ? "Rumus Slovin" : "Manual"}
+                          </button>
+                        ))}
+                      </div>
+                      {dc.marginErrorMode === "slovin" ? (
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 flex-1 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-mono">
+                            {derivedMoE}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">e = √((N/n − 1) / N)</p>
+                        </div>
+                      ) : (
+                        <Input value={dc.manualMarginOfError} onChange={e => updateDash({ manualMarginOfError: e.target.value })} placeholder="±5.00%" />
+                      )}
+                    </div>
+
+                    {/* Section: Indeks Kepuasan */}
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Indeks Kepuasan / NIK</p>
+                      <div className="flex items-center gap-3">
+                        {(["auto", "manual"] as const).map(mode => (
+                          <button key={mode} type="button"
+                            onClick={() => updateDash({ indexScoreMode: mode })}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-black border transition-colors ${dc.indexScoreMode === mode ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50"}`}>
+                            {mode === "auto" ? "Otomatis dari Data" : "Manual"}
+                          </button>
+                        ))}
+                      </div>
+                      {dc.indexScoreMode === "manual" ? (
+                        <Input type="number" step="0.01" value={dc.manualIndexScore} onChange={e => updateDash({ manualIndexScore: Number(e.target.value) })} />
+                      ) : (
+                        <div className="flex h-9 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-mono text-muted-foreground">
+                          Dihitung otomatis dari rata-rata indikator survei
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section: Target & Gap */}
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Target Mutu & Gap</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Target Mutu</label>
+                          <Input type="number" step="0.01" value={dc.targetScore} onChange={e => updateDash({ targetScore: Number(e.target.value) })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Mode Gap</label>
+                          <div className="flex items-center gap-2 h-9">
+                            {(["auto", "manual"] as const).map(mode => (
+                              <button key={mode} type="button"
+                                onClick={() => updateDash({ gapMode: mode })}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-black border transition-colors ${dc.gapMode === mode ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50"}`}>
+                                {mode === "auto" ? "Otomatis" : "Manual"}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Gap</label>
+                          {dc.gapMode === "auto" ? (
+                            <div className="flex h-9 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-mono">
+                              {derivedGap}
+                            </div>
+                          ) : (
+                            <Input type="number" step="0.01" value={dc.manualGap} onChange={e => updateDash({ manualGap: Number(e.target.value) })} />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section: Mutu */}
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mutu & Kategori</p>
+                      <div className="flex items-center gap-3">
+                        {(["auto", "manual"] as const).map(mode => (
+                          <button key={mode} type="button"
+                            onClick={() => updateDash({ qualityMode: mode })}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-black border transition-colors ${dc.qualityMode === mode ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50"}`}>
+                            {mode === "auto" ? "Otomatis" : "Manual"}
+                          </button>
+                        ))}
+                      </div>
+                      {dc.qualityMode === "auto" ? (
+                        <div className="grid grid-cols-3 gap-3">
+                          {[
+                            { label: "Mutu", value: derivedQuality.label },
+                            { label: "Kategori", value: derivedQuality.category },
+                            { label: "Nilai Interval", value: derivedQuality.interval },
+                          ].map(f => (
+                            <div key={f.label} className="flex h-9 items-center rounded-md border border-border bg-muted/50 px-3 text-sm font-mono">
+                              {f.value}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground">Label Mutu</label>
+                            <Input value={dc.manualQualityLabel} onChange={e => updateDash({ manualQualityLabel: e.target.value })} placeholder="A" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground">Kategori Mutu</label>
+                            <Input value={dc.manualQualityCategory} onChange={e => updateDash({ manualQualityCategory: e.target.value })} placeholder="Sangat Baik" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground">Nilai Interval</label>
+                            <Input value={dc.manualQualityInterval} onChange={e => updateDash({ manualQualityInterval: e.target.value })} placeholder="88,31–100" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Live Preview */}
+                    <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                        <Info className="w-3 h-3" /> Pratinjau Hasil Akhir
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {[
+                          { label: "Margin of Error", value: resolved.marginOfError },
+                          { label: "Total Responden", value: String(resolved.totalRespondents) },
+                          { label: "Indeks Kepuasan", value: resolved.indexScore.toFixed(2) },
+                          { label: "Mutu", value: `${resolved.qualityLabel} — ${resolved.qualityCategory}` },
+                          { label: "Nilai Interval", value: resolved.qualityInterval },
+                          { label: "Target Mutu", value: resolved.targetScore.toFixed(2) },
+                          { label: "Gap", value: `${resolved.gap} poin` },
+                          { label: "Partisipasi", value: resolved.participationRate },
+                        ].map(item => (
+                          <div key={item.label} className="bg-card rounded-lg p-2.5 border border-border/50">
+                            <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground mb-0.5">{item.label}</p>
+                            <p className="text-xs font-black font-mono text-foreground truncate">{item.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Save/Reset for dashboard config */}
+                    <div className="flex items-center gap-2 justify-end pb-2">
+                      <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={handleDashReset}>
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        Reset Config Survey Ini
+                      </Button>
+                      <Button type="button" size="sm" className="gap-1.5" onClick={handleDashSave}>
+                        <Save className="w-3.5 h-3.5" />
+                        {dashSaveStatus === "saved" ? "Tersimpan!" : dashSaveStatus === "reset" ? "Direset!" : "Simpan Config"}
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </ScrollArea>
+
+                <DialogFooter className="px-6 py-4 border-t border-border">
+                  <Button type="button" variant="outline" onClick={closeEditSurvey}>Batal</Button>
+                  <Button type="submit" form="edit-survey-form" disabled={isUpdatingSurvey}>
+                    {isUpdatingSurvey ? "Menyimpan..." : "Simpan Info Survei"}
+                  </Button>
+                </DialogFooter>
+              </Tabs>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>

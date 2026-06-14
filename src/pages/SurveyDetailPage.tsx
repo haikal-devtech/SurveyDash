@@ -29,7 +29,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import axios from "axios";
 import html2canvas from "html2canvas";
-import { getDashboardSummaryConfig, resolveDashboardSummary } from "@/lib/dashboard-summary-config";
+import { getSurveyDashboardConfig, resolveSurveyDashboard } from "@/lib/survey-dashboard-config";
 
 // Helper for PNG Export
 const downloadPNG = async (elementId: string, filename: string) => {
@@ -76,7 +76,8 @@ export const SurveyDetailPage: React.FC = () => {
   const [respPage, setRespPage] = useState(1);
   const [respSort, setRespSort] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'timestamp', dir: 'desc' });
   const RESP_PER_PAGE = 50;
-  const dashboardSummary = resolveDashboardSummary(getDashboardSummaryConfig());
+  const surveyDashConfig = getSurveyDashboardConfig(id ?? "");
+  const dashboardSummary = resolveSurveyDashboard(surveyDashConfig, data?.indicators ?? undefined);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
