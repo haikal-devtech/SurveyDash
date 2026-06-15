@@ -259,33 +259,25 @@ export const SurveyDetailPage: React.FC = () => {
 
   if (!data || !config) return null;
 
-  const demoGenderData = data?.demographics?.gender 
-    ? Object.entries(data.demographics.gender).map(([name, value]) => ({ name, value }))
-    : [];
-    
-  const demoEduData = data?.demographics?.pendidikan || data?.demographics?.education 
-    ? Object.entries(data?.demographics?.pendidikan || data?.demographics?.education).map(([name, value]) => ({ name, value }))
-    : [];
+  const isElectoral = data.meta?.survey_type === 'ELECTORAL';
 
-  const demoUmurData = data?.demographics?.umur
-    ? Object.entries(data.demographics.umur).map(([name, value]) => ({ name, value }))
-    : [];
-    
-  const demoPekerjaanData = data?.demographics?.pekerjaan
-    ? Object.entries(data.demographics.pekerjaan).map(([name, value]) => ({ name, value }))
-    : [];
+  const toChartData = (obj: Record<string, number> | undefined) =>
+    obj ? Object.entries(obj).map(([name, value]) => ({ name, value })) : [];
 
-  const demoSukuData = data?.demographics?.suku
-    ? Object.entries(data.demographics.suku).map(([name, value]) => ({ name, value }))
-    : [];
-
-  const demoLayananData = data?.demographics?.layanan
-    ? Object.entries(data.demographics.layanan).map(([name, value]) => ({ name, value }))
-    : [];
-    
-  const demoLokasiData = data?.demographics?.location
-    ? Object.entries(data.demographics.location).map(([name, value]) => ({ name, value }))
-    : [];
+  const demoGenderData    = toChartData(data.demographics?.gender);
+  const demoEduData       = toChartData(data.demographics?.pendidikan ?? data.demographics?.education as any);
+  const demoUmurData      = toChartData(data.demographics?.umur);
+  const demoPekerjaanData = toChartData(data.demographics?.pekerjaan);
+  const demoSukuData      = toChartData(data.demographics?.suku);
+  const demoAgamaData     = toChartData(data.demographics?.agama);
+  const demoPenghasilan   = toChartData(data.demographics?.penghasilan);
+  const demoAfiliasiData  = toChartData(data.demographics?.afiliasi_politik);
+  const demoDesaKotaData  = toChartData(data.demographics?.desa_kota);
+  const demoProvinsiData  = toChartData(data.demographics?.provinsi);
+  const demoLayananData   = toChartData(data.demographics?.layanan);
+  const demoLokasiData    = toChartData(data.demographics?.location
+    ? data.demographics.location
+    : undefined);
 
   const COLORS_GOOGLE = ['#4285F4', '#DB4437', '#F4B400', '#0F9D58', '#AB47BC', '#00ACC1', '#FF7043', '#9E9D24', '#5C6BC0'];
 
@@ -574,7 +566,7 @@ export const SurveyDetailPage: React.FC = () => {
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Margin of Error", value: "±2.5%", icon: Info, color: "text-blue-500" },
+          { label: "Margin of Error", value: config.samplingConfig?.marginOfError ? `±${(config.samplingConfig.marginOfError * 100).toFixed(2)}%` : "±N/A", icon: Info, color: "text-blue-500" },
           { label: "Tingkat Partisipasi", value: "94%", icon: Users, color: "text-purple-500" },
           { label: "Index Reliability", value: "0.89", icon: Shield, color: "text-emerald-500" },
           { label: "Trend Kepuasan", value: "+4.2%", icon: TrendingUp, color: "text-orange-500" }
@@ -700,7 +692,7 @@ export const SurveyDetailPage: React.FC = () => {
         <TabsList className="bg-muted p-1 flex-wrap h-auto w-full md:w-auto justify-start">
           <TabsTrigger value="indicators" className="gap-2">
             <LucideBarChart className="w-4 h-4" />
-            9 Indikator IKM
+            {isElectoral ? 'Elektabilitas' : '9 Indikator IKM'}
           </TabsTrigger>
           <TabsTrigger value="demographics" className="gap-2">
             <PieChartIcon className="w-4 h-4" />
@@ -717,7 +709,49 @@ export const SurveyDetailPage: React.FC = () => {
         </TabsList>
 
         <TabsContent value="indicators" className="space-y-4">
-          {data.indicators && data.indicators.length > 0 ? (
+          {isElectoral ? (
+            /* ── ELECTORAL: Elektabilitas ── */
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <GoogleFormChartCard
+                  id="chart-vote-intention"
+                  title="Pilihan Capres (C1c)"
+                  data={toChartData((data as any).electability?.vote_intention)}
+                  type="bar-horizontal"
+                />
+                <GoogleFormChartCard
+                  id="chart-awareness"
+                  title="Tingkat Pengenalan Capres (C1a)"
+                  data={toChartData((data as any).electability?.awareness)}
+                  type="bar-horizontal"
+                />
+                <GoogleFormChartCard
+                  id="chart-likability"
+                  title="Tingkat Kesukaan Capres (C1b)"
+                  data={toChartData((data as any).electability?.likability)}
+                  type="bar-horizontal"
+                />
+                <GoogleFormChartCard
+                  id="chart-sim-5"
+                  title="Simulasi Pilpres 5 Nama (D1a)"
+                  data={toChartData((data as any).electability?.simulation?.s5)}
+                  type="bar-horizontal"
+                />
+                <GoogleFormChartCard
+                  id="chart-sim-10"
+                  title="Simulasi Pilpres 10 Nama (D1a)"
+                  data={toChartData((data as any).electability?.simulation?.s10)}
+                  type="bar-horizontal"
+                />
+                <GoogleFormChartCard
+                  id="chart-trust"
+                  title="Skor Kepercayaan Tokoh (H2, avg 0-10)"
+                  data={Object.entries((data as any).public_emotion?.h2_trust ?? {}).map(([name, v]: any) => ({ name, value: v.avg }))}
+                  type="bar-horizontal"
+                />
+              </div>
+            </div>
+          ) : data.indicators && data.indicators.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="lg:col-span-1 border-none shadow-sm bg-muted/20">
                <CardHeader className="flex flex-row items-center justify-between">
@@ -832,9 +866,21 @@ export const SurveyDetailPage: React.FC = () => {
              <GoogleFormChartCard id="chart-umur" title="Kelompok Umur" data={demoUmurData} type="bar" />
              <GoogleFormChartCard id="chart-edu" title="Pendidikan Terakhir" data={demoEduData} type="pie" />
              <GoogleFormChartCard id="chart-pekerjaan" title="Profesi / Pekerjaan" data={demoPekerjaanData} type="bar-horizontal" />
-             <GoogleFormChartCard id="chart-suku" title="Suku Etnis" data={demoSukuData} type="pie" />
-             <GoogleFormChartCard id="chart-layanan" title="Jenis Layanan" data={demoLayananData} type="bar-horizontal" />
-             <GoogleFormChartCard id="chart-lokasi" title="Lokasi Survei" data={demoLokasiData} type="bar" />
+             <GoogleFormChartCard id="chart-suku" title="Suku / Etnis" data={demoSukuData} type="pie" />
+             {isElectoral ? (
+               <>
+                 <GoogleFormChartCard id="chart-agama" title="Agama" data={demoAgamaData} type="pie" />
+                 <GoogleFormChartCard id="chart-penghasilan" title="Penghasilan per Bulan" data={demoPenghasilan} type="bar-horizontal" />
+                 <GoogleFormChartCard id="chart-afiliasi" title="Afiliasi Politik" data={demoAfiliasiData} type="bar-horizontal" />
+                 <GoogleFormChartCard id="chart-desakota" title="Desa / Kota" data={demoDesaKotaData} type="pie" />
+                 <GoogleFormChartCard id="chart-provinsi" title="Provinsi" data={demoProvinsiData} type="bar-horizontal" />
+               </>
+             ) : (
+               <>
+                 <GoogleFormChartCard id="chart-layanan" title="Jenis Layanan" data={demoLayananData} type="bar-horizontal" />
+                 <GoogleFormChartCard id="chart-lokasi" title="Lokasi Survei" data={demoLokasiData} type="bar" />
+               </>
+             )}
           </div>
         </TabsContent>
 
