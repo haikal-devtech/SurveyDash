@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, query, where, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
-import { SurveyConfig, UserProfile } from "@/types";
+import { SurveyConfig, UserProfile, SamplingConfig, SurveyType } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,103 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Edit3, Shield, User as UserIcon, Check, X, Users, Settings2, Globe } from "lucide-react";
+import { Plus, Trash2, Edit3, Shield, User as UserIcon, Check, X, Users, Settings2, Globe, ChevronDown, ChevronUp } from "lucide-react";
+
+const DEFAULT_SAMPLING: SamplingConfig = {
+  confidenceLevel: 95,
+  populationSize: 0,
+  marginOfError: 0.05,
+  targetRespondents: 0,
+  samplingMethod: "Accidental Sampling",
+};
+
+function calcSlovin(N: number, e: number): number {
+  if (N <= 0 || e <= 0) return 0;
+  return Math.round(N / (1 + N * e * e));
+}
+
+function SamplingForm({
+  value,
+  onChange,
+}: {
+  value: SamplingConfig;
+  onChange: (v: SamplingConfig) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const update = (patch: Partial<SamplingConfig>) => {
+    const next = { ...value, ...patch };
+    // Auto-calculate n via Slovin whenever N or e changes
+    next.targetRespondents = calcSlovin(next.populationSize, next.marginOfError);
+    onChange(next);
+  };
+
+  return (
+    <div className="border border-dashed border-border rounded-xl overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+      >
+        <span>Konfigurasi Sampling & Margin of Error</span>
+        {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+      </button>
+      {open && (
+        <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3 bg-muted/10">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Tingkat Kepercayaan (%)</label>
+              <Input
+                type="number"
+                min={80} max={99} step={1}
+                value={value.confidenceLevel}
+                onChange={e => update({ confidenceLevel: Number(e.target.value) })}
+                placeholder="95"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Margin of Error (desimal)</label>
+              <Input
+                type="number"
+                min={0.001} max={0.5} step={0.001}
+                value={value.marginOfError}
+                onChange={e => update({ marginOfError: Number(e.target.value) })}
+                placeholder="0.05"
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Ukuran Populasi (N)</label>
+            <Input
+              type="number"
+              min={0}
+              value={value.populationSize || ""}
+              onChange={e => update({ populationSize: Number(e.target.value) })}
+              placeholder="Jumlah populasi, mis. 289716110"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Metode Sampling</label>
+            <Input
+              value={value.samplingMethod}
+              onChange={e => update({ samplingMethod: e.target.value })}
+              placeholder="Accidental Sampling"
+            />
+          </div>
+          <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-lg px-4 py-3">
+            <span className="text-xs font-bold text-muted-foreground">Target Responden (Slovin)</span>
+            <span className="text-lg font-black text-primary">
+              n = {value.targetRespondents > 0 ? value.targetRespondents.toLocaleString("id-ID") : "—"}
+            </span>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Rumus Slovin: n = N / (1 + N × e²) &nbsp;|&nbsp; e = {(value.marginOfError * 100).toFixed(2)}% = {value.marginOfError}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export const AdminPage: React.FC = () => {
   const { user, role } = useAuth();
@@ -24,8 +120,10 @@ export const AdminPage: React.FC = () => {
     agency: "Sekretariat Daerah",
     period: "Triwulan I 2026",
     scriptUrl: "",
-    visibility: "PRIVATE" as const
+    visibility: "PRIVATE" as const,
+    surveyType: "SKM" as SurveyType,
   });
+  const [newSampling, setNewSampling] = useState<SamplingConfig>(DEFAULT_SAMPLING);
   const [isAdding, setIsAdding] = useState(false);
   const [isUpdatingUser, setIsUpdatingUser] = useState<string | null>(null);
   const [surveyToDelete, setSurveyToDelete] = useState<SurveyConfig | null>(null);
@@ -88,13 +186,16 @@ export const AdminPage: React.FC = () => {
         ...newSurvey,
         isActive: true,
         visibility: newSurvey.visibility || "PRIVATE",
+        surveyType: newSurvey.surveyType || "SKM",
         createdAt: serverTimestamp(),
         createdBy: user.uid,
-        lastFetched: null
+        lastFetched: null,
+        samplingConfig: newSampling,
       };
       const docRef = await addDoc(collection(db, "surveys"), surveyStore);
       setSurveys([...surveys, { id: docRef.id, ...surveyStore, createdAt: new Date() } as SurveyConfig]);
-      setNewSurvey({ name: "", agency: "Sekretariat Daerah", period: "Triwulan I 2026", scriptUrl: "", visibility: "PRIVATE" });
+      setNewSurvey({ name: "", agency: "Sekretariat Daerah", period: "Triwulan I 2026", scriptUrl: "", visibility: "PRIVATE", surveyType: "SKM" });
+      setNewSampling(DEFAULT_SAMPLING);
       alert("Survei berhasil didaftarkan!");
     } catch (err) {
       console.error(err);
@@ -131,7 +232,9 @@ export const AdminPage: React.FC = () => {
         agency: editingSurvey.agency,
         period: editingSurvey.period,
         scriptUrl: editingSurvey.scriptUrl,
-        visibility: editingSurvey.visibility
+        visibility: editingSurvey.visibility,
+        surveyType: editingSurvey.surveyType ?? "SKM",
+        samplingConfig: editingSurvey.samplingConfig ?? DEFAULT_SAMPLING,
       });
       setSurveys(surveys.map(s => s.id === editingSurvey.id ? editingSurvey : s));
       setEditingSurvey(null);
@@ -216,6 +319,18 @@ export const AdminPage: React.FC = () => {
                     <label className="text-sm font-medium">URL Script (Web App)</label>
                     <Input placeholder="https://script.google.com/macros/s/.../exec" required value={newSurvey.scriptUrl} onChange={e => setNewSurvey({ ...newSurvey, scriptUrl: e.target.value })} />
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Tipe Survei</label>
+                    <select
+                      className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                      value={newSurvey.surveyType}
+                      onChange={e => setNewSurvey({ ...newSurvey, surveyType: e.target.value as SurveyType })}
+                    >
+                      <option value="SKM">SKM — Survei Kepuasan Masyarakat (IKM)</option>
+                      <option value="ELECTORAL">ELECTORAL — Survei Elektoral & Kepemimpinan</option>
+                    </select>
+                  </div>
+                  <SamplingForm value={newSampling} onChange={setNewSampling} />
                   <DialogFooter className="pt-4">
                     <Button type="submit" disabled={isAdding}>
                       {isAdding ? "Menyimpan..." : "Simpan Survei"}
@@ -233,6 +348,7 @@ export const AdminPage: React.FC = () => {
                   <TableHead>Nama Survei</TableHead>
                   <TableHead>Instansi</TableHead>
                   <TableHead>Periode</TableHead>
+                  <TableHead>Tipe</TableHead>
                   <TableHead>Akses</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
@@ -244,6 +360,13 @@ export const AdminPage: React.FC = () => {
                     <TableCell className="font-medium">{s.name}</TableCell>
                     <TableCell>{s.agency}</TableCell>
                     <TableCell><Badge variant="outline">{s.period}</Badge></TableCell>
+                    <TableCell>
+                      {(s.surveyType ?? "SKM") === "ELECTORAL" ? (
+                        <Badge variant="outline" className="text-violet-600 border-violet-200 dark:text-violet-400 uppercase text-[10px] font-black">Electoral</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-teal-600 border-teal-200 dark:text-teal-400 uppercase text-[10px] font-black">SKM</Badge>
+                      )}
+                    </TableCell>
                     <TableCell>
                       {s.visibility === "PUBLIC" ? (
                         <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 uppercase text-[10px] font-black">
@@ -276,7 +399,7 @@ export const AdminPage: React.FC = () => {
                 ))}
                 {surveys.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10 text-muted-foreground italic">
+                    <TableCell colSpan={7} className="text-center py-10 text-muted-foreground italic">
                       Belum ada survei terdaftar.
                     </TableCell>
                   </TableRow>
@@ -394,6 +517,21 @@ export const AdminPage: React.FC = () => {
                 <label className="text-sm font-medium">URL Script (Web App)</label>
                 <Input placeholder="https://script.google.com/macros/s/.../exec" required value={editingSurvey.scriptUrl} onChange={e => setEditingSurvey({ ...editingSurvey, scriptUrl: e.target.value })} />
               </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Tipe Survei</label>
+                <select
+                  className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                  value={editingSurvey.surveyType ?? "SKM"}
+                  onChange={e => setEditingSurvey({ ...editingSurvey, surveyType: e.target.value as SurveyType })}
+                >
+                  <option value="SKM">SKM — Survei Kepuasan Masyarakat (IKM)</option>
+                  <option value="ELECTORAL">ELECTORAL — Survei Elektoral & Kepemimpinan</option>
+                </select>
+              </div>
+              <SamplingForm
+                value={editingSurvey.samplingConfig ?? DEFAULT_SAMPLING}
+                onChange={sc => setEditingSurvey({ ...editingSurvey, samplingConfig: sc })}
+              />
               <DialogFooter className="pt-4">
                 <Button type="button" variant="outline" onClick={() => setEditingSurvey(null)}>Batal</Button>
                 <Button type="submit" disabled={isUpdatingSurvey}>
