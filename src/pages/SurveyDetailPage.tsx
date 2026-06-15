@@ -689,22 +689,42 @@ export const SurveyDetailPage: React.FC = () => {
       </div>
 
       <Tabs defaultValue="indicators" className="space-y-4">
-        <TabsList className="bg-muted p-1 flex-wrap h-auto w-full md:w-auto justify-start">
-          <TabsTrigger value="indicators" className="gap-2">
-            <LucideBarChart className="w-4 h-4" />
+        <TabsList className="bg-muted p-1 flex-wrap h-auto w-full justify-start gap-0.5">
+          <TabsTrigger value="indicators" className="gap-1.5 text-xs">
+            <LucideBarChart className="w-3.5 h-3.5" />
             {isElectoral ? 'Elektabilitas' : '9 Indikator IKM'}
           </TabsTrigger>
-          <TabsTrigger value="demographics" className="gap-2">
-            <PieChartIcon className="w-4 h-4" />
-            Demografi
+          {isElectoral && <>
+            <TabsTrigger value="simulasi" className="gap-1.5 text-xs">
+              <TrendingUp className="w-3.5 h-3.5" />Simulasi
+            </TabsTrigger>
+            <TabsTrigger value="parpol" className="gap-1.5 text-xs">
+              <Shield className="w-3.5 h-3.5" />Parpol
+            </TabsTrigger>
+            <TabsTrigger value="kepemimpinan" className="gap-1.5 text-xs">
+              <GraduationCap className="w-3.5 h-3.5" />Kepemimpinan
+            </TabsTrigger>
+            <TabsTrigger value="kinerja" className="gap-1.5 text-xs">
+              <BriefcaseBusiness className="w-3.5 h-3.5" />Kinerja Pemerintah
+            </TabsTrigger>
+            <TabsTrigger value="pemilih" className="gap-1.5 text-xs">
+              <MapPin className="w-3.5 h-3.5" />Perilaku Pemilih
+            </TabsTrigger>
+            <TabsTrigger value="emosi" className="gap-1.5 text-xs">
+              <MessageSquare className="w-3.5 h-3.5" />Emosi Publik
+            </TabsTrigger>
+          </>}
+          <TabsTrigger value="demographics" className="gap-1.5 text-xs">
+            <PieChartIcon className="w-3.5 h-3.5" />Demografi
           </TabsTrigger>
-          <TabsTrigger value="public" className="gap-2">
-            <MessageSquare className="w-4 h-4" />
-            Harapan Publik
+          <TabsTrigger value="public" className="gap-1.5 text-xs">
+            <MessageSquare className="w-3.5 h-3.5" />Harapan Publik
           </TabsTrigger>
-          <TabsTrigger value="respondents" className="gap-2">
-            <Users className="w-4 h-4" />
-            Daftar Responden
+          {isElectoral && <TabsTrigger value="surveyor" className="gap-1.5 text-xs">
+            <Check className="w-3.5 h-3.5" />Surveyor
+          </TabsTrigger>}
+          <TabsTrigger value="respondents" className="gap-1.5 text-xs">
+            <Users className="w-3.5 h-3.5" />Daftar Responden
           </TabsTrigger>
         </TabsList>
 
@@ -1153,6 +1173,202 @@ export const SurveyDetailPage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ── SIMULASI ── */}
+        {isElectoral && (
+          <TabsContent value="simulasi" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <GoogleFormChartCard id="chart-sim8" title="Simulasi 8 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s8)} type="bar-horizontal" />
+              <GoogleFormChartCard id="chart-sim10b" title="Simulasi 10 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s10)} type="bar-horizontal" />
+              <GoogleFormChartCard id="chart-klas-pol" title="Klaster Politisi (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_politisi)} type="bar-horizontal" />
+              <GoogleFormChartCard id="chart-klas-tok" title="Klaster Tokoh Agama & Sosial (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_tokoh)} type="bar-horizontal" />
+              <GoogleFormChartCard id="chart-klas-pro" title="Klaster Profesional (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_profesional)} type="bar-horizontal" />
+              <GoogleFormChartCard id="chart-sim5b" title="Simulasi 5 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s5)} type="bar-horizontal" />
+            </div>
+          </TabsContent>
+        )}
+
+        {/* ── PARPOL ── */}
+        {isElectoral && (
+          <TabsContent value="parpol" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <GoogleFormChartCard id="chart-party-vote" title="Pilihan Partai (E1d)" data={toChartData((data as any).party?.vote_intention)} type="bar-horizontal" />
+              <GoogleFormChartCard id="chart-party-like" title="Tingkat Kesukaan Parpol (E1c)" data={toChartData((data as any).party?.likability)} type="bar-horizontal" />
+              <GoogleFormChartCard id="chart-party-aware" title="Pengenalan Parpol (E1b)" data={toChartData((data as any).party?.awareness)} type="bar-horizontal" />
+            </div>
+          </TabsContent>
+        )}
+
+        {/* ── KEPEMIMPINAN NASIONAL ── */}
+        {isElectoral && (
+          <TabsContent value="kepemimpinan" className="space-y-6">
+            {(() => {
+              const nl = (data as any).national_leadership;
+              const a1bAvg = nl?.a1b_satisfaction?.avg ?? 0;
+              const a1cAvg = nl?.a1c_optimism?.avg ?? 0;
+              return (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Card className="col-span-2 border-none shadow-sm bg-muted/20">
+                      <CardHeader className="pb-2"><CardDescription className="text-xs uppercase tracking-widest font-black">Kepuasan Kepemimpinan (A1b)</CardDescription></CardHeader>
+                      <CardContent>
+                        <p className="text-5xl font-black text-primary">{a1bAvg.toFixed(1)}<span className="text-xl text-muted-foreground">/10</span></p>
+                        <Progress value={a1bAvg * 10} className="h-2 mt-3" />
+                      </CardContent>
+                    </Card>
+                    <Card className="col-span-2 border-none shadow-sm bg-muted/20">
+                      <CardHeader className="pb-2"><CardDescription className="text-xs uppercase tracking-widest font-black">Optimisme Pemimpin Baru (A1c)</CardDescription></CardHeader>
+                      <CardContent>
+                        <p className="text-5xl font-black text-emerald-500">{a1cAvg.toFixed(1)}<span className="text-xl text-muted-foreground">/10</span></p>
+                        <Progress value={a1cAvg * 10} className="h-2 mt-3" />
+                      </CardContent>
+                    </Card>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <GoogleFormChartCard id="chart-a1d" title="Masalah Utama Bangsa (A1d)" data={toChartData(nl?.a1d_problems)} type="bar-horizontal" />
+                    <GoogleFormChartCard id="chart-a2e" title="Karakter Pemimpin Dibutuhkan (A2e)" data={toChartData(nl?.a2e_character)} type="bar-horizontal" />
+                    <GoogleFormChartCard id="chart-a2f" title="Perlu Pemimpin Baru? (A2f)" data={toChartData(nl?.a2f_new_leader)} type="pie" />
+                    <GoogleFormChartCard id="chart-a2g" title="Latar Belakang Ideal Pemimpin (A2g)" data={toChartData(nl?.a2g_background)} type="bar-horizontal" />
+                  </div>
+                </>
+              );
+            })()}
+          </TabsContent>
+        )}
+
+        {/* ── KINERJA PEMERINTAH ── */}
+        {isElectoral && (
+          <TabsContent value="kinerja" className="space-y-6">
+            {(() => {
+              const gp = (data as any).gov_performance;
+              const f5bAvg = gp?.f5b_score?.avg ?? 0;
+              const f2Data = gp?.f2_satisfaction
+                ? Object.entries(gp.f2_satisfaction).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(1) ?? '0') }))
+                : [];
+              const f3Data = gp?.f3_leadership
+                ? Object.entries(gp.f3_leadership).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(1) ?? '0') }))
+                : [];
+              const f4Data = gp?.f4_trust
+                ? Object.entries(gp.f4_trust).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(1) ?? '0') }))
+                : [];
+              return (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Card className="col-span-2 border-none shadow-sm bg-muted/20">
+                      <CardHeader className="pb-2"><CardDescription className="text-xs uppercase tracking-widest font-black">Skor Kinerja Pemerintah (F5b)</CardDescription></CardHeader>
+                      <CardContent>
+                        <p className="text-5xl font-black text-primary">{f5bAvg.toFixed(1)}<span className="text-xl text-muted-foreground">/10</span></p>
+                        <Progress value={f5bAvg * 10} className="h-2 mt-3" />
+                      </CardContent>
+                    </Card>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <GoogleFormChartCard id="chart-f2" title="Kepuasan per Bidang Pemerintahan (F2)" data={f2Data} type="bar-horizontal" />
+                    <GoogleFormChartCard id="chart-f3" title="Kepemimpinan & Arah Kebijakan (F3, avg 1-10)" data={f3Data} type="bar-horizontal" />
+                    <GoogleFormChartCard id="chart-f4" title="Kepercayaan & Legitimasi Publik (F4, avg 1-10)" data={f4Data} type="bar-horizontal" />
+                  </div>
+                  {gp?.open && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {[
+                        { key: 'f1a', label: 'Penilaian Kinerja (F1a)' },
+                        { key: 'f1b', label: 'Yang Tidak Disukai (F1b)' },
+                        { key: 'f5c', label: 'Isu Paling Mendesak (F5c)' },
+                      ].map(({ key, label }) => (
+                        <Card key={key} className="h-[260px] flex flex-col border-none shadow-sm bg-muted/20">
+                          <CardHeader className="pb-2"><CardTitle className="text-sm font-black">{label}</CardTitle></CardHeader>
+                          <CardContent className="flex-1 overflow-hidden">
+                            <ScrollArea className="h-full pr-2">
+                              <div className="space-y-2">
+                                {(gp.open[key] ?? []).map((t: string, i: number) => (
+                                  <p key={i} className="text-xs italic text-foreground/80 border-l-2 border-primary/40 pl-2">"{t}"</p>
+                                ))}
+                              </div>
+                            </ScrollArea>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </TabsContent>
+        )}
+
+        {/* ── PERILAKU PEMILIH ── */}
+        {isElectoral && (
+          <TabsContent value="pemilih" className="space-y-6">
+            {(() => {
+              const vb = (data as any).voter_behavior;
+              const g2Data = vb?.g2_campaign
+                ? Object.entries(vb.g2_campaign).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(2) ?? '0') }))
+                : [];
+              const g3Data = vb?.g3_factors
+                ? Object.entries(vb.g3_factors).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(2) ?? '0') }))
+                : [];
+              const g4Data = vb?.g4_influence
+                ? Object.entries(vb.g4_influence).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(2) ?? '0') }))
+                : [];
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <GoogleFormChartCard id="chart-g1b" title="Pertimbangan Memilih (G1b)" data={toChartData(vb?.g1b)} type="bar-horizontal" />
+                  <GoogleFormChartCard id="chart-g2" title="Model Kampanye Disukai (G2, avg)" data={g2Data} type="bar-horizontal" />
+                  <GoogleFormChartCard id="chart-g3" title="Faktor Penentu Pilihan (G3, avg)" data={g3Data} type="bar-horizontal" />
+                  <GoogleFormChartCard id="chart-g4" title="Pengaruh Ajakan Organisasi/Individu (G4, avg)" data={g4Data} type="bar-horizontal" />
+                </div>
+              );
+            })()}
+          </TabsContent>
+        )}
+
+        {/* ── EMOSI PUBLIK ── */}
+        {isElectoral && (
+          <TabsContent value="emosi" className="space-y-6">
+            <GoogleFormChartCard
+              id="chart-h2-full"
+              title="Tingkat Kepercayaan Tokoh (H2, skala 0-10)"
+              data={Object.entries((data as any).public_emotion?.h2_trust ?? {}).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(1) ?? '0') }))}
+              type="bar-horizontal"
+            />
+            {Object.entries((data as any).public_emotion?.h1 ?? {}).map(([leader, sentiment]: any) => (
+              <Card key={leader} className="border-none shadow-sm bg-muted/20">
+                <CardHeader>
+                  <CardTitle className="text-base font-black">{leader}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                      { key: 'opinion',  label: 'H1a — Pendapat', color: 'blue' },
+                      { key: 'liked',    label: 'H1b — Yang Disukai', color: 'green' },
+                      { key: 'disliked', label: 'H1c — Yang Tidak Disukai', color: 'red' },
+                      { key: 'action',   label: 'H1d — Yang Harus Dilakukan', color: 'purple' },
+                    ].map(({ key, label, color }) => (
+                      <div key={key} className="space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
+                        <div className="space-y-1.5">
+                          {(sentiment[key] ?? []).map((t: string, i: number) => (
+                            <p key={i} className={`text-xs italic text-foreground/80 border-l-2 pl-2 border-${color}-400`}>"{t}"</p>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </TabsContent>
+        )}
+
+        {/* ── SURVEYOR ── */}
+        {isElectoral && (
+          <TabsContent value="surveyor" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <GoogleFormChartCard id="chart-i1a" title="Pemahaman Responden (I1a)" data={toChartData((data as any).surveyor_quality?.i1a_understanding)} type="bar-horizontal" />
+              <GoogleFormChartCard id="chart-i1b" title="Tingkat Kepercayaan Jawaban (I1b)" data={toChartData((data as any).surveyor_quality?.i1b_reliability)} type="bar-horizontal" />
+            </div>
+          </TabsContent>
+        )}
+
       </Tabs>
     </div>
   );

@@ -688,22 +688,48 @@ function buildDemoData() {
     return { avg: Math.round(sum/total*100)/100, dist: dist_obj };
   }
 
-  var CAPRES = [
-    'Sudirman Said',
-    'Anies Baswedan',
-    'Ridwan Kamil',
-    'Ganjar Pranowo',
-    'Prabowo Subianto',
-    'Agus Harimurti Yudhoyono',
-    'Erick Thohir',
-    'Sandiaga Uno',
-    'Tidak Tahu / Belum Memutuskan'
+  // Nama persis dari form C1a/C1b/C1c
+  var CAPRES_FULL = [
+    'Prabowo Subianto','Gibran Rakabuming Raka','Agus Harimurti Yudhoyono',
+    'Pramono Anung','Purbaya Yudhi Sadewa','Anies Baswedan','Dedi Mulyadi',
+    'Bahlil Lahadalia','Khofifah Indar Parawansa','Abdul Muhaimin Iskandar',
+    'Anis Matta','Erick Thohir','Muhamad Chatib Basri','Mahfud MD',
+    'Puan Maharani','Sherly Tjoanda','Surya Paloh','Muhamad Mardiono',
+    'Anas Urbaningrum','Yusril Ihza Mahendra','Zulkifli Hasan',
+    'Muhammad Sohibul Iman','Sudirman Said','Andika Perkasa','Lainnya ......'
   ];
 
-  var PARPOL = [
-    'PKS', 'Gerindra', 'PDIP', 'Golkar', 'PKB', 'Demokrat', 'Nasdem',
-    'PPP', 'Hanura', 'PAN', 'Lainnya / Tidak Memilih'
-  ];
+  // Simulasi D1a — nama persis dari form
+  var SIM_10 = ['Prabowo Subianto','Gibran Rakabuming Raka','Agus Harimurti Yudhoyono',
+    'Pramono Anung','Purbaya Yudhi Sadewa','Anies Baswedan','Dedi Mulyadi',
+    'Bahlil Lahadalia','Khofifah Indar Parawansa','Puan Maharani'];
+  var SIM_8  = ['Prabowo Subianto','Gibran Rakabuming Raka','Agus Harimurti Yudhoyono',
+    'Pramono Anung','Purbaya Yudhi Sadewa','Anies Baswedan','Dedi Mulyadi',
+    'Khofifah Indar Parawansa'];
+  var SIM_5  = ['Prabowo Subianto','Gibran Rakabuming Raka','Agus Harimurti Yudhoyono',
+    'Purbaya Yudhi Sadewa','Dedi Mulyadi'];
+
+  // Klaster Politisi
+  var KLAS_POL = ['Agus Harimurti Yudhoyono','Dedi Mulyadi','Puan Maharani',
+    'Bahlil Lahadalia','Pramono Anung','Sherly Tjoanda','Sohibul Iman',
+    'Prasetyo Hadi','Nusron Wahid','Sudaryono'];
+
+  // Klaster Tokoh
+  var KLAS_TOK = ['Haidar Nashir','Yahya Cholil Tsaquf','Said Aqil Siradj',
+    'Abdul Mu\'ti','Nasarudin Umar','Andika Perkasa','Khofifah Indar Parawansa',
+    'Yenny Wahid','Ahmad Mustofa Bisri','Habib Luthfi'];
+
+  // Klaster Profesional — Sudirman Said #1
+  var KLAS_PRO = ['Sri Mulyani','Sudirman Said','Muhamad Chatib Basri',
+    'Susi Pudjiastuti','Purbaya Yudhi Sadewa','Rosan P Ruslani',
+    'Ignasius Jonan','Erick Thohir','Amran Sulaiman','Tom Lembong'];
+
+  // Parpol persis dari form E1b/E1c/E1d
+  var PARPOL = ['PKB','Partai Gerindra','PDI Perjuangan','Partai Golkar',
+    'Partai NasDem','Partai Buruh','Partai Gelora','PKS','PKN','Partai Hanura',
+    'Partai Garuda','PAN','PBB','Partai Demokrat','PSI','Partai Perindo',
+    'PPP','Partai Umat','Berkarya','Partai Gerakan Rakyat','Parta Gema Indonesia',
+    'Partai Rakyat Indonesia','Partai Perubahan','Lainnya: ............'];
 
   return {
     meta: {
@@ -732,66 +758,74 @@ function buildDemoData() {
       a1b_satisfaction: scaleResult(5.8, 0.18),
       a1c_optimism:     scaleResult(6.2, 0.15),
       a1d_problems: dist(
-        ['Kemiskinan & Ketimpangan','Korupsi','Pendidikan','Lapangan Kerja','Kesehatan'],
-        [28,25,18,17,12]
+        ['Lapangan kerja','Kesehatan','Harga kebutuhan pokok','Ketimpangan sosial','Korupsi',
+         'Infrastruktur','Kemiskinan','Utang negara','Pendidikan','Keamanan'],
+        [28,18,32,15,25,14,22,10,18,8]
       ),
       a2e_character: dist(
-        ['Jujur & Berintegritas','Tegas & Berwibawa','Peduli Rakyat','Berpengalaman','Visioner'],
-        [30,24,20,15,11]
+        ['Jujur dan bersih','Nasionalis','Mampu mengelola ekonomi','Tegas','Berani melawan korupsi',
+         'Dekat dengan rakyat','Merakyat','Berpengalaman','Mampu menjaga stabilitas politik',
+         'Religius','Visioner','Mampu menjaga keamanan nasional'],
+        [38,15,28,22,30,24,20,18,14,12,16,10]
       ),
       a2f_new_leader: dist(['Sangat perlu','Perlu','Kurang perlu','Tidak perlu','Tidak tahu'], [35,38,14,8,5]),
-      a2g_background: dist(['Tokoh Sipil/Profesional','Politisi','TNI/Polri','Akademisi','Pengusaha'], [32,28,18,14,8]),
+      a2g_background: dist(
+        ['Politisi','Pegusaha','Kepala daerah','Akademisi','Menteri','Tokoh agama','TNI/Polri','Aktivis masyarakat'],
+        [20,18,28,15,14,16,12,8]
+      ),
       open: {
         a1a: ['Kepemimpinan nasional masih perlu pembenahan','Dibutuhkan figur yang benar-benar merakyat','Banyak janji yang belum terealisasi'],
         a2a: ['Kinerjanya terasa tapi perlu konsistensi','Ada kemajuan di infrastruktur','Masih ada PR besar di ekonomi rakyat kecil'],
         a2b: ['Harus jujur dan tidak korup','Dekat dengan rakyat dan memahami kebutuhan daerah','Tegas tapi tetap humanis'],
         a2c: ['Terlalu elitis','Kurang transparan','Janji kampanye tidak terealisasi semua'],
         a2d: ['Fokus pada ekonomi rakyat kecil','Perkuat pemberantasan korupsi','Pemerataan pembangunan luar Jawa'],
-        a2h: ['Sudirman Said','Anies Baswedan','Ridwan Kamil'],
-        a2i: ['Ganjar Pranowo','Erick Thohir','Tokoh daerah yang belum dikenal luas'],
-        a2j_ekonomi:    ['Erick Thohir','Sandiaga Uno','Sudirman Said'],
+        a2h: ['Sudirman Said','Anies Baswedan','Purbaya Yudhi Sadewa'],
+        a2i: ['Bahlil Lahadalia','Erick Thohir','Tokoh daerah yang belum dikenal luas'],
+        a2j_ekonomi:    ['Muhamad Chatib Basri','Erick Thohir','Sudirman Said'],
         a2j_korupsi:    ['Sudirman Said','Anies Baswedan','KPK independen'],
         a2j_diplomasi:  ['Prabowo Subianto','Anies Baswedan','Sudirman Said'],
-        a2j_pertahanan: ['Prabowo Subianto','Agus Harimurti Yudhoyono','TNI profesional'],
-        a2j_kesra:      ['Ganjar Pranowo','Ridwan Kamil','Sudirman Said']
+        a2j_pertahanan: ['Prabowo Subianto','Agus Harimurti Yudhoyono','Andika Perkasa'],
+        a2j_kesra:      ['Khofifah Indar Parawansa','Dedi Mulyadi','Sudirman Said']
       }
     },
 
     electability: {
       awareness: (function(){
+        var aw = [148,145,138,115,98,140,132,95,105,90,70,125,80,118,108,62,85,55,72,98,88,72,102,88,0];
         var out = {};
-        CAPRES.slice(0,8).forEach(function(c,i){
-          out[c] = Math.max(30, N - i*8 - Math.round(Math.random()*5));
-        });
+        CAPRES_FULL.forEach(function(c,i){ out[c] = aw[i] || 0; });
         return out;
       })(),
-      likability: dist(CAPRES, [26,20,15,12,10,6,5,4,2]),
-      vote_intention: dist(CAPRES, [27,20,15,12,9,6,4,4,3]),
+      likability: dist(CAPRES_FULL,
+        [22,18,16,12,14,24,19,8,11,7,4,10,5,8,7,4,3,2,3,4,4,4,20,7,5]),
+      vote_intention: dist(CAPRES_FULL,
+        [22,18,16,12,14,24,19,8,11,7,4,10,5,8,7,4,3,2,3,4,4,4,20,7,5]),
       simulation: {
-        s10:                dist(CAPRES, [27,20,15,12,9,6,4,4,3]),
-        s8:                 dist(CAPRES.slice(0,8), [29,22,16,13,9,5,4,2]),
-        s5:                 dist(CAPRES.slice(0,5), [32,25,18,15,10]),
-        klaster_politisi:   dist(['Sudirman Said','Anies Baswedan','Ganjar Pranowo','Agus Harimurti Yudhoyono','Tidak Tahu'], [35,28,18,12,7]),
-        klaster_tokoh:      dist(['Sudirman Said','Ridwan Kamil','Erick Thohir','Tidak Tahu'], [40,30,20,10]),
-        klaster_profesional:dist(['Sudirman Said','Erick Thohir','Sandiaga Uno','Tidak Tahu'], [42,28,18,12])
+        s10: dist(SIM_10, [28,22,20,15,17,30,24,8,12,8]),
+        s8:  dist(SIM_8,  [30,24,22,18,19,33,26,15]),
+        s5:  dist(SIM_5,  [35,28,24,22,28]),
+        klaster_politisi:   dist(KLAS_POL, [38,32,18,14,22,10,12,8,6,5]),
+        klaster_tokoh:      dist(KLAS_TOK, [18,14,16,14,10,24,22,13,10,16]),
+        klaster_profesional:dist(KLAS_PRO, [32,48,20,25,18,8,12,18,9,14])
       },
       open: {
-        b1a: ['Sudirman Said, karena integritas dan rekam jejaknya','Anies karena dianggap cerdas dan berpengalaman','Belum memutuskan, masih menunggu perkembangan'],
-        b1b: ['Ada, Ridwan Kamil sebagai alternatif','Ganjar Pranowo juga patut dipertimbangkan','Belum ada figur yang benar-benar meyakinkan'],
+        b1a: ['Sudirman Said, karena integritas dan rekam jejaknya','Anies Baswedan karena dianggap cerdas dan berpengalaman','Dedi Mulyadi karena dekat dengan rakyat'],
+        b1b: ['Ada, Purbaya Yudhi Sadewa sebagai alternatif teknokrat','Agus Harimurti Yudhoyono juga patut dipertimbangkan','Belum ada figur yang benar-benar meyakinkan'],
         b1c: ['Capres ideal harus jujur, dekat rakyat, dan berpengalaman memimpin daerah','Tidak harus dari partai besar, yang penting rekam jejaknya bersih','Figur yang mau turun langsung ke lapangan'],
-        b1d: ['Sipil profesional','Tokoh lintas partai','Pemimpin daerah yang berhasil']
+        b1d: ['Tokoh profesional bersih','Kepala daerah berpengalaman','Pemimpin yang tidak bergantung oligarki']
       }
     },
 
     party: {
       awareness: (function(){
+        var paw = [142,148,145,140,130,85,78,138,60,80,65,125,70,135,95,88,110,62,55,48,45,42,40,30];
         var out = {};
-        PARPOL.forEach(function(p){ out[p] = Math.max(80, N - Math.round(Math.random()*30)); });
+        PARPOL.forEach(function(p,i){ out[p] = paw[i] || 40; });
         return out;
       })(),
-      likability:     dist(PARPOL, [18,14,13,12,10,8,7,5,4,4,5]),
-      vote_intention: dist(PARPOL, [17,13,13,11,10,9,8,5,4,4,6]),
-      open_e1a: ['PKS','PDIP','Belum tau','Gerindra','Masih pikir-pikir']
+      likability:     dist(PARPOL, [16,18,17,14,12,4,3,14,2,3,2,10,2,14,5,4,5,2,1,1,1,1,1,4]),
+      vote_intention: dist(PARPOL, [15,17,16,13,11,3,3,13,2,2,2,9,2,13,5,4,5,2,1,1,1,1,1,5]),
+      open_e1a: ['PKB','PDI Perjuangan','Belum tau','PKS','Partai Demokrat']
     },
 
     gov_performance: {
@@ -831,8 +865,8 @@ function buildDemoData() {
 
     voter_behavior: {
       g1b: dist(
-        ['Rekam jejak & integritas','Visi & program kerja','Tidak golput','Ajakan keluarga/teman','Figur/ketokohan','Agama & nilai','Lainnya'],
-        [30,25,15,12,10,5,3]
+        ['Ajakan keluarga','Rekomendasi tokoh/ulama/dll.','Pemberian uang/barang/jasa','Lainnya'],
+        [55,38,18,12]
       ),
       g2_campaign: {
         'Alat peraga kampanye': { avg: 2.8, dist: {'Sangat tidak suka':20,'Tidak suka':45,'Suka':65,'Sangat suka':20,'Tidak tahu':0} },
@@ -897,8 +931,19 @@ function buildDemoData() {
     },
 
     surveyor_quality: {
-      i1a_understanding: dist(['Sangat Paham','Paham','Kurang Paham','Tidak Paham'], [45,78,22,5]),
-      i1b_reliability:   dist(['Sangat Terpercaya','Terpercaya','Kurang Terpercaya','Tidak Terpercaya'], [50,72,22,6])
+      i1a_understanding: dist([
+        '1.  Kesulitan dalam memahami pertanyaan-pertanyaan ini',
+        '2. Beberapa kesalahpahaman atas pertanyaan-pertanyaan mungkin telah terjadi',
+        '3. Hanya terdapat sesekali kebingungan',
+        '4. Ia mengerti dengan sempurna semua pertanyaan'
+      ], [5,22,55,68]),
+      i1b_reliability: dist([
+        '1. Tidak terpercaya',
+        '2. Meragukan',
+        '3. Agak terpercaya',
+        '4. Terpercaya',
+        '5. Sangat terpercaya'
+      ], [3,8,25,72,42])
     },
 
     ikm: null,
@@ -908,36 +953,66 @@ function buildDemoData() {
       expectations:    ['Fokus pada pemberantasan korupsi','Perkuat ketahanan pangan','Ciptakan lapangan kerja lebih banyak']
     },
     respondents: (function(){
-      var names = ['Budi Santoso','Siti Rahayu','Ahmad Fauzi','Dewi Kurniawati','Eko Prasetyo','Fitriani','Gunawan','Haryanti','Irfan Hakim','Junita Sari','Kurniawan','Lestari','Muhamad Rizky','Nurul Hidayah','Oki Setiana','Putri Andini','Qori Fadillah','Rudi Hartono','Sinta Dewi','Taufik Rahman'];
-      var out = [];
-      for (var i = 0; i < 20; i++) {
-        out.push({
+      var DATA = [
+        {name:'Budi Santoso',     gender:'Laki-laki', umur:'36-45', pekerjaan:'Swasta',           penghasilan:'3-5 juta',   pendidikan:'S1',      agama:'Islam',          suku:'Jawa',    afiliasi:'Tidak Berafiliasi', desa_kota:'Perkotaan',      provinsi:'Daerah Khusus Jakarta', kabupaten:'Jakarta Selatan', c1c:'Sudirman Said',          e1d:'PKS',            a2f:'Perlu',        f5b:'6', a1b:'6', a2g:'Kepala daerah', i1a:'4. Ia mengerti dengan sempurna semua pertanyaan','i1b':'4. Terpercaya'},
+        {name:'Siti Rahayu',      gender:'Perempuan', umur:'26-35', pekerjaan:'Ibu Rumah Tangga', penghasilan:'1-3 juta',   pendidikan:'SMA/SMK', agama:'Islam',          suku:'Sunda',   afiliasi:'PKB',               desa_kota:'Perkotaan',      provinsi:'Jawa Barat',            kabupaten:'Bandung',         c1c:'Anies Baswedan',         e1d:'PKB',            a2f:'Sangat perlu', f5b:'5', a1b:'5', a2g:'Tokoh agama',   i1a:'3. Hanya terdapat sesekali kebingungan',         'i1b':'4. Terpercaya'},
+        {name:'Ahmad Fauzi',      gender:'Laki-laki', umur:'46-55', pekerjaan:'PNS/ASN',          penghasilan:'5-10 juta',  pendidikan:'S2/S3',   agama:'Islam',          suku:'Jawa',    afiliasi:'Partai Gerindra',   desa_kota:'Perkotaan',      provinsi:'Jawa Tengah',           kabupaten:'Semarang',        c1c:'Prabowo Subianto',       e1d:'Partai Gerindra',a2f:'Kurang perlu', f5b:'7', a1b:'7', a2g:'Menteri',       i1a:'4. Ia mengerti dengan sempurna semua pertanyaan','i1b':'5. Sangat terpercaya'},
+        {name:'Dewi Kurniawati',  gender:'Perempuan', umur:'26-35', pekerjaan:'Swasta',           penghasilan:'3-5 juta',   pendidikan:'S1',      agama:'Islam',          suku:'Jawa',    afiliasi:'Tidak Berafiliasi', desa_kota:'Perkotaan',      provinsi:'Jawa Timur',            kabupaten:'Surabaya',        c1c:'Sudirman Said',          e1d:'Partai Demokrat',a2f:'Perlu',        f5b:'5', a1b:'5', a2g:'Kepala daerah', i1a:'3. Hanya terdapat sesekali kebingungan',         'i1b':'4. Terpercaya'},
+        {name:'Eko Prasetyo',     gender:'Laki-laki', umur:'17-25', pekerjaan:'Mahasiswa/Pelajar',penghasilan:'< 1 juta',   pendidikan:'SMA/SMK', agama:'Islam',          suku:'Jawa',    afiliasi:'Tidak Berafiliasi', desa_kota:'Perkotaan',      provinsi:'Daerah Khusus Jakarta', kabupaten:'Jakarta Timur',   c1c:'Dedi Mulyadi',           e1d:'PDI Perjuangan', a2f:'Sangat perlu', f5b:'4', a1b:'4', a2g:'Politisi',      i1a:'3. Hanya terdapat sesekali kebingungan',         'i1b':'3. Agak terpercaya'},
+        {name:'Fitriani',         gender:'Perempuan', umur:'36-45', pekerjaan:'Wiraswasta',       penghasilan:'5-10 juta',  pendidikan:'D3/D4',   agama:'Islam',          suku:'Minang',  afiliasi:'PKS',               desa_kota:'Perkotaan',      provinsi:'Sumatera Barat',        kabupaten:'Padang',          c1c:'Anies Baswedan',         e1d:'PKS',            a2f:'Perlu',        f5b:'5', a1b:'6', a2g:'Akademisi',     i1a:'4. Ia mengerti dengan sempurna semua pertanyaan','i1b':'4. Terpercaya'},
+        {name:'Gunawan',          gender:'Laki-laki', umur:'46-55', pekerjaan:'Wiraswasta',       penghasilan:'5-10 juta',  pendidikan:'S1',      agama:'Islam',          suku:'Jawa',    afiliasi:'Partai Golkar',     desa_kota:'Perkotaan',      provinsi:'Jawa Tengah',           kabupaten:'Solo',            c1c:'Prabowo Subianto',       e1d:'Partai Golkar',  a2f:'Tidak perlu',  f5b:'7', a1b:'7', a2g:'Politisi',      i1a:'4. Ia mengerti dengan sempurna semua pertanyaan','i1b':'5. Sangat terpercaya'},
+        {name:'Haryanti',         gender:'Perempuan', umur:'26-35', pekerjaan:'PNS/ASN',          penghasilan:'3-5 juta',   pendidikan:'S1',      agama:'Kristen Protestan',suku:'Batak', afiliasi:'Partai NasDem',    desa_kota:'Perkotaan',      provinsi:'Sumatera Utara',        kabupaten:'Medan',           c1c:'Gibran Rakabuming Raka', e1d:'Partai NasDem',  a2f:'Perlu',        f5b:'6', a1b:'6', a2g:'Kepala daerah', i1a:'3. Hanya terdapat sesekali kebingungan',         'i1b':'4. Terpercaya'},
+        {name:'Irfan Hakim',      gender:'Laki-laki', umur:'36-45', pekerjaan:'Swasta',           penghasilan:'5-10 juta',  pendidikan:'S1',      agama:'Islam',          suku:'Sunda',   afiliasi:'Tidak Berafiliasi', desa_kota:'Perkotaan',      provinsi:'Jawa Barat',            kabupaten:'Depok',           c1c:'Sudirman Said',          e1d:'Partai Demokrat',a2f:'Perlu',        f5b:'6', a1b:'5', a2g:'Kepala daerah', i1a:'4. Ia mengerti dengan sempurna semua pertanyaan','i1b':'4. Terpercaya'},
+        {name:'Junita Sari',      gender:'Perempuan', umur:'17-25', pekerjaan:'Mahasiswa/Pelajar',penghasilan:'< 1 juta',   pendidikan:'SMA/SMK', agama:'Islam',          suku:'Melayu',  afiliasi:'Tidak Berafiliasi', desa_kota:'Perkotaan',      provinsi:'Riau',                  kabupaten:'Pekanbaru',       c1c:'Anies Baswedan',         e1d:'PKS',            a2f:'Sangat perlu', f5b:'4', a1b:'4', a2g:'Akademisi',     i1a:'2. Beberapa kesalahpahaman atas pertanyaan-pertanyaan mungkin telah terjadi','i1b':'3. Agak terpercaya'},
+        {name:'Kurniawan',        gender:'Laki-laki', umur:'56+',   pekerjaan:'Petani/Buruh',     penghasilan:'1-3 juta',   pendidikan:'SMP',     agama:'Islam',          suku:'Jawa',    afiliasi:'PDI Perjuangan',    desa_kota:'Pedesaan',       provinsi:'Jawa Tengah',           kabupaten:'Purwokerto',      c1c:'Dedi Mulyadi',           e1d:'PDI Perjuangan', a2f:'Tidak tahu',   f5b:'5', a1b:'5', a2g:'Tokoh agama',   i1a:'3. Hanya terdapat sesekali kebingungan',         'i1b':'4. Terpercaya'},
+        {name:'Lestari',          gender:'Perempuan', umur:'46-55', pekerjaan:'Ibu Rumah Tangga', penghasilan:'1-3 juta',   pendidikan:'SD',      agama:'Islam',          suku:'Jawa',    afiliasi:'PKB',               desa_kota:'Pedesaan',       provinsi:'Jawa Timur',            kabupaten:'Malang',          c1c:'Prabowo Subianto',       e1d:'PKB',            a2f:'Tidak tahu',   f5b:'6', a1b:'6', a2g:'Tokoh agama',   i1a:'3. Hanya terdapat sesekali kebingungan',         'i1b':'3. Agak terpercaya'},
+        {name:'Muhamad Rizky',    gender:'Laki-laki', umur:'17-25', pekerjaan:'Mahasiswa/Pelajar',penghasilan:'< 1 juta',   pendidikan:'SMA/SMK', agama:'Islam',          suku:'Sunda',   afiliasi:'PKS',               desa_kota:'Perkotaan',      provinsi:'Jawa Barat',            kabupaten:'Bogor',           c1c:'Anies Baswedan',         e1d:'PKS',            a2f:'Sangat perlu', f5b:'4', a1b:'4', a2g:'Akademisi',     i1a:'4. Ia mengerti dengan sempurna semua pertanyaan','i1b':'4. Terpercaya'},
+        {name:'Nurul Hidayah',    gender:'Perempuan', umur:'26-35', pekerjaan:'PNS/ASN',          penghasilan:'3-5 juta',   pendidikan:'S1',      agama:'Islam',          suku:'Bugis',   afiliasi:'Partai Golkar',     desa_kota:'Perkotaan',      provinsi:'Sulawesi Selatan',      kabupaten:'Makassar',        c1c:'Sudirman Said',          e1d:'Partai Golkar',  a2f:'Perlu',        f5b:'6', a1b:'6', a2g:'Kepala daerah', i1a:'4. Ia mengerti dengan sempurna semua pertanyaan','i1b':'5. Sangat terpercaya'},
+        {name:'Oki Setiana',      gender:'Laki-laki', umur:'36-45', pekerjaan:'Swasta',           penghasilan:'3-5 juta',   pendidikan:'D3/D4',   agama:'Katolik',        suku:'Flores',  afiliasi:'Tidak Berafiliasi', desa_kota:'Perkotaan',      provinsi:'Nusa Tenggara Timur',   kabupaten:'Kupang',          c1c:'Purbaya Yudhi Sadewa',   e1d:'Partai Demokrat',a2f:'Perlu',        f5b:'7', a1b:'7', a2g:'Akademisi',     i1a:'4. Ia mengerti dengan sempurna semua pertanyaan','i1b':'4. Terpercaya'},
+        {name:'Putri Andini',     gender:'Perempuan', umur:'26-35', pekerjaan:'Wiraswasta',       penghasilan:'3-5 juta',   pendidikan:'S1',      agama:'Islam',          suku:'Jawa',    afiliasi:'Tidak Berafiliasi', desa_kota:'Perkotaan',      provinsi:'Daerah Khusus Jakarta', kabupaten:'Jakarta Utara',   c1c:'Sudirman Said',          e1d:'Partai NasDem',  a2f:'Sangat perlu', f5b:'5', a1b:'5', a2g:'Kepala daerah', i1a:'4. Ia mengerti dengan sempurna semua pertanyaan','i1b':'4. Terpercaya'},
+        {name:'Qori Fadillah',    gender:'Perempuan', umur:'17-25', pekerjaan:'Mahasiswa/Pelajar',penghasilan:'< 1 juta',   pendidikan:'SMA/SMK', agama:'Islam',          suku:'Minang',  afiliasi:'Tidak Berafiliasi', desa_kota:'Perkotaan',      provinsi:'Daerah Istimewa Yogyakarta',kabupaten:'Yogyakarta',c1c:'Anies Baswedan',         e1d:'PKS',            a2f:'Sangat perlu', f5b:'5', a1b:'5', a2g:'Akademisi',     i1a:'3. Hanya terdapat sesekali kebingungan',         'i1b':'4. Terpercaya'},
+        {name:'Rudi Hartono',     gender:'Laki-laki', umur:'46-55', pekerjaan:'Swasta',           penghasilan:'5-10 juta',  pendidikan:'S2/S3',   agama:'Islam',          suku:'Jawa',    afiliasi:'Tidak Berafiliasi', desa_kota:'Perkotaan',      provinsi:'Jawa Timur',            kabupaten:'Surabaya',        c1c:'Sudirman Said',          e1d:'PAN',            a2f:'Perlu',        f5b:'6', a1b:'6', a2g:'Kepala daerah', i1a:'4. Ia mengerti dengan sempurna semua pertanyaan','i1b':'5. Sangat terpercaya'},
+        {name:'Sinta Dewi',       gender:'Perempuan', umur:'36-45', pekerjaan:'PNS/ASN',          penghasilan:'3-5 juta',   pendidikan:'S1',      agama:'Hindu',          suku:'Bali',    afiliasi:'Tidak Berafiliasi', desa_kota:'Perkotaan',      provinsi:'Bali',                  kabupaten:'Denpasar',        c1c:'Agus Harimurti Yudhoyono',e1d:'Partai Demokrat',a2f:'Perlu',       f5b:'6', a1b:'6', a2g:'Politisi',      i1a:'4. Ia mengerti dengan sempurna semua pertanyaan','i1b':'4. Terpercaya'},
+        {name:'Taufik Rahman',    gender:'Laki-laki', umur:'56+',   pekerjaan:'Petani/Buruh',     penghasilan:'1-3 juta',   pendidikan:'SD',      agama:'Islam',          suku:'Banjar',  afiliasi:'Tidak Berafiliasi', desa_kota:'Pedesaan',       provinsi:'Kalimantan Selatan',    kabupaten:'Banjarmasin',     c1c:'Dedi Mulyadi',           e1d:'PKB',            a2f:'Tidak tahu',   f5b:'5', a1b:'5', a2g:'Tokoh agama',   i1a:'2. Beberapa kesalahpahaman atas pertanyaan-pertanyaan mungkin telah terjadi','i1b':'3. Agak terpercaya'}
+      ];
+      return DATA.map(function(d,i){
+        return {
           id: 'R'+(i+1),
           timestamp: new Date(Date.now() - i * 3600000).toISOString(),
-          name: names[i],
-          gender: i%3===0?'Perempuan':'Laki-laki',
-          umur: ['17-25','26-35','36-45','46-55'][i%4],
-          pekerjaan: ['Swasta','Wiraswasta','PNS/ASN','Mahasiswa/Pelajar'][i%4],
-          pendidikan: ['SMA/SMK','S1','S2/S3','D3/D4'][i%4],
-          agama: 'Islam',
-          suku: ['Jawa','Sunda','Batak','Melayu'][i%4],
-          penghasilan: ['1-3 juta','3-5 juta','5-10 juta','> 10 juta'][i%4],
-          afiliasi_politik: ['PKS','Nasdem','Tidak Berafiliasi','Demokrat'][i%4],
-          desa_kota: i%3===0?'Pedesaan':'Perkotaan',
-          provinsi: ['DKI Jakarta','Jawa Barat','Jawa Tengah','Jawa Timur'][i%4],
-          location: ['Jakarta Selatan','Bandung','Semarang','Surabaya'][i%4],
-          surveyor: 'Tim LSIN',
-          surveyor_understanding: 'Paham',
-          surveyor_reliability: 'Terpercaya',
+          name:       d.name,
+          gender:     d.gender,
+          umur:       d.umur,
+          pekerjaan:  d.pekerjaan,
+          penghasilan:d.penghasilan,
+          pendidikan: d.pendidikan,
+          agama:      d.agama,
+          suku:       d.suku,
+          afiliasi_politik: d.afiliasi,
+          desa_kota:  d.desa_kota,
+          provinsi:   d.provinsi,
+          kabupaten_kota: d.kabupaten,
+          location:   d.kabupaten,
+          surveyor:   'Tim LSIN',
+          surveyor_understanding: d.i1a,
+          surveyor_reliability:   d.i1b,
           answers: {
-            c1c_vote: CAPRES[i%CAPRES.length],
-            e1d_party: ['PKS','Gerindra','PDIP','Golkar','PKB'][i%5],
-            a2f_new_leader: 'Perlu',
-            f5b_score: String(5 + (i%5))
+            a1a: 'Kepemimpinan nasional perlu lebih tegas dan transparan',
+            a1b_score: d.a1b,
+            a2f_new_leader: d.a2f,
+            a2g_background: d.a2g,
+            b1a_vote_reason: d.c1c + ', karena rekam jejaknya bersih dan berorientasi rakyat',
+            c1c_vote:  d.c1c,
+            d1a_sim10: d.c1c,
+            e1d_party: d.e1d,
+            f5a_overall: 'Kinerja cukup baik namun masih perlu peningkatan di bidang ekonomi',
+            f5b_score:   d.f5b,
+            g1a_reason: 'Memilih berdasarkan rekam jejak dan visi yang jelas',
+            g1b_factor: 'Ajakan keluarga',
+            i1a_understanding: d.i1a,
+            i1b_reliability:   d.i1b
           }
-        });
-      }
-      return out;
+        };
+      });
     })()
   };
 }
