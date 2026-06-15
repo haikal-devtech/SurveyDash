@@ -279,7 +279,56 @@ export const SurveyDetailPage: React.FC = () => {
     ? data.demographics.location
     : undefined);
 
-  const COLORS_GOOGLE = ['#4285F4', '#DB4437', '#F4B400', '#0F9D58', '#AB47BC', '#00ACC1', '#FF7043', '#9E9D24', '#5C6BC0'];
+  const COLORS_GOOGLE = ['#4285F4', '#DB4437', '#F4B400', '#0F9D58', '#AB47BC', '#00ACC1', '#FF7043', '#9E9D24', '#5C6BC0', '#E91E63', '#795548', '#607D8B', '#F06292', '#AED581', '#FFD54F', '#4DD0E1', '#CE93D8', '#FFAB91', '#80CBC4', '#BCAAA4'];
+
+  const sortDesc = (arr: {name: string; value: number}[]) => [...arr].sort((a, b) => b.value - a.value);
+
+  const PieListCard = ({ id, title, data: chartData }: { id: string; title: string; data: {name: string; value: number}[] }) => {
+    const sorted = sortDesc(chartData);
+    const total = sorted.reduce((s, d) => s + d.value, 0);
+    return (
+      <Card id={id} className="overflow-hidden border border-border/60 shadow-sm rounded-xl bg-card">
+        <CardHeader className="flex flex-row items-start justify-between pb-0 pt-5 px-6">
+          <div className="space-y-1">
+            <CardTitle className="text-base font-normal">{title}</CardTitle>
+            <CardDescription className="text-xs">{total} responses</CardDescription>
+          </div>
+          <div className="flex gap-1">
+            <Button variant="ghost" size="sm" className="h-8 px-2 gap-1.5 text-[#4285F4] hover:bg-blue-50 dark:hover:bg-blue-950/50 font-medium text-xs" onClick={() => downloadPNG(id, `${id}_${config?.id}`)}>
+              <Copy className="w-3.5 h-3.5" /><span className="hidden sm:inline">Copy</span>
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground" onClick={() => exportToCSV(sorted, `${id}_${config?.id}`)}>
+              <Download className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="flex gap-4 p-4 pt-2 items-center">
+          <div className="w-[180px] h-[220px] shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={sorted} dataKey="value" cx="50%" cy="50%" outerRadius={85} labelLine={false} stroke="hsl(var(--background))" strokeWidth={1}>
+                  {sorted.map((_, i) => <Cell key={i} fill={COLORS_GOOGLE[i % COLORS_GOOGLE.length]} />)}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <ScrollArea className="flex-1 h-[220px]">
+            <div className="space-y-1 pr-2">
+              {sorted.map((d, i) => (
+                <div key={d.name} className="flex items-center gap-2 text-xs">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS_GOOGLE[i % COLORS_GOOGLE.length] }} />
+                  <span className="flex-1 text-foreground/80 leading-tight text-[11px]">{d.name}</span>
+                  <span className="font-black tabular-nums">{d.value}</span>
+                  <span className="text-muted-foreground w-9 text-right">{total > 0 ? ((d.value / total) * 100).toFixed(1) : 0}%</span>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    );
+  };
 
   const INDIKATOR_OPTIONS = [
     ["Tidak Sesuai", "Kurang Sesuai", "Sesuai", "Sangat Sesuai"],
@@ -733,42 +782,12 @@ export const SurveyDetailPage: React.FC = () => {
             /* ── ELECTORAL: Elektabilitas ── */
             <div className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <GoogleFormChartCard
-                  id="chart-vote-intention"
-                  title="Pilihan Capres (C1c)"
-                  data={toChartData((data as any).electability?.vote_intention)}
-                  type="bar-horizontal"
-                />
-                <GoogleFormChartCard
-                  id="chart-awareness"
-                  title="Tingkat Pengenalan Capres (C1a)"
-                  data={toChartData((data as any).electability?.awareness)}
-                  type="bar-horizontal"
-                />
-                <GoogleFormChartCard
-                  id="chart-likability"
-                  title="Tingkat Kesukaan Capres (C1b)"
-                  data={toChartData((data as any).electability?.likability)}
-                  type="bar-horizontal"
-                />
-                <GoogleFormChartCard
-                  id="chart-sim-5"
-                  title="Simulasi Pilpres 5 Nama (D1a)"
-                  data={toChartData((data as any).electability?.simulation?.s5)}
-                  type="bar-horizontal"
-                />
-                <GoogleFormChartCard
-                  id="chart-sim-10"
-                  title="Simulasi Pilpres 10 Nama (D1a)"
-                  data={toChartData((data as any).electability?.simulation?.s10)}
-                  type="bar-horizontal"
-                />
-                <GoogleFormChartCard
-                  id="chart-trust"
-                  title="Skor Kepercayaan Tokoh (H2, avg 0-10)"
-                  data={Object.entries((data as any).public_emotion?.h2_trust ?? {}).map(([name, v]: any) => ({ name, value: v.avg }))}
-                  type="bar-horizontal"
-                />
+                <PieListCard id="chart-vote-intention" title="Pilihan Capres (C1c)" data={toChartData((data as any).electability?.vote_intention)} />
+                <PieListCard id="chart-awareness"      title="Tingkat Pengenalan Capres (C1a)" data={toChartData((data as any).electability?.awareness)} />
+                <PieListCard id="chart-likability"     title="Tingkat Kesukaan Capres (C1b)" data={toChartData((data as any).electability?.likability)} />
+                <GoogleFormChartCard id="chart-sim-5"  title="Simulasi Pilpres 5 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s5)} type="bar-horizontal" />
+                <GoogleFormChartCard id="chart-sim-10" title="Simulasi Pilpres 10 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s10)} type="bar-horizontal" />
+                <GoogleFormChartCard id="chart-trust"  title="Skor Kepercayaan Tokoh (H2, avg 0-10)" data={Object.entries((data as any).public_emotion?.h2_trust ?? {}).map(([name, v]: any) => ({ name, value: v.avg }))} type="bar-horizontal" />
               </div>
             </div>
           ) : data.indicators && data.indicators.length > 0 ? (
@@ -882,23 +901,23 @@ export const SurveyDetailPage: React.FC = () => {
 
         <TabsContent value="demographics" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
-             <GoogleFormChartCard id="chart-gender" title="Jenis Kelamin" data={demoGenderData} type="pie" />
-             <GoogleFormChartCard id="chart-umur" title="Kelompok Umur" data={demoUmurData} type="bar" />
-             <GoogleFormChartCard id="chart-edu" title="Pendidikan Terakhir" data={demoEduData} type="pie" />
-             <GoogleFormChartCard id="chart-pekerjaan" title="Profesi / Pekerjaan" data={demoPekerjaanData} type="bar-horizontal" />
-             <GoogleFormChartCard id="chart-suku" title="Suku / Etnis" data={demoSukuData} type="pie" />
+             <GoogleFormChartCard id="chart-gender"   title="Jenis Kelamin"        data={demoGenderData}    type="pie" />
+             <GoogleFormChartCard id="chart-umur"     title="Kelompok Umur"         data={demoUmurData}      type="bar" />
+             <GoogleFormChartCard id="chart-edu"      title="Pendidikan Terakhir"   data={demoEduData}       type="pie" />
+             <GoogleFormChartCard id="chart-pekerjaan"title="Profesi / Pekerjaan"   data={demoPekerjaanData} type="bar-horizontal" />
+             <PieListCard         id="chart-suku"     title="Suku / Etnis"          data={demoSukuData} />
              {isElectoral ? (
                <>
-                 <GoogleFormChartCard id="chart-agama" title="Agama" data={demoAgamaData} type="pie" />
-                 <GoogleFormChartCard id="chart-penghasilan" title="Penghasilan per Bulan" data={demoPenghasilan} type="bar-horizontal" />
-                 <GoogleFormChartCard id="chart-afiliasi" title="Afiliasi Politik" data={demoAfiliasiData} type="bar-horizontal" />
-                 <GoogleFormChartCard id="chart-desakota" title="Desa / Kota" data={demoDesaKotaData} type="pie" />
-                 <GoogleFormChartCard id="chart-provinsi" title="Provinsi" data={demoProvinsiData} type="bar-horizontal" />
+                 <GoogleFormChartCard id="chart-agama"     title="Agama"              data={demoAgamaData}    type="pie" />
+                 <GoogleFormChartCard id="chart-penghasilan"title="Penghasilan per Bulan" data={demoPenghasilan} type="bar-horizontal" />
+                 <PieListCard         id="chart-afiliasi"  title="Afiliasi Politik"   data={demoAfiliasiData} />
+                 <GoogleFormChartCard id="chart-desakota"  title="Desa / Kota"        data={demoDesaKotaData} type="pie" />
+                 <PieListCard         id="chart-provinsi"  title="Provinsi"           data={demoProvinsiData} />
                </>
              ) : (
                <>
-                 <GoogleFormChartCard id="chart-layanan" title="Jenis Layanan" data={demoLayananData} type="bar-horizontal" />
-                 <GoogleFormChartCard id="chart-lokasi" title="Lokasi Survei" data={demoLokasiData} type="bar" />
+                 <GoogleFormChartCard id="chart-layanan" title="Jenis Layanan"   data={demoLayananData} type="bar-horizontal" />
+                 <GoogleFormChartCard id="chart-lokasi"  title="Lokasi Survei"   data={demoLokasiData}  type="bar" />
                </>
              )}
           </div>
@@ -1178,12 +1197,12 @@ export const SurveyDetailPage: React.FC = () => {
         {isElectoral && (
           <TabsContent value="simulasi" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <GoogleFormChartCard id="chart-sim8" title="Simulasi 8 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s8)} type="bar-horizontal" />
-              <GoogleFormChartCard id="chart-sim10b" title="Simulasi 10 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s10)} type="bar-horizontal" />
-              <GoogleFormChartCard id="chart-klas-pol" title="Klaster Politisi (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_politisi)} type="bar-horizontal" />
-              <GoogleFormChartCard id="chart-klas-tok" title="Klaster Tokoh Agama & Sosial (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_tokoh)} type="bar-horizontal" />
-              <GoogleFormChartCard id="chart-klas-pro" title="Klaster Profesional (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_profesional)} type="bar-horizontal" />
-              <GoogleFormChartCard id="chart-sim5b" title="Simulasi 5 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s5)} type="bar-horizontal" />
+              <GoogleFormChartCard id="chart-sim5b"  title="Simulasi 5 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s5)} type="bar-horizontal" />
+              <PieListCard id="chart-sim8"   title="Simulasi 8 Nama (D1a)"  data={toChartData((data as any).electability?.simulation?.s8)} />
+              <PieListCard id="chart-sim10b" title="Simulasi 10 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s10)} />
+              <PieListCard id="chart-klas-pol" title="Klaster Politisi (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_politisi)} />
+              <PieListCard id="chart-klas-tok" title="Klaster Tokoh Agama & Sosial (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_tokoh)} />
+              <PieListCard id="chart-klas-pro" title="Klaster Profesional (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_profesional)} />
             </div>
           </TabsContent>
         )}
@@ -1192,9 +1211,9 @@ export const SurveyDetailPage: React.FC = () => {
         {isElectoral && (
           <TabsContent value="parpol" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <GoogleFormChartCard id="chart-party-vote" title="Pilihan Partai (E1d)" data={toChartData((data as any).party?.vote_intention)} type="bar-horizontal" />
-              <GoogleFormChartCard id="chart-party-like" title="Tingkat Kesukaan Parpol (E1c)" data={toChartData((data as any).party?.likability)} type="bar-horizontal" />
-              <GoogleFormChartCard id="chart-party-aware" title="Pengenalan Parpol (E1b)" data={toChartData((data as any).party?.awareness)} type="bar-horizontal" />
+              <PieListCard id="chart-party-vote"  title="Pilihan Partai (E1d)"         data={toChartData((data as any).party?.vote_intention)} />
+              <PieListCard id="chart-party-like"  title="Tingkat Kesukaan Parpol (E1c)" data={toChartData((data as any).party?.likability)} />
+              <PieListCard id="chart-party-aware" title="Pengenalan Parpol (E1b)"       data={toChartData((data as any).party?.awareness)} />
             </div>
           </TabsContent>
         )}
@@ -1225,10 +1244,10 @@ export const SurveyDetailPage: React.FC = () => {
                     </Card>
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <GoogleFormChartCard id="chart-a1d" title="Masalah Utama Bangsa (A1d)" data={toChartData(nl?.a1d_problems)} type="bar-horizontal" />
-                    <GoogleFormChartCard id="chart-a2e" title="Karakter Pemimpin Dibutuhkan (A2e)" data={toChartData(nl?.a2e_character)} type="bar-horizontal" />
-                    <GoogleFormChartCard id="chart-a2f" title="Perlu Pemimpin Baru? (A2f)" data={toChartData(nl?.a2f_new_leader)} type="pie" />
-                    <GoogleFormChartCard id="chart-a2g" title="Latar Belakang Ideal Pemimpin (A2g)" data={toChartData(nl?.a2g_background)} type="bar-horizontal" />
+                    <PieListCard id="chart-a1d" title="Masalah Utama Bangsa (A1d)"           data={toChartData(nl?.a1d_problems)} />
+                    <PieListCard id="chart-a2e" title="Karakter Pemimpin Dibutuhkan (A2e)"   data={toChartData(nl?.a2e_character)} />
+                    <GoogleFormChartCard id="chart-a2f" title="Perlu Pemimpin Baru? (A2f)"   data={toChartData(nl?.a2f_new_leader)} type="pie" />
+                    <PieListCard id="chart-a2g" title="Latar Belakang Ideal Pemimpin (A2g)"  data={toChartData(nl?.a2g_background)} />
                   </div>
                 </>
               );
@@ -1311,10 +1330,10 @@ export const SurveyDetailPage: React.FC = () => {
                 : [];
               return (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <GoogleFormChartCard id="chart-g1b" title="Pertimbangan Memilih (G1b)" data={toChartData(vb?.g1b)} type="bar-horizontal" />
-                  <GoogleFormChartCard id="chart-g2" title="Model Kampanye Disukai (G2, avg)" data={g2Data} type="bar-horizontal" />
-                  <GoogleFormChartCard id="chart-g3" title="Faktor Penentu Pilihan (G3, avg)" data={g3Data} type="bar-horizontal" />
-                  <GoogleFormChartCard id="chart-g4" title="Pengaruh Ajakan Organisasi/Individu (G4, avg)" data={g4Data} type="bar-horizontal" />
+                  <GoogleFormChartCard id="chart-g1b" title="Pertimbangan Memilih (G1b)"           data={toChartData(vb?.g1b)} type="pie" />
+                  <GoogleFormChartCard id="chart-g2"  title="Model Kampanye Disukai (G2, avg)"     data={g2Data} type="bar-horizontal" />
+                  <GoogleFormChartCard id="chart-g3"  title="Faktor Penentu Pilihan (G3, avg)"     data={g3Data} type="bar-horizontal" />
+                  <PieListCard         id="chart-g4"  title="Pengaruh Ajakan/Individu (G4, avg)"   data={g4Data} />
                 </div>
               );
             })()}
