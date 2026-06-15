@@ -65,13 +65,13 @@ function SamplingForm({
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Margin of Error (desimal)</label>
+              <label className="text-xs font-medium text-muted-foreground">Margin of Error (%)</label>
               <Input
                 type="number"
-                min={0.001} max={0.5} step={0.001}
-                value={value.marginOfError}
-                onChange={e => update({ marginOfError: Number(e.target.value) })}
-                placeholder="0.05"
+                min={0.1} max={50} step={0.01}
+                value={parseFloat((value.marginOfError * 100).toFixed(4))}
+                onChange={e => update({ marginOfError: Number(e.target.value) / 100 })}
+                placeholder="2.21"
               />
             </div>
           </div>
@@ -100,7 +100,7 @@ function SamplingForm({
             </span>
           </div>
           <p className="text-[10px] text-muted-foreground">
-            Rumus Slovin: n = N / (1 + N × e²) &nbsp;|&nbsp; e = {(value.marginOfError * 100).toFixed(2)}% = {value.marginOfError}
+            Rumus Slovin: n = N / (1 + N × e²) &nbsp;|&nbsp; e = {(value.marginOfError * 100).toFixed(2)}% → {value.marginOfError.toFixed(4)}
           </p>
         </div>
       )}
