@@ -123,6 +123,15 @@ export const SurveyDetailPage: React.FC = () => {
         setTimeout(() => setLastNotification(null), 5000);
       }
 
+      // GAS can return 200 with { error: "..." } when sheet is empty or script fails
+      if (!resp.data?.meta) {
+        setError(
+          resp.data?.error
+            ? `Script error: ${resp.data.error}`
+            : "Struktur data tidak valid. Pastikan Google Apps Script sudah dideploy dengan versi terbaru dan sheet tidak kosong."
+        );
+        return;
+      }
       setData(resp.data);
       setError(null);
     } catch (err: any) {
@@ -602,47 +611,75 @@ export const SurveyDetailPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="glass-card border-none relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-2 h-full" style={{
-            backgroundColor: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
-          }} />
-          <CardHeader className="pb-2">
-            <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Indeks Kepuasan (NIK)</CardDescription>
-            <CardTitle className="text-3xl md:text-4xl font-black tracking-tighter" style={{
-              color: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
-            }}>{data.ikm.score.toFixed(2)}</CardTitle>
-          </CardHeader>
-          <CardContent>
-             <Badge className="hover:opacity-90 border-none font-black px-4 py-1.5 rounded-full uppercase tracking-wider text-xs text-white" style={{
-               backgroundColor: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
-             }}>
-               {(() => {
-                 const s = data.ikm.score;
-                 if (s >= 88.31) return "Mutu A — Sangat Baik";
-                 if (s >= 76.61) return "Mutu B — Baik";
-                 if (s >= 65.00) return "Mutu C — Kurang Baik";
-                 return "Mutu D — Tidak Baik";
-               })()}
-             </Badge>
-             <p className="text-[10px] text-muted-foreground mt-2 font-mono">
-               Nilai Interval: {data.ikm.score >= 88.31 ? "88,31–100" : data.ikm.score >= 76.61 ? "76,61–88,30" : data.ikm.score >= 65.00 ? "65,00–76,60" : "25,00–64,99"}
-             </p>
-          </CardContent>
-        </Card>
+        {data.ikm ? (
+          <Card className="glass-card border-none relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-2 h-full" style={{
+              backgroundColor: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
+            }} />
+            <CardHeader className="pb-2">
+              <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Indeks Kepuasan (NIK)</CardDescription>
+              <CardTitle className="text-3xl md:text-4xl font-black tracking-tighter" style={{
+                color: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
+              }}>{data.ikm.score.toFixed(2)}</CardTitle>
+            </CardHeader>
+            <CardContent>
+               <Badge className="hover:opacity-90 border-none font-black px-4 py-1.5 rounded-full uppercase tracking-wider text-xs text-white" style={{
+                 backgroundColor: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
+               }}>
+                 {(() => {
+                   const s = data.ikm.score;
+                   if (s >= 88.31) return "Mutu A — Sangat Baik";
+                   if (s >= 76.61) return "Mutu B — Baik";
+                   if (s >= 65.00) return "Mutu C — Kurang Baik";
+                   return "Mutu D — Tidak Baik";
+                 })()}
+               </Badge>
+               <p className="text-[10px] text-muted-foreground mt-2 font-mono">
+                 Nilai Interval: {data.ikm.score >= 88.31 ? "88,31–100" : data.ikm.score >= 76.61 ? "76,61–88,30" : data.ikm.score >= 65.00 ? "65,00–76,60" : "25,00–64,99"}
+               </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="glass-card border-none relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-2 h-full bg-violet-500/50" />
+            <CardHeader className="pb-2">
+              <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Tipe Survei</CardDescription>
+              <CardTitle className="text-xl font-black text-violet-600 dark:text-violet-400 tracking-tighter">ELECTORAL</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Badge className="bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-500/30 font-black uppercase text-xs">
+                Survei Elektoral & Kepemimpinan
+              </Badge>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card className="glass-card border-none relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500/50" />
-          <CardHeader className="pb-2">
-            <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Target Mutu 2026</CardDescription>
-            <CardTitle className="text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">90.00</CardTitle>
-          </CardHeader>
-          <CardContent>
-             <div className="flex items-center gap-2 text-xs text-muted-foreground font-black uppercase tracking-wider bg-emerald-500/10 w-fit px-3 py-1 rounded-full border border-emerald-500/20">
-               <TrendingUp className="w-4 h-4 text-emerald-500" />
-               Gap: {(90 - data.ikm.score).toFixed(2)} poin
-             </div>
-          </CardContent>
-        </Card>
+        {data.ikm ? (
+          <Card className="glass-card border-none relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500/50" />
+            <CardHeader className="pb-2">
+              <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Target Mutu 2026</CardDescription>
+              <CardTitle className="text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">90.00</CardTitle>
+            </CardHeader>
+            <CardContent>
+               <div className="flex items-center gap-2 text-xs text-muted-foreground font-black uppercase tracking-wider bg-emerald-500/10 w-fit px-3 py-1 rounded-full border border-emerald-500/20">
+                 <TrendingUp className="w-4 h-4 text-emerald-500" />
+                 Gap: {(90 - data.ikm.score).toFixed(2)} poin
+               </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="glass-card border-none relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-2 h-full bg-blue-500/50" />
+            <CardHeader className="pb-2">
+              <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Instansi</CardDescription>
+              <CardTitle className="text-base font-black text-foreground tracking-tighter mt-1">{config.agency}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em]">{config.period}</p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="glass-card border-none relative overflow-hidden group">
           <div className="absolute -right-6 -top-6 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700">
