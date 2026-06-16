@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-import { SurveyConfig, SurveyData } from "@/types";
+import { SurveyConfig, SurveyData, SlideVisibility, DEFAULT_SLIDE_VISIBILITY, Respondent } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,14 +21,17 @@ import {
 import { 
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
-import { 
+import {
   ArrowLeft, RefreshCw, Users, TrendingUp, Info, Shield, Share2, Copy, Check,
-  LayoutDashboard as LucideBarChart, MessageSquare, BriefcaseBusiness, GraduationCap, PieChart as PieChartIcon, 
-  Download, Bell, Timer, Play, Pause, Camera, MapPin, MonitorPlay
+  LayoutDashboard as LucideBarChart, MessageSquare, BriefcaseBusiness, GraduationCap, PieChart as PieChartIcon,
+  Download, Bell, Timer, Play, Pause, Camera, MapPin, MonitorPlay,
+  FileText, Award, UserCheck, Shuffle, Flag, Building2, Heart, ShieldCheck, Database
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import axios from "axios";
 import html2canvas from "html2canvas";
+import { getSurveyDashboardConfig, buildConfigFromSurvey, resolveSurveyDashboard } from "@/lib/survey-dashboard-config";
+import { CandidateRankItem } from "@/types";
 
 // Helper for PNG Export
 const downloadPNG = async (elementId: string, filename: string) => {
@@ -60,6 +63,170 @@ const exportToCSV = (data: any[], filename: string) => {
 };
 
 
+// ── Reusable slide helpers ────────────────────────────────────────────────────
+
+const SlideEmptyState: React.FC<{ label: string; icon: React.FC<{ className?: string }> }> = ({ label, icon: Icon }) => (
+  <div className="py-20 text-center flex flex-col items-center gap-4 bg-muted/20 rounded-2xl border-2 border-dashed border-border">
+    <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+      <Icon className="w-7 h-7 text-muted-foreground" />
+    </div>
+    <div className="space-y-1">
+      <p className="font-black text-foreground">{label}</p>
+      <p className="text-sm text-muted-foreground italic">Data untuk bagian ini belum tersedia.</p>
+    </div>
+  </div>
+);
+
+const RankItems: React.FC<{ title?: string; items?: CandidateRankItem[] | any[] }> = ({ title, items }) => {
+  if (!items || items.length === 0) return null;
+  const maxVal = Math.max(...items.map((i: any) => Number(i.percentage ?? i.count ?? 0)));
+  return (
+    <div className="space-y-2">
+      {title && <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{title}</p>}
+      <div className="space-y-2">
+        {items.slice(0, 12).map((item: any, idx: number) => {
+          const val = Number(item.percentage ?? item.count ?? 0);
+          const pctStr = item.percentage != null
+            ? (typeof item.percentage === "string" ? item.percentage : `${Number(item.percentage).toFixed(1)}%`)
+            : (item.count != null ? `${item.count} orang` : "–");
+          const w = maxVal > 0 ? (val / maxVal) * 100 : 0;
+          return (
+            <div key={idx} className="flex items-center gap-3">
+              <span className="text-[10px] font-black w-5 text-right text-muted-foreground shrink-0">{idx + 1}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-xs font-semibold truncate text-foreground">{item.name ?? item.label ?? `Item ${idx + 1}`}</span>
+                  <span className="text-xs font-black text-primary ml-2 shrink-0">{pctStr}</span>
+                </div>
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${w}%` }} />
+                </div>
+                {item.party && <p className="text-[10px] text-muted-foreground mt-0.5 italic">{item.party}</p>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+/** Numbered text-quote list — for verbatim open-ended answers without meaningful frequency */
+const TextQuoteList: React.FC<{ title: string; items: { name: string }[] }> = ({ title, items }) => (
+  <div className="space-y-2">
+    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{title}</p>
+    <div className="space-y-1.5">
+      {items.slice(0, 10).map((item, idx) => (
+        <div key={idx} className="flex gap-2.5 rounded-lg bg-muted/30 border border-border/40 px-3 py-2">
+          <span className="text-[10px] font-black text-muted-foreground/60 shrink-0 mt-0.5 w-4 text-right">{idx + 1}</span>
+          <p className="text-xs text-foreground leading-relaxed flex-1">{item.name}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const QASection: React.FC<{ data?: Record<string, any> }> = ({ data: sectionData }) => {
+  if (!sectionData || typeof sectionData !== "object" || Object.keys(sectionData).length === 0) return null;
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {Object.entries(sectionData).map(([key, value]) => {
+        const title = key.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
+
+        // 1. Array of items
+        if (Array.isArray(value) && value.length > 0) {
+          const items = value.map((v: any) =>
+            typeof v === "object" && v !== null
+              ? v
+              : { name: String(v), count: 0, percentage: 0 }
+          );
+          // Detect plain text (strings converted to objects with count=0, percentage=0)
+          // → render as quote list, not rank bars
+          const isTextList = items.every((i: any) => (i.count === 0 || i.count === undefined) && (i.percentage === 0 || i.percentage === undefined));
+          return (
+            <div key={key}>
+              {isTextList
+                ? <TextQuoteList title={title} items={items} />
+                : <RankItems title={title} items={items} />}
+            </div>
+          );
+        }
+
+        // 2. Plain number/string scalar
+        if (typeof value === "string" || typeof value === "number") {
+          return (
+            <div key={key} className="bg-card rounded-xl border border-border p-4 space-y-1">
+              <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">{title}</p>
+              <p className="text-sm font-bold text-foreground">{String(value)}</p>
+            </div>
+          );
+        }
+
+        // 3. Plain object with primitive values (e.g. {PKB: 205, Gerindra: 308})
+        if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+          const vals = Object.values(value);
+          const allPrimitive = vals.every(v => typeof v === "string" || typeof v === "number");
+          if (allPrimitive) {
+            const items = Object.entries(value).map(([name, count]) => ({
+              name,
+              count: Number(count),
+              percentage: Number(count),
+            }));
+            if (items.length > 0) return <div key={key}><RankItems title={title} items={items} /></div>;
+          }
+        }
+
+        return null;
+      })}
+    </div>
+  );
+};
+
+// ── Slide fallback helpers ─────────────────────────────────────────────────────
+
+/** Convert IKM indicators to a QASection-compatible record (label → score 0–100) */
+const indicatorsToQA = (indicators: { label: string; avg: number }[]): Record<string, number> =>
+  Object.fromEntries(indicators.map(ind => [ind.label, Number(((ind.avg / 4) * 100).toFixed(1))]));
+
+const formatDateSafe = (timestamp?: string | null, includeTime: boolean = false): string => {
+  if (!timestamp) return "-";
+  const date = new Date(timestamp);
+  return isNaN(date.getTime()) ? "-" : (includeTime ? date.toLocaleString("id-ID") : date.toLocaleDateString("id-ID"));
+};
+
+/** Build surveyor stats from respondents when question_analysis.surveyor_validation is missing */
+const buildSurveyorStats = (respondents: Respondent[]): Record<string, any> => {
+  const bySurveyor: Record<string, { count: number; scores: number[] }> = {};
+  const byProvince: Record<string, number> = {};
+  for (const r of respondents) {
+    const sv = r.surveyor ?? "Tidak Diketahui";
+    if (!bySurveyor[sv]) bySurveyor[sv] = { count: 0, scores: [] };
+    bySurveyor[sv].count++;
+    if (r.score_average != null) bySurveyor[sv].scores.push(r.score_average);
+    const prov = r.province ?? (r.location as string | undefined) ?? "Tidak Diketahui";
+    byProvince[prov] = (byProvince[prov] ?? 0) + 1;
+  }
+  const surveyorList = Object.entries(bySurveyor).map(([name, d]) => ({
+    name,
+    count: d.count,
+    percentage: d.count,
+  }));
+  const avgScoreList = Object.entries(bySurveyor)
+    .filter(([, d]) => d.scores.length > 0)
+    .map(([name, d]) => ({
+      name,
+      percentage: Number((d.scores.reduce((a, b) => a + b, 0) / d.scores.length).toFixed(2)),
+    }));
+  const provinceList = Object.entries(byProvince).map(([name, count]) => ({ name, count, percentage: count }));
+  return {
+    ...(surveyorList.length ? { jumlah_kuesioner_per_surveyor: surveyorList } : {}),
+    ...(avgScoreList.length ? { rata_rata_skor_per_surveyor: avgScoreList } : {}),
+    ...(provinceList.length ? { sebaran_provinsi: provinceList } : {}),
+  };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const SurveyDetailPage: React.FC = () => {
   const { id } = useParams();
   const [config, setConfig] = useState<SurveyConfig | null>(null);
@@ -75,12 +242,20 @@ export const SurveyDetailPage: React.FC = () => {
   const [respPage, setRespPage] = useState(1);
   const [respSort, setRespSort] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'timestamp', dir: 'desc' });
   const RESP_PER_PAGE = 50;
+  const surveyDashConfig = config
+    ? buildConfigFromSurvey(config)
+    : getSurveyDashboardConfig(id ?? "");
+  const dashboardSummary = resolveSurveyDashboard(
+    surveyDashConfig,
+    data?.indicators ?? undefined,
+    data ?? undefined
+  );
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (autoRefreshEnabled && config) {
       interval = setInterval(() => {
-        fetchData(config.scriptUrl);
+        fetchData(config.scriptUrl, config.presentationMode);
       }, refreshInterval);
     }
     return () => {
@@ -108,36 +283,45 @@ export const SurveyDetailPage: React.FC = () => {
     }
   };
 
-  const fetchData = async (url: string) => {
+  const fetchData = async (url: string, presentationMode?: boolean) => {
     if (!url || url === "undefined" || url === "null" || url.trim() === "") {
       setError("URL Script tidak valid atau belum dikonfigurasi. Silakan periksa pengaturan survei di Management Console.");
       return;
     }
 
     try {
-      const resp = await axios.get(`/api/survey-data?scriptUrl=${encodeURIComponent(url)}`);
-      
+      const params = new URLSearchParams({ scriptUrl: url });
+      if (presentationMode) params.set("mode", "presentation");
+      const resp = await axios.get(`/api/survey-data?${params.toString()}`);
+
+      // Debug log
+      console.group("[SurveyDash] fetchData response");
+      console.log("meta:", resp.data?.meta);
+      console.log("ikm:", resp.data?.ikm);
+      console.log("candidate_preference keys:", Object.keys(resp.data?.candidate_preference ?? {}));
+      console.log("question_analysis keys:", Object.keys(resp.data?.question_analysis ?? {}));
+      console.log("respondents count:", resp.data?.respondents?.length ?? 0);
+      console.log("mode:", params.get("mode") ?? "sheet");
+      console.groupEnd();
+
       // Check for updates for Super Admin
-      if (role === 'SUPER_ADMIN' && data && JSON.stringify(data) !== JSON.stringify(resp.data)) {
+      if (role === "SUPER_ADMIN" && data && JSON.stringify(data) !== JSON.stringify(resp.data)) {
         setLastNotification({ message: "Data survei telah diperbarui otomatis.", type: "info" });
         setTimeout(() => setLastNotification(null), 5000);
       }
 
-      // GAS can return 200 with { error: "..." } when sheet is empty or script fails
       if (!resp.data?.meta) {
-        setError(
-          resp.data?.error
-            ? `Script error: ${resp.data.error}`
-            : "Struktur data tidak valid. Pastikan Google Apps Script sudah dideploy dengan versi terbaru dan sheet tidak kosong."
-        );
+        const errDetail = resp.data?.error ?? (typeof resp.data === "string" ? resp.data.slice(0, 200) : JSON.stringify(resp.data).slice(0, 200));
+        setError(`Apps Script mengembalikan data tidak valid (tidak ada field 'meta'): ${errDetail}. Pastikan code.gs sudah dideploy dan doGet() mengembalikan JSON yang benar.`);
         return;
       }
+
       setData(resp.data);
       setError(null);
     } catch (err: any) {
       console.error("Fetch error:", err);
-      const serverError = typeof err.response?.data === 'object' 
-        ? (err.response.data.error || JSON.stringify(err.response.data)) 
+      const serverError = typeof err.response?.data === "object"
+        ? (err.response.data.error || JSON.stringify(err.response.data))
         : (err.response?.data || err.message);
       setError(`Gagal memuat data: ${serverError}. Pastikan URL Google Apps Script benar dan sudah dideploy sebagai Web App.`);
     }
@@ -161,7 +345,7 @@ export const SurveyDetailPage: React.FC = () => {
           visibility: "PUBLIC"
         };
         setConfig(demoConfig);
-        await fetchData("demo");
+        await fetchData("demo", false);
         setLoading(false);
         return;
       }
@@ -172,7 +356,7 @@ export const SurveyDetailPage: React.FC = () => {
         if (snap.exists()) {
           const cfg = { id: snap.id, ...snap.data() } as SurveyConfig;
           setConfig(cfg);
-          await fetchData(cfg.scriptUrl);
+          await fetchData(cfg.scriptUrl, cfg.presentationMode);
         }
       } catch (err) {
         console.error("Config fetch error:", err);
@@ -196,7 +380,7 @@ export const SurveyDetailPage: React.FC = () => {
   const handleRefresh = async () => {
     if (!config) return;
     setRefreshing(true);
-    await fetchData(config.scriptUrl);
+    await fetchData(config.scriptUrl, config.presentationMode);
     setRefreshing(false);
   };
 
@@ -259,76 +443,60 @@ export const SurveyDetailPage: React.FC = () => {
 
   if (!data || !config) return null;
 
-  const isElectoral = data.meta?.survey_type === 'ELECTORAL';
+  const demoGenderData = data?.demographics?.gender 
+    ? Object.entries(data.demographics.gender).map(([name, value]) => ({ name, value }))
+    : [];
+    
+  const demoEduData = data?.demographics?.pendidikan || data?.demographics?.education 
+    ? Object.entries(data?.demographics?.pendidikan || data?.demographics?.education).map(([name, value]) => ({ name, value }))
+    : [];
 
-  const toChartData = (obj: Record<string, number> | undefined) =>
-    obj ? Object.entries(obj).map(([name, value]) => ({ name, value })) : [];
+  const demoUmurData = data?.demographics?.umur
+    ? Object.entries(data.demographics.umur).map(([name, value]) => ({ name, value }))
+    : [];
+    
+  const demoPekerjaanData = data?.demographics?.pekerjaan
+    ? Object.entries(data.demographics.pekerjaan).map(([name, value]) => ({ name, value }))
+    : [];
 
-  const demoGenderData    = toChartData(data.demographics?.gender);
-  const demoEduData       = toChartData(data.demographics?.pendidikan ?? data.demographics?.education as any);
-  const demoUmurData      = toChartData(data.demographics?.umur);
-  const demoPekerjaanData = toChartData(data.demographics?.pekerjaan);
-  const demoSukuData      = toChartData(data.demographics?.suku);
-  const demoAgamaData     = toChartData(data.demographics?.agama);
-  const demoPenghasilan   = toChartData(data.demographics?.penghasilan);
-  const demoAfiliasiData  = toChartData(data.demographics?.afiliasi_politik);
-  const demoDesaKotaData  = toChartData(data.demographics?.desa_kota);
-  const demoProvinsiData  = toChartData(data.demographics?.provinsi);
-  const demoLayananData   = toChartData(data.demographics?.layanan);
-  const demoLokasiData    = toChartData(data.demographics?.location
-    ? data.demographics.location
-    : undefined);
+  const demoSukuData = data?.demographics?.suku
+    ? Object.entries(data.demographics.suku).map(([name, value]) => ({ name, value }))
+    : [];
 
-  const COLORS_GOOGLE = ['#4285F4', '#DB4437', '#F4B400', '#0F9D58', '#AB47BC', '#00ACC1', '#FF7043', '#9E9D24', '#5C6BC0', '#E91E63', '#795548', '#607D8B', '#F06292', '#AED581', '#FFD54F', '#4DD0E1', '#CE93D8', '#FFAB91', '#80CBC4', '#BCAAA4'];
+  const demoLayananData = data?.demographics?.layanan
+    ? Object.entries(data.demographics.layanan).map(([name, value]) => ({ name, value }))
+    : [];
+    
+  const demoLokasiData = data?.demographics?.location
+    ? Object.entries(data.demographics.location).map(([name, value]) => ({ name, value }))
+    : [];
 
-  const sortDesc = (arr: {name: string; value: number}[]) => [...arr].sort((a, b) => b.value - a.value);
+  const COLORS_GOOGLE = ['#4285F4', '#DB4437', '#F4B400', '#0F9D58', '#AB47BC', '#00ACC1', '#FF7043', '#9E9D24', '#5C6BC0'];
 
-  const PieListCard = ({ id, title, data: chartData }: { id: string; title: string; data: {name: string; value: number}[] }) => {
-    const sorted = sortDesc(chartData);
-    const total = sorted.reduce((s, d) => s + d.value, 0);
-    return (
-      <Card id={id} className="overflow-hidden border border-border/60 shadow-sm rounded-xl bg-card">
-        <CardHeader className="flex flex-row items-start justify-between pb-0 pt-5 px-6">
-          <div className="space-y-1">
-            <CardTitle className="text-base font-normal">{title}</CardTitle>
-            <CardDescription className="text-xs">{total} responses</CardDescription>
-          </div>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="sm" className="h-8 px-2 gap-1.5 text-[#4285F4] hover:bg-blue-50 dark:hover:bg-blue-950/50 font-medium text-xs" onClick={() => downloadPNG(id, `${id}_${config?.id}`)}>
-              <Copy className="w-3.5 h-3.5" /><span className="hidden sm:inline">Copy</span>
-            </Button>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground" onClick={() => exportToCSV(sorted, `${id}_${config?.id}`)}>
-              <Download className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="flex gap-4 p-4 pt-2 items-center">
-          <div className="w-[180px] h-[220px] shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={sorted} dataKey="value" cx="50%" cy="50%" outerRadius={85} labelLine={false} stroke="hsl(var(--background))" strokeWidth={1}>
-                  {sorted.map((_, i) => <Cell key={i} fill={COLORS_GOOGLE[i % COLORS_GOOGLE.length]} />)}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <ScrollArea className="flex-1 h-[220px]">
-            <div className="space-y-1 pr-2">
-              {sorted.map((d, i) => (
-                <div key={d.name} className="flex items-center gap-2 text-xs">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS_GOOGLE[i % COLORS_GOOGLE.length] }} />
-                  <span className="flex-1 text-foreground/80 leading-tight text-[11px]">{d.name}</span>
-                  <span className="font-black tabular-nums">{d.value}</span>
-                  <span className="text-muted-foreground w-9 text-right">{total > 0 ? ((d.value / total) * 100).toFixed(1) : 0}%</span>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
-    );
+  // ── Slide visibility (reads from Firestore config, falls back to defaults) ──
+  const slideVis: SlideVisibility = {
+    ...DEFAULT_SLIDE_VISIBILITY,
+    ...(config.slideVisibility ?? {}),
   };
+
+  const SLIDE_ORDER: Array<{ key: keyof SlideVisibility; value: string }> = [
+    { key: "summary", value: "summary" },
+    { key: "indicators", value: "indicators" },
+    { key: "demographics", value: "demographics" },
+    { key: "publicExpectation", value: "public" },
+    { key: "respondents", value: "respondents" },
+    { key: "nationalLeadership", value: "nationalLeadership" },
+    { key: "leaderFigures", value: "leaderFigures" },
+    { key: "presidentialElectability", value: "presidentialElectability" },
+    { key: "presidentialSimulation", value: "presidentialSimulation" },
+    { key: "partyElectability", value: "partyElectability" },
+    { key: "governmentPerformance", value: "governmentPerformance" },
+    { key: "voterBehavior", value: "voterBehavior" },
+    { key: "publicEmotion", value: "publicEmotion" },
+    { key: "surveyorValidation", value: "surveyorValidation" },
+    { key: "rawData", value: "rawData" },
+  ];
+  const firstActiveTab = SLIDE_ORDER.find(s => slideVis[s.key])?.value ?? "indicators";
 
   const INDIKATOR_OPTIONS = [
     ["Tidak Sesuai", "Kurang Sesuai", "Sesuai", "Sangat Sesuai"],
@@ -482,14 +650,14 @@ export const SurveyDetailPage: React.FC = () => {
           <div className="space-y-2">
              <div className="flex items-center gap-3">
                <Badge className="bg-primary/20 text-primary hover:bg-primary/30 border-primary/20 uppercase text-[10px] font-black tracking-[0.2em] px-3 py-1 rounded-full">
-                 {data.meta.period}
+                 {data?.meta?.period ?? dashboardSummary.period}
                </Badge>
                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-bold uppercase tracking-wider bg-muted/30 px-3 py-1 rounded-full backdrop-blur-sm border border-border/50">
                  <RefreshCw className="w-3 h-3 animate-spin-slow" />
-                 Sinkronisasi: {new Date(data.meta.last_updated).toLocaleString("id-ID")}
+                 Sinkronisasi: {data?.meta?.last_updated ? new Date(data.meta.last_updated).toLocaleString("id-ID") : "—"}
                </div>
              </div>
-               <h2 className="text-2xl md:text-3xl font-black tracking-tighter text-gradient uppercase leading-none mt-1">{data.meta.survey_name}</h2>
+               <h2 className="text-2xl md:text-3xl font-black tracking-tighter text-gradient uppercase leading-none mt-1">{data?.meta?.survey_name ?? dashboardSummary.title}</h2>
                <div className="flex items-center gap-2 text-sm text-muted-foreground/80 font-semibold tracking-tight">
                <div className="p-1 rounded-md bg-primary/10">
                  <BriefcaseBusiness className="w-4 h-4 text-primary" />
@@ -615,10 +783,10 @@ export const SurveyDetailPage: React.FC = () => {
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Margin of Error", value: config.samplingConfig?.marginOfError ? `±${(config.samplingConfig.marginOfError * 100).toFixed(2)}%` : "±N/A", icon: Info, color: "text-blue-500" },
-          { label: "Tingkat Partisipasi", value: "94%", icon: Users, color: "text-purple-500" },
-          { label: "Index Reliability", value: "0.89", icon: Shield, color: "text-emerald-500" },
-          { label: "Trend Kepuasan", value: "+4.2%", icon: TrendingUp, color: "text-orange-500" }
+          { label: "Margin of Error", value: dashboardSummary.marginOfError, icon: Info, color: "text-blue-500" },
+          { label: "Tingkat Partisipasi", value: dashboardSummary.participationRate, icon: Users, color: "text-purple-500" },
+          { label: "Index Reliability", value: String(dashboardSummary.reliabilityIndex), icon: Shield, color: "text-emerald-500" },
+          { label: "Trend Kepuasan", value: dashboardSummary.trend, icon: TrendingUp, color: "text-orange-500" }
         ].map((stat, i) => (
           <Card key={i} className="border-none bg-card/50 backdrop-blur-sm shadow-sm">
             <CardContent className="p-4 flex items-center gap-3">
@@ -642,85 +810,51 @@ export const SurveyDetailPage: React.FC = () => {
           </div>
           <CardHeader className="pb-2">
             <CardDescription className="text-primary-foreground/70 uppercase text-[10px] font-black tracking-widest">Total Responden</CardDescription>
-            <CardTitle className="text-3xl md:text-4xl font-black tracking-tighter">{data.meta.total_respondents}</CardTitle>
+            <CardTitle className="text-3xl md:text-4xl font-black tracking-tighter">{data?.meta?.total_respondents ?? dashboardSummary.totalRespondents}</CardTitle>
           </CardHeader>
           <CardContent>
              <div className="flex items-center gap-2 text-xs font-bold bg-white/10 w-fit px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
                <Users className="w-4 h-4" />
-               Sampel Validitas 95%
+               Sampel Validitas {dashboardSummary.sampleValidity}
              </div>
           </CardContent>
         </Card>
 
-        {data.ikm ? (
-          <Card className="glass-card border-none relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-2 h-full" style={{
-              backgroundColor: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
-            }} />
-            <CardHeader className="pb-2">
-              <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Indeks Kepuasan (NIK)</CardDescription>
-              <CardTitle className="text-3xl md:text-4xl font-black tracking-tighter" style={{
-                color: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
-              }}>{data.ikm.score.toFixed(2)}</CardTitle>
-            </CardHeader>
-            <CardContent>
-               <Badge className="hover:opacity-90 border-none font-black px-4 py-1.5 rounded-full uppercase tracking-wider text-xs text-white" style={{
-                 backgroundColor: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
-               }}>
-                 {(() => {
-                   const s = data.ikm.score;
-                   if (s >= 88.31) return "Mutu A — Sangat Baik";
-                   if (s >= 76.61) return "Mutu B — Baik";
-                   if (s >= 65.00) return "Mutu C — Kurang Baik";
-                   return "Mutu D — Tidak Baik";
-                 })()}
-               </Badge>
-               <p className="text-[10px] text-muted-foreground mt-2 font-mono">
-                 Nilai Interval: {data.ikm.score >= 88.31 ? "88,31–100" : data.ikm.score >= 76.61 ? "76,61–88,30" : data.ikm.score >= 65.00 ? "65,00–76,60" : "25,00–64,99"}
-               </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="glass-card border-none relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-2 h-full bg-violet-500/50" />
-            <CardHeader className="pb-2">
-              <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Tipe Survei</CardDescription>
-              <CardTitle className="text-xl font-black text-violet-600 dark:text-violet-400 tracking-tighter">ELECTORAL</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Badge className="bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-500/30 font-black uppercase text-xs">
-                Survei Elektoral & Kepemimpinan
-              </Badge>
-            </CardContent>
-          </Card>
-        )}
+        <Card className="glass-card border-none relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-2 h-full" style={{
+            backgroundColor: dashboardSummary.indexScore >= 88.31 ? '#10b981' : dashboardSummary.indexScore >= 76.61 ? '#3b82f6' : dashboardSummary.indexScore >= 65.00 ? '#f59e0b' : '#ef4444'
+          }} />
+          <CardHeader className="pb-2">
+            <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Indeks Kepuasan (NIK)</CardDescription>
+            <CardTitle className="text-3xl md:text-4xl font-black tracking-tighter" style={{
+              color: dashboardSummary.indexScore >= 88.31 ? '#10b981' : dashboardSummary.indexScore >= 76.61 ? '#3b82f6' : dashboardSummary.indexScore >= 65.00 ? '#f59e0b' : '#ef4444'
+            }}>{dashboardSummary.indexScore.toFixed(2)}</CardTitle>
+          </CardHeader>
+          <CardContent>
+             <Badge className="hover:opacity-90 border-none font-black px-4 py-1.5 rounded-full uppercase tracking-wider text-xs text-white" style={{
+               backgroundColor: dashboardSummary.indexScore >= 88.31 ? '#10b981' : dashboardSummary.indexScore >= 76.61 ? '#3b82f6' : dashboardSummary.indexScore >= 65.00 ? '#f59e0b' : '#ef4444'
+             }}>
+               Mutu {dashboardSummary.qualityLabel} — {dashboardSummary.qualityCategory}
+             </Badge>
+             <p className="text-[10px] text-muted-foreground mt-2 font-mono">
+               Nilai Interval: {dashboardSummary.qualityInterval}
+             </p>
+          </CardContent>
+        </Card>
 
-        {data.ikm ? (
-          <Card className="glass-card border-none relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500/50" />
-            <CardHeader className="pb-2">
-              <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Target Mutu 2026</CardDescription>
-              <CardTitle className="text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">90.00</CardTitle>
-            </CardHeader>
-            <CardContent>
-               <div className="flex items-center gap-2 text-xs text-muted-foreground font-black uppercase tracking-wider bg-emerald-500/10 w-fit px-3 py-1 rounded-full border border-emerald-500/20">
-                 <TrendingUp className="w-4 h-4 text-emerald-500" />
-                 Gap: {(90 - data.ikm.score).toFixed(2)} poin
-               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="glass-card border-none relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-2 h-full bg-blue-500/50" />
-            <CardHeader className="pb-2">
-              <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Instansi</CardDescription>
-              <CardTitle className="text-base font-black text-foreground tracking-tighter mt-1">{config.agency}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em]">{config.period}</p>
-            </CardContent>
-          </Card>
-        )}
+        <Card className="glass-card border-none relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500/50" />
+          <CardHeader className="pb-2">
+            <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Target Mutu</CardDescription>
+            <CardTitle className="text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">{dashboardSummary.targetScore.toFixed(2)}</CardTitle>
+          </CardHeader>
+          <CardContent>
+             <div className="flex items-center gap-2 text-xs text-muted-foreground font-black uppercase tracking-wider bg-emerald-500/10 w-fit px-3 py-1 rounded-full border border-emerald-500/20">
+               <TrendingUp className="w-4 h-4 text-emerald-500" />
+               Gap: {dashboardSummary.gap.toFixed(2)} poin
+             </div>
+          </CardContent>
+        </Card>
 
         <Card className="glass-card border-none relative overflow-hidden group">
           <div className="absolute -right-6 -top-6 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700">
@@ -737,60 +871,61 @@ export const SurveyDetailPage: React.FC = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="indicators" className="space-y-4">
-        <TabsList className="bg-muted p-1 flex-wrap h-auto w-full justify-start gap-0.5">
-          <TabsTrigger value="indicators" className="gap-1.5 text-xs">
-            <LucideBarChart className="w-3.5 h-3.5" />
-            {isElectoral ? 'Elektabilitas' : '9 Indikator IKM'}
-          </TabsTrigger>
-          {isElectoral && <>
-            <TabsTrigger value="simulasi" className="gap-1.5 text-xs">
-              <TrendingUp className="w-3.5 h-3.5" />Simulasi
-            </TabsTrigger>
-            <TabsTrigger value="parpol" className="gap-1.5 text-xs">
-              <Shield className="w-3.5 h-3.5" />Parpol
-            </TabsTrigger>
-            <TabsTrigger value="kepemimpinan" className="gap-1.5 text-xs">
-              <GraduationCap className="w-3.5 h-3.5" />Kepemimpinan
-            </TabsTrigger>
-            <TabsTrigger value="kinerja" className="gap-1.5 text-xs">
-              <BriefcaseBusiness className="w-3.5 h-3.5" />Kinerja Pemerintah
-            </TabsTrigger>
-            <TabsTrigger value="pemilih" className="gap-1.5 text-xs">
-              <MapPin className="w-3.5 h-3.5" />Perilaku Pemilih
-            </TabsTrigger>
-            <TabsTrigger value="emosi" className="gap-1.5 text-xs">
-              <MessageSquare className="w-3.5 h-3.5" />Emosi Publik
-            </TabsTrigger>
-          </>}
-          <TabsTrigger value="demographics" className="gap-1.5 text-xs">
-            <PieChartIcon className="w-3.5 h-3.5" />Demografi
-          </TabsTrigger>
-          <TabsTrigger value="public" className="gap-1.5 text-xs">
-            <MessageSquare className="w-3.5 h-3.5" />Harapan Publik
-          </TabsTrigger>
-          {isElectoral && <TabsTrigger value="surveyor" className="gap-1.5 text-xs">
-            <Check className="w-3.5 h-3.5" />Surveyor
-          </TabsTrigger>}
-          <TabsTrigger value="respondents" className="gap-1.5 text-xs">
-            <Users className="w-3.5 h-3.5" />Daftar Responden
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue={firstActiveTab} className="space-y-4">
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="bg-muted p-1 inline-flex h-auto gap-0.5 min-w-max flex-nowrap">
+            {slideVis.summary && <TabsTrigger value="summary" className="gap-1.5 text-xs whitespace-nowrap"><FileText className="w-3.5 h-3.5" />Ringkasan</TabsTrigger>}
+            {slideVis.indicators && <TabsTrigger value="indicators" className="gap-1.5 text-xs whitespace-nowrap"><LucideBarChart className="w-3.5 h-3.5" />9 Indikator IKM</TabsTrigger>}
+            {slideVis.demographics && <TabsTrigger value="demographics" className="gap-1.5 text-xs whitespace-nowrap"><PieChartIcon className="w-3.5 h-3.5" />Demografi</TabsTrigger>}
+            {slideVis.publicExpectation && <TabsTrigger value="public" className="gap-1.5 text-xs whitespace-nowrap"><MessageSquare className="w-3.5 h-3.5" />Harapan Publik</TabsTrigger>}
+            {slideVis.respondents && <TabsTrigger value="respondents" className="gap-1.5 text-xs whitespace-nowrap"><Users className="w-3.5 h-3.5" />Daftar Responden</TabsTrigger>}
+            {slideVis.nationalLeadership && <TabsTrigger value="nationalLeadership" className="gap-1.5 text-xs whitespace-nowrap"><Award className="w-3.5 h-3.5" />Kepemimpinan Nasional</TabsTrigger>}
+            {slideVis.leaderFigures && <TabsTrigger value="leaderFigures" className="gap-1.5 text-xs whitespace-nowrap"><UserCheck className="w-3.5 h-3.5" />Tokoh & Figur</TabsTrigger>}
+            {slideVis.presidentialElectability && <TabsTrigger value="presidentialElectability" className="gap-1.5 text-xs whitespace-nowrap"><TrendingUp className="w-3.5 h-3.5" />Elektabilitas Capres</TabsTrigger>}
+            {slideVis.presidentialSimulation && <TabsTrigger value="presidentialSimulation" className="gap-1.5 text-xs whitespace-nowrap"><Shuffle className="w-3.5 h-3.5" />Simulasi Capres</TabsTrigger>}
+            {slideVis.partyElectability && <TabsTrigger value="partyElectability" className="gap-1.5 text-xs whitespace-nowrap"><Flag className="w-3.5 h-3.5" />Elektabilitas Parpol</TabsTrigger>}
+            {slideVis.governmentPerformance && <TabsTrigger value="governmentPerformance" className="gap-1.5 text-xs whitespace-nowrap"><Building2 className="w-3.5 h-3.5" />Kinerja Pemerintah</TabsTrigger>}
+            {slideVis.voterBehavior && <TabsTrigger value="voterBehavior" className="gap-1.5 text-xs whitespace-nowrap"><Users className="w-3.5 h-3.5" />Perilaku Pemilih</TabsTrigger>}
+            {slideVis.publicEmotion && <TabsTrigger value="publicEmotion" className="gap-1.5 text-xs whitespace-nowrap"><Heart className="w-3.5 h-3.5" />Emosi Publik</TabsTrigger>}
+            {slideVis.surveyorValidation && <TabsTrigger value="surveyorValidation" className="gap-1.5 text-xs whitespace-nowrap"><ShieldCheck className="w-3.5 h-3.5" />Validasi Surveyor</TabsTrigger>}
+            {slideVis.rawData && <TabsTrigger value="rawData" className="gap-1.5 text-xs whitespace-nowrap"><Database className="w-3.5 h-3.5" />Data Mentah</TabsTrigger>}
+          </TabsList>
+        </div>
 
-        <TabsContent value="indicators" className="space-y-4">
-          {isElectoral ? (
-            /* ── ELECTORAL: Elektabilitas ── */
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <PieListCard id="chart-vote-intention" title="Pilihan Capres (C1c)" data={toChartData((data as any).electability?.vote_intention)} />
-                <PieListCard id="chart-awareness"      title="Tingkat Pengenalan Capres (C1a)" data={toChartData((data as any).electability?.awareness)} />
-                <PieListCard id="chart-likability"     title="Tingkat Kesukaan Capres (C1b)" data={toChartData((data as any).electability?.likability)} />
-                <GoogleFormChartCard id="chart-sim-5"  title="Simulasi Pilpres 5 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s5)} type="bar-horizontal" />
-                <GoogleFormChartCard id="chart-sim-10" title="Simulasi Pilpres 10 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s10)} type="bar-horizontal" />
-                <GoogleFormChartCard id="chart-trust"  title="Skor Kepercayaan Tokoh (H2, avg 0-10)" data={Object.entries((data as any).public_emotion?.h2_trust ?? {}).map(([name, v]: any) => ({ name, value: v.avg }))} type="bar-horizontal" />
+        {/* ── Ringkasan Survei ── */}
+        {slideVis.summary && (
+        <TabsContent value="summary" className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[
+              { label: "Judul Survei", value: dashboardSummary.title || config.name },
+              { label: "Instansi", value: dashboardSummary.institution || config.agency },
+              { label: "Periode", value: dashboardSummary.period || config.period },
+              { label: "Total Responden", value: String(dashboardSummary.totalRespondents) },
+              { label: "Margin of Error", value: dashboardSummary.marginOfError },
+              { label: "Confidence Level", value: `${surveyDashConfig.confidenceLevel ?? 95}%` },
+              { label: "Sampel Validitas", value: dashboardSummary.sampleValidity },
+              { label: "Index Reliability", value: String(dashboardSummary.reliabilityIndex) },
+              { label: "Trend Kepuasan", value: dashboardSummary.trend },
+              { label: "Indeks Kepuasan (NIK)", value: dashboardSummary.indexScore.toFixed(2) },
+              { label: "Target Mutu", value: dashboardSummary.targetScore.toFixed(2) },
+              { label: "Gap", value: `${dashboardSummary.gap.toFixed(2)} poin` },
+              { label: "Mutu", value: `${dashboardSummary.qualityLabel} — ${dashboardSummary.qualityCategory}` },
+              { label: "Nilai Interval", value: dashboardSummary.qualityInterval },
+              { label: "Mode Data", value: surveyDashConfig.presentationMode ? "Mode Data Presentasi" : "Data Aktual" },
+            ].map(item => (
+              <div key={item.label} className="bg-card rounded-xl border border-border p-4 space-y-1">
+                <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">{item.label}</p>
+                <p className="text-sm font-bold text-foreground leading-tight">{item.value}</p>
               </div>
-            </div>
-          ) : data.indicators && data.indicators.length > 0 ? (
+            ))}
+          </div>
+        </TabsContent>
+        )}
+
+        {/* ── 9 Indikator IKM ── */}
+        {slideVis.indicators && (
+        <TabsContent value="indicators" className="space-y-4">
+          {data.indicators && data.indicators.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="lg:col-span-1 border-none shadow-sm bg-muted/20">
                <CardHeader className="flex flex-row items-center justify-between">
@@ -898,31 +1033,25 @@ export const SurveyDetailPage: React.FC = () => {
             </div>
           )}
         </TabsContent>
+        )}
 
+        {/* ── Demografi ── */}
+        {slideVis.demographics && (
         <TabsContent value="demographics" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
-             <GoogleFormChartCard id="chart-gender"   title="Jenis Kelamin"        data={demoGenderData}    type="pie" />
-             <GoogleFormChartCard id="chart-umur"     title="Kelompok Umur"         data={demoUmurData}      type="bar" />
-             <GoogleFormChartCard id="chart-edu"      title="Pendidikan Terakhir"   data={demoEduData}       type="pie" />
-             <GoogleFormChartCard id="chart-pekerjaan"title="Profesi / Pekerjaan"   data={demoPekerjaanData} type="bar-horizontal" />
-             <PieListCard         id="chart-suku"     title="Suku / Etnis"          data={demoSukuData} />
-             {isElectoral ? (
-               <>
-                 <GoogleFormChartCard id="chart-agama"     title="Agama"              data={demoAgamaData}    type="pie" />
-                 <GoogleFormChartCard id="chart-penghasilan"title="Penghasilan per Bulan" data={demoPenghasilan} type="bar-horizontal" />
-                 <PieListCard         id="chart-afiliasi"  title="Afiliasi Politik"   data={demoAfiliasiData} />
-                 <GoogleFormChartCard id="chart-desakota"  title="Desa / Kota"        data={demoDesaKotaData} type="pie" />
-                 <PieListCard         id="chart-provinsi"  title="Provinsi"           data={demoProvinsiData} />
-               </>
-             ) : (
-               <>
-                 <GoogleFormChartCard id="chart-layanan" title="Jenis Layanan"   data={demoLayananData} type="bar-horizontal" />
-                 <GoogleFormChartCard id="chart-lokasi"  title="Lokasi Survei"   data={demoLokasiData}  type="bar" />
-               </>
-             )}
+             <GoogleFormChartCard id="chart-gender" title="Jenis Kelamin" data={demoGenderData} type="pie" />
+             <GoogleFormChartCard id="chart-umur" title="Kelompok Umur" data={demoUmurData} type="bar" />
+             <GoogleFormChartCard id="chart-edu" title="Pendidikan Terakhir" data={demoEduData} type="pie" />
+             <GoogleFormChartCard id="chart-pekerjaan" title="Profesi / Pekerjaan" data={demoPekerjaanData} type="bar-horizontal" />
+             <GoogleFormChartCard id="chart-suku" title="Suku Etnis" data={demoSukuData} type="pie" />
+             <GoogleFormChartCard id="chart-layanan" title="Jenis Layanan" data={demoLayananData} type="bar-horizontal" />
+             <GoogleFormChartCard id="chart-lokasi" title="Lokasi Survei" data={demoLokasiData} type="bar" />
           </div>
         </TabsContent>
+        )}
 
+        {/* ── Harapan Publik ── */}
+        {slideVis.publicExpectation && (
         <TabsContent value="public" className="space-y-6">
            {data.open_ended ? (
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -998,7 +1127,10 @@ export const SurveyDetailPage: React.FC = () => {
              </div>
            )}
         </TabsContent>
+        )}
 
+        {/* ── Daftar Responden ── */}
+        {slideVis.respondents && (
         <TabsContent value="respondents" className="space-y-4">
           <Card>
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1038,7 +1170,7 @@ export const SurveyDetailPage: React.FC = () => {
                 <Button variant="outline" size="sm" onClick={() => {
                   const exportData = data.respondents.map(r => ({
                     ...r,
-                    answers: JSON.stringify(r.answers)
+                    answers: JSON.stringify(r.answers || {})
                   }));
                   exportToCSV(exportData, `respondents_list_${config?.id}`);
                 }} className="h-7 gap-2 text-[10px] font-black uppercase">
@@ -1086,7 +1218,7 @@ export const SurveyDetailPage: React.FC = () => {
                               <TableCell className="hidden lg:table-cell text-foreground/80">{r.gender}</TableCell>
                               <TableCell className="hidden lg:table-cell text-foreground/80">{r.education}</TableCell>
                               <TableCell className="text-muted-foreground text-xs font-medium">
-                                {new Date(r.timestamp).toLocaleDateString("id-ID")}
+                                {formatDateSafe(r.timestamp)}
                               </TableCell>
                               <TableCell className="text-right">
                                  <Dialog>
@@ -1109,12 +1241,12 @@ export const SurveyDetailPage: React.FC = () => {
                                           <div className="text-muted-foreground">Rata-rata Skor</div>
                                           <div className="font-black text-right text-primary">
                                             {(() => {
-                                              const scores = Object.values(r.answers).filter(v => typeof v === 'number') as number[];
+                                              const scores = Object.values(r.answers || {}).filter(v => typeof v === 'number') as number[];
                                               return scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : "0.00";
                                             })()}
                                           </div>
                                           <div className="text-muted-foreground">Waktu Pengisian</div>
-                                          <div className="font-bold text-right text-[9px] text-foreground">{new Date(r.timestamp).toLocaleString("id-ID")}</div>
+                                          <div className="font-bold text-right text-[9px] text-foreground">{formatDateSafe(r.timestamp, true)}</div>
                                        </div>
                                        <div className="space-y-1">
                                           <h4 className="text-[9px] font-black uppercase text-primary tracking-widest px-1">Dokumentasi</h4>
@@ -1129,7 +1261,7 @@ export const SurveyDetailPage: React.FC = () => {
                                        <div className="space-y-1">
                                           <h4 className="text-[9px] font-black uppercase text-primary tracking-widest px-1">Indikator Kepuasan</h4>
                                           <div className="space-y-0.5">
-                                            {Object.entries(r.answers).map(([key, val]) => (
+                                            {Object.entries(r.answers || {}).map(([key, val]) => (
                                               <div key={key} className="flex justify-between items-center px-2 py-1 hover:bg-muted/50 rounded-md transition-colors">
                                                 <span className="text-[9px] font-medium text-foreground leading-tight">{key}</span>
                                                 <Badge className="font-black h-4 w-4 text-[8px] flex shrink-0 items-center justify-center p-0 rounded-full">{val}</Badge>
@@ -1192,199 +1324,299 @@ export const SurveyDetailPage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* ── SIMULASI ── */}
-        {isElectoral && (
-          <TabsContent value="simulasi" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <GoogleFormChartCard id="chart-sim5b"  title="Simulasi 5 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s5)} type="bar-horizontal" />
-              <PieListCard id="chart-sim8"   title="Simulasi 8 Nama (D1a)"  data={toChartData((data as any).electability?.simulation?.s8)} />
-              <PieListCard id="chart-sim10b" title="Simulasi 10 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s10)} />
-              <PieListCard id="chart-klas-pol" title="Klaster Politisi (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_politisi)} />
-              <PieListCard id="chart-klas-tok" title="Klaster Tokoh Agama & Sosial (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_tokoh)} />
-              <PieListCard id="chart-klas-pro" title="Klaster Profesional (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_profesional)} />
-            </div>
-          </TabsContent>
         )}
 
-        {/* ── PARPOL ── */}
-        {isElectoral && (
-          <TabsContent value="parpol" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PieListCard id="chart-party-vote"  title="Pilihan Partai (E1d)"         data={toChartData((data as any).party?.vote_intention)} />
-              <PieListCard id="chart-party-like"  title="Tingkat Kesukaan Parpol (E1c)" data={toChartData((data as any).party?.likability)} />
-              <PieListCard id="chart-party-aware" title="Pengenalan Parpol (E1b)"       data={toChartData((data as any).party?.awareness)} />
-            </div>
-          </TabsContent>
-        )}
-
-        {/* ── KEPEMIMPINAN NASIONAL ── */}
-        {isElectoral && (
-          <TabsContent value="kepemimpinan" className="space-y-6">
-            {(() => {
-              const nl = (data as any).national_leadership;
-              const a1bAvg = nl?.a1b_satisfaction?.avg ?? 0;
-              const a1cAvg = nl?.a1c_optimism?.avg ?? 0;
-              return (
-                <>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Card className="col-span-2 border-none shadow-sm bg-muted/20">
-                      <CardHeader className="pb-2"><CardDescription className="text-xs uppercase tracking-widest font-black">Kepuasan Kepemimpinan (A1b)</CardDescription></CardHeader>
-                      <CardContent>
-                        <p className="text-5xl font-black text-primary">{a1bAvg.toFixed(1)}<span className="text-xl text-muted-foreground">/10</span></p>
-                        <Progress value={a1bAvg * 10} className="h-2 mt-3" />
-                      </CardContent>
-                    </Card>
-                    <Card className="col-span-2 border-none shadow-sm bg-muted/20">
-                      <CardHeader className="pb-2"><CardDescription className="text-xs uppercase tracking-widest font-black">Optimisme Pemimpin Baru (A1c)</CardDescription></CardHeader>
-                      <CardContent>
-                        <p className="text-5xl font-black text-emerald-500">{a1cAvg.toFixed(1)}<span className="text-xl text-muted-foreground">/10</span></p>
-                        <Progress value={a1cAvg * 10} className="h-2 mt-3" />
-                      </CardContent>
-                    </Card>
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <PieListCard id="chart-a1d" title="Masalah Utama Bangsa (A1d)"           data={toChartData(nl?.a1d_problems)} />
-                    <PieListCard id="chart-a2e" title="Karakter Pemimpin Dibutuhkan (A2e)"   data={toChartData(nl?.a2e_character)} />
-                    <GoogleFormChartCard id="chart-a2f" title="Perlu Pemimpin Baru? (A2f)"   data={toChartData(nl?.a2f_new_leader)} type="pie" />
-                    <PieListCard id="chart-a2g" title="Latar Belakang Ideal Pemimpin (A2g)"  data={toChartData(nl?.a2g_background)} />
-                  </div>
-                </>
-              );
-            })()}
-          </TabsContent>
-        )}
-
-        {/* ── KINERJA PEMERINTAH ── */}
-        {isElectoral && (
-          <TabsContent value="kinerja" className="space-y-6">
-            {(() => {
-              const gp = (data as any).gov_performance;
-              const f5bAvg = gp?.f5b_score?.avg ?? 0;
-              const f2Data = gp?.f2_satisfaction
-                ? Object.entries(gp.f2_satisfaction).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(1) ?? '0') }))
-                : [];
-              const f3Data = gp?.f3_leadership
-                ? Object.entries(gp.f3_leadership).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(1) ?? '0') }))
-                : [];
-              const f4Data = gp?.f4_trust
-                ? Object.entries(gp.f4_trust).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(1) ?? '0') }))
-                : [];
-              return (
-                <>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Card className="col-span-2 border-none shadow-sm bg-muted/20">
-                      <CardHeader className="pb-2"><CardDescription className="text-xs uppercase tracking-widest font-black">Skor Kinerja Pemerintah (F5b)</CardDescription></CardHeader>
-                      <CardContent>
-                        <p className="text-5xl font-black text-primary">{f5bAvg.toFixed(1)}<span className="text-xl text-muted-foreground">/10</span></p>
-                        <Progress value={f5bAvg * 10} className="h-2 mt-3" />
-                      </CardContent>
-                    </Card>
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <GoogleFormChartCard id="chart-f2" title="Kepuasan per Bidang Pemerintahan (F2)" data={f2Data} type="bar-horizontal" />
-                    <GoogleFormChartCard id="chart-f3" title="Kepemimpinan & Arah Kebijakan (F3, avg 1-10)" data={f3Data} type="bar-horizontal" />
-                    <GoogleFormChartCard id="chart-f4" title="Kepercayaan & Legitimasi Publik (F4, avg 1-10)" data={f4Data} type="bar-horizontal" />
-                  </div>
-                  {gp?.open && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {[
-                        { key: 'f1a', label: 'Penilaian Kinerja (F1a)' },
-                        { key: 'f1b', label: 'Yang Tidak Disukai (F1b)' },
-                        { key: 'f5c', label: 'Isu Paling Mendesak (F5c)' },
-                      ].map(({ key, label }) => (
-                        <Card key={key} className="h-[260px] flex flex-col border-none shadow-sm bg-muted/20">
-                          <CardHeader className="pb-2"><CardTitle className="text-sm font-black">{label}</CardTitle></CardHeader>
-                          <CardContent className="flex-1 overflow-hidden">
-                            <ScrollArea className="h-full pr-2">
-                              <div className="space-y-2">
-                                {(gp.open[key] ?? []).map((t: string, i: number) => (
-                                  <p key={i} className="text-xs italic text-foreground/80 border-l-2 border-primary/40 pl-2">"{t}"</p>
-                                ))}
-                              </div>
-                            </ScrollArea>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-          </TabsContent>
-        )}
-
-        {/* ── PERILAKU PEMILIH ── */}
-        {isElectoral && (
-          <TabsContent value="pemilih" className="space-y-6">
-            {(() => {
-              const vb = (data as any).voter_behavior;
-              const g2Data = vb?.g2_campaign
-                ? Object.entries(vb.g2_campaign).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(2) ?? '0') }))
-                : [];
-              const g3Data = vb?.g3_factors
-                ? Object.entries(vb.g3_factors).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(2) ?? '0') }))
-                : [];
-              const g4Data = vb?.g4_influence
-                ? Object.entries(vb.g4_influence).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(2) ?? '0') }))
-                : [];
-              return (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <GoogleFormChartCard id="chart-g1b" title="Pertimbangan Memilih (G1b)"           data={toChartData(vb?.g1b)} type="pie" />
-                  <GoogleFormChartCard id="chart-g2"  title="Model Kampanye Disukai (G2, avg)"     data={g2Data} type="bar-horizontal" />
-                  <GoogleFormChartCard id="chart-g3"  title="Faktor Penentu Pilihan (G3, avg)"     data={g3Data} type="bar-horizontal" />
-                  <PieListCard         id="chart-g4"  title="Pengaruh Ajakan/Individu (G4, avg)"   data={g4Data} />
-                </div>
-              );
-            })()}
-          </TabsContent>
-        )}
-
-        {/* ── EMOSI PUBLIK ── */}
-        {isElectoral && (
-          <TabsContent value="emosi" className="space-y-6">
-            <GoogleFormChartCard
-              id="chart-h2-full"
-              title="Tingkat Kepercayaan Tokoh (H2, skala 0-10)"
-              data={Object.entries((data as any).public_emotion?.h2_trust ?? {}).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(1) ?? '0') }))}
-              type="bar-horizontal"
-            />
-            {Object.entries((data as any).public_emotion?.h1 ?? {}).map(([leader, sentiment]: any) => (
-              <Card key={leader} className="border-none shadow-sm bg-muted/20">
-                <CardHeader>
-                  <CardTitle className="text-base font-black">{leader}</CardTitle>
+        {/* ── Kepemimpinan Nasional ── */}
+        {slideVis.nationalLeadership && (() => {
+          const qaData = data?.question_analysis?.national_leadership;
+          const cpData = data?.candidate_preference;
+          const indFallback = data?.indicators?.length ? indicatorsToQA(data.indicators) : null;
+          const openFallback = data?.open_ended?.general_opinion?.length
+            ? { "Opini Umum Publik": data.open_ended.general_opinion.map((t, i) => ({ name: `${i + 1}`, label: t, percentage: 0 })) }
+            : null;
+          const hasData = qaData || cpData?.capres?.length || cpData?.politisi?.length || indFallback || openFallback;
+          return (
+            <TabsContent value="nationalLeadership">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <Award className="w-4 h-4 text-primary" />Kepemimpinan Nasional
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[
-                      { key: 'opinion',  label: 'H1a — Pendapat', color: 'blue' },
-                      { key: 'liked',    label: 'H1b — Yang Disukai', color: 'green' },
-                      { key: 'disliked', label: 'H1c — Yang Tidak Disukai', color: 'red' },
-                      { key: 'action',   label: 'H1d — Yang Harus Dilakukan', color: 'purple' },
-                    ].map(({ key, label, color }) => (
-                      <div key={key} className="space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
-                        <div className="space-y-1.5">
-                          {(sentiment[key] ?? []).map((t: string, i: number) => (
-                            <p key={i} className={`text-xs italic text-foreground/80 border-l-2 pl-2 border-${color}-400`}>"{t}"</p>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qaData ? <QASection data={qaData} /> : null}
+                    {!qaData && cpData?.capres?.length ? <RankItems title="Elektabilitas Pemimpin Nasional" items={cpData.capres} /> : null}
+                    {!qaData && cpData?.politisi?.length ? <RankItems title="Tokoh Politik" items={cpData.politisi} /> : null}
+                    {!qaData && !cpData?.capres?.length && indFallback ? <QASection data={indFallback} /> : null}
+                    {!qaData && !cpData?.capres?.length && !indFallback && openFallback ? <QASection data={openFallback} /> : null}
+                  </> : <SlideEmptyState label="Kepemimpinan Nasional" icon={Award} />}
                 </CardContent>
               </Card>
-            ))}
-          </TabsContent>
-        )}
+            </TabsContent>
+          );
+        })()}
 
-        {/* ── SURVEYOR ── */}
-        {isElectoral && (
-          <TabsContent value="surveyor" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <GoogleFormChartCard id="chart-i1a" title="Pemahaman Responden (I1a)" data={toChartData((data as any).surveyor_quality?.i1a_understanding)} type="bar-horizontal" />
-              <GoogleFormChartCard id="chart-i1b" title="Tingkat Kepercayaan Jawaban (I1b)" data={toChartData((data as any).surveyor_quality?.i1b_reliability)} type="bar-horizontal" />
-            </div>
+        {/* ── Tokoh & Figur ── */}
+        {slideVis.leaderFigures && (() => {
+          const qa = data?.question_analysis?.leader_figures;
+          const cp = data?.candidate_preference;
+          const hasCp = cp?.capres?.length || cp?.politisi?.length || cp?.tokoh?.length || cp?.profesional?.length;
+          const hasData = qa || hasCp;
+          return (
+            <TabsContent value="leaderFigures">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-primary" />Tokoh & Figur Pemimpin
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qa ? <QASection data={qa} /> : null}
+                    {cp?.capres?.length ? <RankItems title="Calon Presiden" items={cp.capres} /> : null}
+                    {cp?.tokoh?.length ? <RankItems title="Tokoh Nasional" items={cp.tokoh} /> : null}
+                    {cp?.politisi?.length ? <RankItems title="Tokoh Politik" items={cp.politisi} /> : null}
+                    {cp?.profesional?.length ? <RankItems title="Profesional / Teknokrat" items={cp.profesional} /> : null}
+                  </> : <SlideEmptyState label="Tokoh & Figur Pemimpin" icon={UserCheck} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Elektabilitas Capres ── */}
+        {slideVis.presidentialElectability && (() => {
+          const qa = data?.question_analysis?.presidential_electability;
+          const cp = data?.candidate_preference;
+          const hasData = qa || cp?.capres?.length || cp?.capres_closed?.length || cp?.capres_alternative?.length
+            || cp?.simulation_10?.length || cp?.simulation_8?.length || cp?.simulation_5?.length;
+          return (
+            <TabsContent value="presidentialElectability">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-primary" />Elektabilitas Calon Presiden
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qa ? <QASection data={qa} /> : null}
+                    {cp?.capres?.length ? <RankItems title="Elektabilitas Terbuka" items={cp.capres} /> : null}
+                    {cp?.capres_alternative?.length ? <RankItems title="Elektabilitas Alternatif" items={cp.capres_alternative} /> : null}
+                    {cp?.capres_closed?.length ? <RankItems title="Elektabilitas Tertutup" items={cp.capres_closed} /> : null}
+                    {cp?.simulation_10?.length ? <RankItems title="Simulasi 10 Nama" items={cp.simulation_10} /> : null}
+                    {cp?.simulation_8?.length ? <RankItems title="Simulasi 8 Nama" items={cp.simulation_8} /> : null}
+                    {cp?.simulation_5?.length ? <RankItems title="Simulasi 5 Nama" items={cp.simulation_5} /> : null}
+                  </> : <SlideEmptyState label="Elektabilitas Capres" icon={TrendingUp} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Simulasi Capres ── */}
+        {slideVis.presidentialSimulation && (() => {
+          const qa = data?.question_analysis?.presidential_simulation;
+          const cp = data?.candidate_preference;
+          const hasData = qa || cp?.simulation_10?.length || cp?.simulation_8?.length || cp?.simulation_5?.length
+            || cp?.politisi?.length || cp?.tokoh?.length || cp?.profesional?.length;
+          return (
+            <TabsContent value="presidentialSimulation">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <Shuffle className="w-4 h-4 text-primary" />Simulasi Calon Presiden
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qa ? <QASection data={qa} /> : null}
+                    {cp?.simulation_10?.length ? <RankItems title="Simulasi 10 Nama" items={cp.simulation_10} /> : null}
+                    {cp?.simulation_8?.length ? <RankItems title="Simulasi 8 Nama" items={cp.simulation_8} /> : null}
+                    {cp?.simulation_5?.length ? <RankItems title="Simulasi 5 Nama" items={cp.simulation_5} /> : null}
+                    {!cp?.simulation_10?.length && !cp?.simulation_8?.length && !cp?.simulation_5?.length && cp?.politisi?.length ? <RankItems title="Tokoh Politik" items={cp.politisi} /> : null}
+                    {!cp?.simulation_10?.length && !cp?.simulation_8?.length && !cp?.simulation_5?.length && cp?.tokoh?.length ? <RankItems title="Tokoh Nasional" items={cp.tokoh} /> : null}
+                    {!cp?.simulation_10?.length && !cp?.simulation_8?.length && !cp?.simulation_5?.length && cp?.profesional?.length ? <RankItems title="Profesional / Teknokrat" items={cp.profesional} /> : null}
+                  </> : <SlideEmptyState label="Simulasi Capres" icon={Shuffle} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Elektabilitas Parpol ── */}
+        {slideVis.partyElectability && (() => {
+          const qa = data?.question_analysis?.party_electability;
+          const cp = data?.candidate_preference;
+          const hasData = qa || cp?.parpol?.length || cp?.parpol_closed?.length;
+          return (
+            <TabsContent value="partyElectability">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <Flag className="w-4 h-4 text-primary" />Elektabilitas Partai Politik
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qa ? <QASection data={qa} /> : null}
+                    {cp?.parpol?.length ? <RankItems title="Elektabilitas Terbuka" items={cp.parpol} /> : null}
+                    {cp?.parpol_closed?.length ? <RankItems title="Elektabilitas Tertutup" items={cp.parpol_closed} /> : null}
+                  </> : <SlideEmptyState label="Elektabilitas Parpol" icon={Flag} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Kinerja Pemerintah ── */}
+        {slideVis.governmentPerformance && (() => {
+          const qa = data?.question_analysis?.government_performance;
+          const indFallback = data?.indicators?.length ? indicatorsToQA(data.indicators) : null;
+          const openFallback = data?.open_ended?.expectations?.length
+            ? data.open_ended.expectations.map((t, i) => ({ name: `Harapan ${i + 1}`, label: t, percentage: 0 }))
+            : null;
+          const hasData = qa || indFallback || openFallback;
+          return (
+            <TabsContent value="governmentPerformance">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-primary" />Kinerja Pemerintah
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qa ? <QASection data={qa} /> : null}
+                    {!qa && indFallback ? <><p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Skor Indikator Layanan</p><QASection data={indFallback} /></> : null}
+                    {!qa && !indFallback && openFallback ? <RankItems title="Harapan & Saran Publik" items={openFallback} /> : null}
+                  </> : <SlideEmptyState label="Kinerja Pemerintah" icon={Building2} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Perilaku Pemilih ── */}
+        {slideVis.voterBehavior && (() => {
+          const qa = data?.question_analysis?.voter_behavior;
+          const cp = data?.candidate_preference;
+          const indFallback = data?.indicators?.length ? indicatorsToQA(data.indicators) : null;
+          const hasData = qa || cp?.capres?.length || cp?.parpol?.length || indFallback;
+          return (
+            <TabsContent value="voterBehavior">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <Users className="w-4 h-4 text-primary" />Perilaku Pemilih
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qa ? <QASection data={qa} /> : null}
+                    {!qa && cp?.capres?.length ? <RankItems title="Pilihan Capres" items={cp.capres} /> : null}
+                    {!qa && cp?.parpol?.length ? <RankItems title="Pilihan Partai" items={cp.parpol} /> : null}
+                    {!qa && !cp?.capres?.length && !cp?.parpol?.length && indFallback ? <QASection data={indFallback} /> : null}
+                  </> : <SlideEmptyState label="Perilaku Pemilih" icon={Users} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Emosi Publik ── */}
+        {slideVis.publicEmotion && (() => {
+          const qa = data?.question_analysis?.public_emotion;
+          const cp = data?.candidate_preference;
+          const openFallback = data?.open_ended?.general_opinion?.length
+            ? data.open_ended.general_opinion.map((t, i) => ({ name: `Opini ${i + 1}`, label: t, percentage: 0 }))
+            : null;
+          const hasData = qa || cp?.tokoh?.length || cp?.capres?.length || openFallback;
+          return (
+            <TabsContent value="publicEmotion">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <Heart className="w-4 h-4 text-primary" />Emosi Publik Terhadap Tokoh
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0 space-y-6">
+                  {hasData ? <>
+                    {qa ? <QASection data={qa} /> : null}
+                    {!qa && cp?.tokoh?.length ? <RankItems title="Tokoh yang Disukai Publik" items={cp.tokoh} /> : null}
+                    {!qa && !cp?.tokoh?.length && cp?.capres?.length ? <RankItems title="Figur Capres" items={cp.capres} /> : null}
+                    {!qa && !cp?.tokoh?.length && !cp?.capres?.length && openFallback ? <RankItems title="Opini Umum Publik" items={openFallback} /> : null}
+                  </> : <SlideEmptyState label="Emosi Publik Terhadap Tokoh" icon={Heart} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Validasi Surveyor ── */}
+        {slideVis.surveyorValidation && (() => {
+          const qa = data?.question_analysis?.surveyor_validation;
+          const respFallback = data?.respondents?.length ? buildSurveyorStats(data.respondents) : null;
+          const hasData = qa || (respFallback && Object.keys(respFallback).length > 0);
+          return (
+            <TabsContent value="surveyorValidation">
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardHeader className="pb-3 px-0">
+                  <CardTitle className="text-base font-black flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-primary" />Validasi Surveyor & Quality Control
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0">
+                  {hasData ? (
+                    qa ? <QASection data={qa} /> : <QASection data={respFallback!} />
+                  ) : <SlideEmptyState label="Validasi Surveyor & Quality Control" icon={ShieldCheck} />}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })()}
+
+        {/* ── Data Mentah ── */}
+        {slideVis.rawData && (
+          <TabsContent value="rawData">
+            <Card className="border-0 shadow-none bg-transparent">
+              <CardHeader className="pb-3 px-0">
+                <CardTitle className="text-base font-black flex items-center gap-2">
+                  <Database className="w-4 h-4 text-primary" />Data Mentah / Audit Responden
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-0">
+                {data?.respondents && data.respondents.length > 0
+                  ? <div className="overflow-x-auto rounded-xl border border-border">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/60 border-b border-border">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-black text-[10px] uppercase tracking-wider">ID</th>
+                            <th className="px-3 py-2 text-left font-black text-[10px] uppercase tracking-wider">Nama</th>
+                            <th className="px-3 py-2 text-left font-black text-[10px] uppercase tracking-wider">Timestamp</th>
+                            <th className="px-3 py-2 text-left font-black text-[10px] uppercase tracking-wider">Jenis Kelamin</th>
+                            <th className="px-3 py-2 text-left font-black text-[10px] uppercase tracking-wider">Pendidikan</th>
+                            <th className="px-3 py-2 text-left font-black text-[10px] uppercase tracking-wider">Rata-rata Skor</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {data.respondents.map((r, idx) => (
+                            <tr key={r.id ?? idx} className="hover:bg-muted/30 transition-colors">
+                              <td className="px-3 py-2 font-mono text-muted-foreground">{r.id}</td>
+                              <td className="px-3 py-2 font-semibold">{r.name ?? "–"}</td>
+                              <td className="px-3 py-2 text-muted-foreground">{formatDateSafe(r.timestamp, true)}</td>
+                              <td className="px-3 py-2">{r.gender ?? "–"}</td>
+                              <td className="px-3 py-2">{r.education ?? "–"}</td>
+                              <td className="px-3 py-2 font-black text-primary">{r.score_average != null ? r.score_average.toFixed(2) : "–"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  : <SlideEmptyState label="Data Mentah / Audit Responden" icon={Database} />}
+              </CardContent>
+            </Card>
           </TabsContent>
         )}
 

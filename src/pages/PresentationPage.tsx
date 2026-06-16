@@ -143,34 +143,60 @@ export const PresentationPage: React.FC = () => {
         if (cfg) {
           const agency = cfg.agency || 'Instansi';
           const period = cfg.period || '';
-          const sc = cfg.samplingConfig;
-
-          const replace = (s: string) =>
-            s.replace(/BPBD Kota Tangerang Selatan/g, agency)
-             .replace(/\[NAMA INSTANSI\]/g, agency)
-             .replace(/Tahun 2025/g, period);
-
-          // Build populasiSampel text from samplingConfig when available
-          const populasiSampelText = sc
-            ? `POPULASI:\nSeluruh masyarakat yang menerima layanan dari ${agency} selama periode survei ${period}.\n\nUKURAN POPULASI (N):\n${sc.populationSize > 0 ? sc.populationSize.toLocaleString("id-ID") : "[isi populasi]"} orang\n\nSAMPEL:\n• Target responden (Rumus Slovin) : ${sc.targetRespondents > 0 ? sc.targetRespondents.toLocaleString("id-ID") : "[hitung otomatis]"} responden\n• Tingkat kepercayaan : ${sc.confidenceLevel}%\n• Margin of error (e)  : ±${(sc.marginOfError * 100).toFixed(2)}% (${sc.marginOfError})\n• Metode sampling        : ${sc.samplingMethod}\n\nRUMUS SLOVIN:\nn = N / (1 + N × e²) = ${sc.populationSize.toLocaleString("id-ID")} / (1 + ${sc.populationSize.toLocaleString("id-ID")} × ${sc.marginOfError}²) = ${sc.targetRespondents.toLocaleString("id-ID")} responden`
-            : replace(`POPULASI:\nSeluruh masyarakat yang menerima layanan dari ${agency} selama periode survei ${period}.\n\nSAMPEL:\n• Target responden disesuaikan dengan populasi.\n• Metode sampling : Accidental Sampling (responden yang sedang/baru menerima layanan).\n\nPROFIL RESPONDEN:\nData dirangkum berdasarkan Jenis Kelamin, Usia, Pendidikan, dan Pekerjaan responden.`);
-
+          const surveyName = cfg.name || 'Survei Kepuasan Masyarakat';
           setPresentationData(prev => ({
             ...prev,
             subtitle: `${agency}\nPeriode: ${period}`,
-            kataPengantar: replace(prev.kataPengantar),
-            latarBelakang: replace(prev.latarBelakang),
-            maksudTujuan: replace(prev.maksudTujuan),
-            ruangLingkup: replace(prev.ruangLingkup),
-            metodologi: replace(prev.metodologi),
-            lokasiWaktu: replace(prev.lokasiWaktu),
-            kesimpulan: replace(prev.kesimpulan),
-            rekomendasi: replace(prev.rekomendasi),
-            landasanHukum: replace(prev.landasanHukum),
-            profilInstansi: replace(prev.profilInstansi),
-            tupoksi: replace(prev.tupoksi),
-            populasiSampel: populasiSampelText,
-            daftarPustaka: replace(prev.daftarPustaka),
+            kataPengantar: prev.kataPengantar
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
+              .replace(/Tahun 2025/g, period),
+            latarBelakang: prev.latarBelakang
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
+              .replace(/Tahun 2025/g, period),
+            maksudTujuan: prev.maksudTujuan
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
+              .replace(/Tahun 2025/g, period),
+            ruangLingkup: prev.ruangLingkup
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
+              .replace(/Tahun 2025/g, period),
+            metodologi: prev.metodologi
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
+              .replace(/Tahun 2025/g, period),
+            lokasiWaktu: prev.lokasiWaktu
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
+              .replace(/Tahun 2025/g, period),
+            kesimpulan: prev.kesimpulan
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
+              .replace(/Tahun 2025/g, period),
+            rekomendasi: prev.rekomendasi
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
+              .replace(/Tahun 2025/g, period),
+            landasanHukum: prev.landasanHukum
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
+              .replace(/Tahun 2025/g, period),
+            profilInstansi: prev.profilInstansi
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
+              .replace(/Tahun 2025/g, period),
+            tupoksi: prev.tupoksi
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/\[NAMA INSTANSI\]/g, agency)
+              .replace(/Tahun 2025/g, period),
+            populasiSampel: prev.populasiSampel
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
+            daftarPustaka: prev.daftarPustaka
+              .replace(/BPBD Kota Tangerang Selatan/g, agency)
+              .replace(/Tahun 2025/g, period),
           }));
         }
       } catch (err) {
@@ -414,10 +440,8 @@ export const PresentationPage: React.FC = () => {
     let totalResponses = 0;
     if (data.demographics?.gender) {
       totalResponses = Object.values(data.demographics.gender).reduce((a: any, b: any) => a + Number(b), 0) as number;
-    } else if (data.meta?.total_respondents) {
-      totalResponses = data.meta.total_respondents;
-    } else if (config?.samplingConfig?.targetRespondents) {
-      totalResponses = config.samplingConfig.targetRespondents;
+    } else {
+      totalResponses = 369; // default fallback
     }
 
     let highestInd = data.indicators[0];
@@ -446,7 +470,7 @@ export const PresentationPage: React.FC = () => {
 
     setPresentationData(prev => ({
       ...prev,
-      lokasiWaktu: `LOKASI SURVEI:\nSurvei dilakukan di lingkungan kantor ${agency} dan pada lokasi penerima layanan secara langsung (lapangan).\n\nWAKTU PELAKSANAAN:\nSurvei Kepuasan Masyarakat ${agency} dilaksanakan pada Periode ${period}.\n\nTARGET RESPONDEN:\n• Target sampling (Slovin) : ${config?.samplingConfig?.targetRespondents ? config.samplingConfig.targetRespondents.toLocaleString("id-ID") : "—"} responden\n• Total terkumpul & valid  : ${totalResponses} responden`,
+      lokasiWaktu: `LOKASI SURVEI:\nSurvei dilakukan di lingkungan kantor ${agency} dan pada lokasi penerima layanan secara langsung (lapangan).\n\nWAKTU PELAKSANAAN:\nSurvei Kepuasan Masyarakat ${agency} dilaksanakan pada Periode ${period}.\n\nTARGET RESPONDEN:\n• Total terkumpul & valid : ${totalResponses} responden`,
       kesimpulan: `Berdasarkan hasil pengolahan data Survei Kepuasan Masyarakat ${agency} Periode ${period}:\n\n1. Nilai Rata-Rata (NRR) IKM sebesar ${nrr} dengan Nilai Konversi SKM ${score.toFixed(2)}.\n2. Mutu Pelayanan berada pada kategori ${grade} — ${predikat}.\n3. Unsur dengan nilai tertinggi adalah ${highestInd.label} (${highestInd.avg.toFixed(2)}).\n4. Unsur dengan nilai terendah adalah ${lowestInd.label} (${lowestInd.avg.toFixed(2)}).`,
       rekomendasi: `Berdasarkan temuan survei, rekomendasi tindak lanjut yang perlu dilaksanakan ${agency}:\n\n1. Prioritas perbaikan utama pada unsur dengan nilai terendah:\n   • ${lowestInd.label} (${lowestInd.avg.toFixed(2)}) — Perlu evaluasi dan peningkatan standar operasional.\n2. Pertahankan dan tingkatkan kualitas pada unsur dengan nilai tertinggi:\n   • ${highestInd.label} (${highestInd.avg.toFixed(2)}).\n3. Lakukan monitoring dan evaluasi berkala untuk memantau tren kepuasan masyarakat.`
     }));
