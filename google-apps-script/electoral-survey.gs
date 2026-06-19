@@ -871,8 +871,7 @@ function buildDemoData() {
           liked:    ['Pengaruhnya di komunitas NU','Pendekatan Islam moderat dan toleran','Pengalaman organisasi yang luas'],
           disliked: ['Terlalu identik dengan satu kelompok agama saja','Perlu memperluas citra ke pemilih non-NU','Harus tunjukkan kapabilitas pemerintahan'],
           action:   ['Tunjukkan visi kepemimpinan yang lintas kelompok','Bangun program konkret untuk semua segmen','Pertegas posisi dalam isu ekonomi dan hukum']
-        }
-      },
+        },
         'Prabowo Subianto': {
           opinion:  ['Pemimpin yang tegas dan berpengalaman di bidang pertahanan','Sudah terbukti dalam menjaga stabilitas keamanan','Perlu lebih perhatian ke ekonomi rakyat kecil'],
           liked:    ['Ketegasannya dalam memimpin','Pengalamannya di militer dan pemerintahan','Komitmen terhadap kedaulatan negara'],
