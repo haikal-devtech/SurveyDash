@@ -924,7 +924,50 @@ export const SurveyDetailPage: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="public" className="space-y-6">
-           {data.open_ended ? (
+          {isElectoral ? (
+            (() => {
+              const elOpen = (data as any).electability?.open ?? {};
+              const nlOpen = (data as any).national_leadership?.open ?? {};
+              const publicItems = [
+                { key: 'b1a', src: elOpen, label: 'Pilihan Capres & Alasan (B1a)', color: 'primary' },
+                { key: 'b1b', src: elOpen, label: 'Capres Alternatif (B1b)', color: 'primary' },
+                { key: 'b1c', src: elOpen, label: 'Capres Ideal 2029 (B1c)', color: 'primary' },
+                { key: 'b1d', src: elOpen, label: 'Latar Belakang Capres Ideal (B1d)', color: 'primary' },
+                { key: 'a2h', src: nlOpen, label: 'Tokoh Layak Jadi Pemimpin (A2h)', color: 'emerald' },
+                { key: 'a2i', src: nlOpen, label: 'Tokoh Lain yang Layak (A2i)', color: 'emerald' },
+                { key: 'a2j_ekonomi',    src: nlOpen, label: 'Tokoh Unggul Ekonomi (A2j)', color: 'blue' },
+                { key: 'a2j_korupsi',    src: nlOpen, label: 'Tokoh Unggul Pemberantasan Korupsi (A2j)', color: 'blue' },
+                { key: 'a2j_diplomasi',  src: nlOpen, label: 'Tokoh Unggul Diplomasi (A2j)', color: 'blue' },
+                { key: 'a2j_pertahanan', src: nlOpen, label: 'Tokoh Unggul Pertahanan & Keamanan (A2j)', color: 'blue' },
+                { key: 'a2j_kesra',      src: nlOpen, label: 'Tokoh Unggul Kesejahteraan Rakyat (A2j)', color: 'blue' },
+              ].filter(({ key, src }) => (src[key]?.length ?? 0) > 0);
+              return publicItems.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {publicItems.map(({ key, src, label, color }) => (
+                    <Card key={key} className="h-[280px] flex flex-col border-none shadow-sm bg-muted/20">
+                      <CardHeader className="pb-2"><CardTitle className="text-sm font-black">{label}</CardTitle></CardHeader>
+                      <CardContent className="flex-1 overflow-hidden">
+                        <ScrollArea className="h-full pr-2">
+                          <div className="space-y-2">
+                            {src[key].map((t: string, i: number) => (
+                              <motion.p key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
+                                className={`text-xs italic text-foreground/80 border-l-2 pl-2 ${color === 'emerald' ? 'border-emerald-500/40' : color === 'blue' ? 'border-blue-500/40' : 'border-primary/40'}`}>
+                                "{t}"
+                              </motion.p>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-20 text-center bg-muted/20 rounded-2xl border-2 border-dashed border-border">
+                  <p className="text-muted-foreground italic">Data harapan publik belum tersedia.</p>
+                </div>
+              );
+            })()
+          ) : data.open_ended ? (
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="h-[400px] flex flex-col">
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -944,8 +987,8 @@ export const SurveyDetailPage: React.FC = () => {
                   <ScrollArea className="h-full pr-4">
                     <div className="space-y-3">
                       {data.open_ended.expectations.map((text, i) => (
-                        <motion.div 
-                          key={i} 
+                        <motion.div
+                          key={i}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: i * 0.05 }}
@@ -977,8 +1020,8 @@ export const SurveyDetailPage: React.FC = () => {
                   <ScrollArea className="h-full pr-4">
                     <div className="space-y-3">
                       {data.open_ended.general_opinion.map((text, i) => (
-                        <motion.div 
-                          key={i} 
+                        <motion.div
+                          key={i}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: i * 0.05 }}
@@ -1204,6 +1247,35 @@ export const SurveyDetailPage: React.FC = () => {
               <PieListCard id="chart-klas-tok" title="Klaster Tokoh Agama & Sosial (D1f)" data={toChartData((data as any).electability?.simulation?.klaster_tokoh)} />
               <PieListCard id="chart-klas-pro" title="Klaster Profesional (D1g)" data={toChartData((data as any).electability?.simulation?.klaster_profesional)} />
             </div>
+            {(data as any).electability?.open && (
+              <>
+                <p className="text-xs uppercase tracking-widest font-black text-muted-foreground pt-2">Jawaban Terbuka – Bagian B (Elektabilitas)</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { key: 'b1a', label: 'Pilihan Capres & Alasan (B1a)' },
+                    { key: 'b1b', label: 'Capres Alternatif (B1b)' },
+                    { key: 'b1c', label: 'Capres Ideal 2029 (B1c)' },
+                    { key: 'b1d', label: 'Latar Belakang Capres Ideal (B1d)' },
+                  ].map(({ key, label }) => {
+                    const items = (data as any).electability.open[key] ?? [];
+                    return items.length > 0 ? (
+                      <Card key={key} className="h-[220px] flex flex-col border-none shadow-sm bg-muted/20">
+                        <CardHeader className="pb-2"><CardTitle className="text-xs font-black">{label}</CardTitle></CardHeader>
+                        <CardContent className="flex-1 overflow-hidden">
+                          <ScrollArea className="h-full pr-2">
+                            <div className="space-y-1.5">
+                              {items.map((t: string, i: number) => (
+                                <p key={i} className="text-xs italic text-foreground/80 border-l-2 border-primary/40 pl-2">"{t}"</p>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        </CardContent>
+                      </Card>
+                    ) : null;
+                  })}
+                </div>
+              </>
+            )}
           </TabsContent>
         )}
 
@@ -1215,6 +1287,20 @@ export const SurveyDetailPage: React.FC = () => {
               <PieListCard id="chart-party-like"  title="Tingkat Kesukaan Parpol (E1c)" data={toChartData((data as any).party?.likability)} />
               <PieListCard id="chart-party-aware" title="Pengenalan Parpol (E1b)"       data={toChartData((data as any).party?.awareness)} />
             </div>
+            {((data as any).party?.open_e1a?.length > 0) && (
+              <Card className="border-none shadow-sm bg-muted/20">
+                <CardHeader className="pb-2"><CardTitle className="text-sm font-black">Pilihan Partai – Jawaban Terbuka (E1a)</CardTitle></CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-48 pr-2">
+                    <div className="space-y-2">
+                      {(data as any).party.open_e1a.map((t: string, i: number) => (
+                        <p key={i} className="text-xs italic text-foreground/80 border-l-2 border-primary/40 pl-2">"{t}"</p>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         )}
 
@@ -1249,6 +1335,62 @@ export const SurveyDetailPage: React.FC = () => {
                     <GoogleFormChartCard id="chart-a2f" title="Perlu Pemimpin Baru? (A2f)"   data={toChartData(nl?.a2f_new_leader)} type="pie" />
                     <PieListCard id="chart-a2g" title="Latar Belakang Ideal Pemimpin (A2g)"  data={toChartData(nl?.a2g_background)} />
                   </div>
+                  {nl?.open && (
+                    <>
+                      <p className="text-xs uppercase tracking-widest font-black text-muted-foreground pt-2">Jawaban Terbuka – Bagian A</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[
+                          { key: 'a1a',  label: 'Kondisi Kepemimpinan Nasional (A1a)' },
+                          { key: 'a2a',  label: 'Pendapat tentang Kepemimpinan Prabowo (A2a)' },
+                          { key: 'a2b',  label: 'Kriteria Pemimpin yang Dibutuhkan (A2b)' },
+                          { key: 'a2c',  label: 'Yang Tidak Disukai dari Pemimpin (A2c)' },
+                          { key: 'a2d',  label: 'Saran untuk Pemimpin Mendatang (A2d)' },
+                          { key: 'a2h',  label: 'Tokoh Layak Jadi Pemimpin Nasional (A2h)' },
+                          { key: 'a2i',  label: 'Tokoh Lain yang Layak (A2i)' },
+                        ].map(({ key, label }) => (
+                          (nl.open[key]?.length > 0) && (
+                            <Card key={key} className="h-[220px] flex flex-col border-none shadow-sm bg-muted/20">
+                              <CardHeader className="pb-2"><CardTitle className="text-xs font-black">{label}</CardTitle></CardHeader>
+                              <CardContent className="flex-1 overflow-hidden">
+                                <ScrollArea className="h-full pr-2">
+                                  <div className="space-y-1.5">
+                                    {nl.open[key].map((t: string, i: number) => (
+                                      <p key={i} className="text-xs italic text-foreground/80 border-l-2 border-primary/40 pl-2">"{t}"</p>
+                                    ))}
+                                  </div>
+                                </ScrollArea>
+                              </CardContent>
+                            </Card>
+                          )
+                        ))}
+                      </div>
+                      <p className="text-xs uppercase tracking-widest font-black text-muted-foreground pt-2">Tokoh Unggul per Bidang (A2j)</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[
+                          { key: 'a2j_ekonomi',    label: 'Unggul Bidang Ekonomi' },
+                          { key: 'a2j_korupsi',    label: 'Unggul Pemberantasan Korupsi' },
+                          { key: 'a2j_diplomasi',  label: 'Unggul Diplomasi Internasional' },
+                          { key: 'a2j_pertahanan', label: 'Unggul Pertahanan & Keamanan' },
+                          { key: 'a2j_kesra',      label: 'Unggul Kesejahteraan Rakyat' },
+                        ].map(({ key, label }) => (
+                          (nl.open[key]?.length > 0) && (
+                            <Card key={key} className="h-[220px] flex flex-col border-none shadow-sm bg-muted/20">
+                              <CardHeader className="pb-2"><CardTitle className="text-xs font-black">{label}</CardTitle></CardHeader>
+                              <CardContent className="flex-1 overflow-hidden">
+                                <ScrollArea className="h-full pr-2">
+                                  <div className="space-y-1.5">
+                                    {nl.open[key].map((t: string, i: number) => (
+                                      <p key={i} className="text-xs italic text-foreground/80 border-l-2 border-emerald-500/40 pl-2">"{t}"</p>
+                                    ))}
+                                  </div>
+                                </ScrollArea>
+                              </CardContent>
+                            </Card>
+                          )
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </>
               );
             })()}
@@ -1324,10 +1466,26 @@ export const SurveyDetailPage: React.FC = () => {
                 ? Object.entries(vb.g3_factors).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(2) ?? '0') }))
                 : [];
               return (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <PieListCard         id="chart-g1b" title="Pertimbangan Memilih (G1b)"       data={toChartData(vb?.g1b)} />
-                  <GoogleFormChartCard id="chart-g2"  title="Model Kampanye Disukai (G2, avg)" data={g2Data} type="bar-horizontal" />
-                  <GoogleFormChartCard id="chart-g3"  title="Faktor Penentu Pilihan (G3, avg)" data={g3Data} type="bar-horizontal" />
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <PieListCard         id="chart-g1b" title="Pertimbangan Memilih (G1b)"       data={toChartData(vb?.g1b)} />
+                    <GoogleFormChartCard id="chart-g2"  title="Model Kampanye Disukai (G2, avg)" data={g2Data} type="bar-horizontal" />
+                    <GoogleFormChartCard id="chart-g3"  title="Faktor Penentu Pilihan (G3, avg)" data={g3Data} type="bar-horizontal" />
+                  </div>
+                  {(vb?.open_g1a?.length > 0) && (
+                    <Card className="border-none shadow-sm bg-muted/20">
+                      <CardHeader className="pb-2"><CardTitle className="text-sm font-black">Pertimbangan Memilih – Jawaban Terbuka (G1a)</CardTitle></CardHeader>
+                      <CardContent>
+                        <ScrollArea className="h-48 pr-2">
+                          <div className="space-y-2">
+                            {vb.open_g1a.map((t: string, i: number) => (
+                              <p key={i} className="text-xs italic text-foreground/80 border-l-2 border-primary/40 pl-2">"{t}"</p>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               );
             })()}
