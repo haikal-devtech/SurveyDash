@@ -4,6 +4,14 @@ export interface Respondent {
   name: string;
   gender: string;
   education: string;
+  umur?: string;
+  pekerjaan?: string;
+  penghasilan?: string;
+  agama?: string;
+  suku?: string;
+  afiliasi_politik?: string;
+  desa_kota?: string;
+  provinsi?: string;
   answers: { [key: string]: string | number };
   documentation?: string | null;
   surveyor?: string | null;
