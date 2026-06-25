@@ -124,16 +124,16 @@ export interface PartyData {
 }
 
 export interface GovPerformance {
-  f2_satisfaction: { [sector: string]: LabelScaleResult };
+  f2_satisfaction?: { [sector: string]: LabelScaleResult };
   f3_leadership: { [aspect: string]: ScaleResult };
   f4_trust: { [aspect: string]: ScaleResult };
   f5b_score: ScaleResult;
   open: {
     f1a: string[];
-    f1b: string[];
-    f1c: string[];
     f5a: string[];
     f5c: string[];
+    f5d: string[];
+    f5e: string[];
   };
 }
 

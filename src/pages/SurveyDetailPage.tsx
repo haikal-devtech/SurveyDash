@@ -785,7 +785,7 @@ export const SurveyDetailPage: React.FC = () => {
                 <PieListCard id="chart-vote-intention" title="Pilihan Capres (C1c)" data={toChartData((data as any).electability?.vote_intention)} />
                 <PieListCard id="chart-awareness"      title="Tingkat Pengenalan Capres (C1a)" data={toChartData((data as any).electability?.awareness)} />
                 <PieListCard id="chart-likability"     title="Tingkat Kesukaan Capres (C1b)" data={toChartData((data as any).electability?.likability)} />
-                <GoogleFormChartCard id="chart-sim-5"  title="Simulasi Pilpres 5 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s5)} type="bar-horizontal" />
+                <GoogleFormChartCard id="chart-sim-5"  title="Simulasi Pilpres 5 Nama (D1c)" data={toChartData((data as any).electability?.simulation?.s5)} type="bar-horizontal" />
                 <GoogleFormChartCard id="chart-sim-10" title="Simulasi Pilpres 10 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s10)} type="bar-horizontal" />
                 <GoogleFormChartCard id="chart-trust"  title="Skor Kepercayaan Tokoh (D4, avg 0-10)" data={Object.entries((data as any).public_emotion?.h2_trust ?? {}).map(([name, v]: any) => ({ name, value: v.avg }))} type="bar-horizontal" />
               </div>
@@ -1197,12 +1197,12 @@ export const SurveyDetailPage: React.FC = () => {
         {isElectoral && (
           <TabsContent value="simulasi" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <GoogleFormChartCard id="chart-sim5b"  title="Simulasi 5 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s5)} type="bar-horizontal" />
-              <PieListCard id="chart-sim8"   title="Simulasi 8 Nama (D1a)"  data={toChartData((data as any).electability?.simulation?.s8)} />
+              <GoogleFormChartCard id="chart-sim5b"  title="Simulasi 5 Nama (D1c)" data={toChartData((data as any).electability?.simulation?.s5)} type="bar-horizontal" />
+              <PieListCard id="chart-sim8"   title="Simulasi 8 Nama (D1b)"  data={toChartData((data as any).electability?.simulation?.s8)} />
               <PieListCard id="chart-sim10b" title="Simulasi 10 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s10)} />
-              <PieListCard id="chart-klas-pol" title="Klaster Politisi (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_politisi)} />
-              <PieListCard id="chart-klas-tok" title="Klaster Tokoh Agama & Sosial (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_tokoh)} />
-              <PieListCard id="chart-klas-pro" title="Klaster Profesional (D1b)" data={toChartData((data as any).electability?.simulation?.klaster_profesional)} />
+              <PieListCard id="chart-klas-pol" title="Klaster Politisi (D1e)" data={toChartData((data as any).electability?.simulation?.klaster_politisi)} />
+              <PieListCard id="chart-klas-tok" title="Klaster Tokoh Agama & Sosial (D1f)" data={toChartData((data as any).electability?.simulation?.klaster_tokoh)} />
+              <PieListCard id="chart-klas-pro" title="Klaster Profesional (D1g)" data={toChartData((data as any).electability?.simulation?.klaster_profesional)} />
             </div>
           </TabsContent>
         )}
@@ -1285,7 +1285,8 @@ export const SurveyDetailPage: React.FC = () => {
                   {gp?.open && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {[
-                        { key: 'f1a', label: 'Penilaian Kinerja (F1a)' },
+                        { key: 'f1a', label: 'Penilaian Kinerja Umum (F1a)' },
+                        { key: 'f5a', label: 'Penilaian Keseluruhan (F5a)' },
                         { key: 'f5c', label: 'Kondisi Perekonomian (F5c)' },
                         { key: 'f5d', label: 'Kondisi Demokrasi & Hukum (F5d)' },
                         { key: 'f5e', label: 'Kondisi Kesejahteraan (F5e)' },
