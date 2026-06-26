@@ -1131,7 +1131,7 @@ export const SurveyDetailPage: React.FC = () => {
                                    <DialogTrigger render={
                                      <Button variant="outline" size="sm" className="h-7 text-xs font-bold">Detail Jawaban</Button>
                                    } />
-                                   <DialogContent className="max-w-[480px] max-h-[85vh] p-4 flex flex-col overflow-hidden">
+                                   <DialogContent className="max-w-[480px] max-h-[85vh] p-4 flex flex-col gap-0">
                                      <DialogHeader className="space-y-1 shrink-0">
                                        <DialogTitle className="text-sm font-bold">Detail: {r.name}</DialogTitle>
                                        <DialogDescription className="text-[10px]">Transkrip lengkap jawaban survey.</DialogDescription>
@@ -1145,8 +1145,8 @@ export const SurveyDetailPage: React.FC = () => {
                                        </TabsList>
 
                                        {/* ── TAB INFO ── */}
-                                       <TabsContent value="info" className="flex-1 min-h-0 mt-2 data-[state=active]:flex data-[state=active]:flex-col">
-                                         <ScrollArea className="flex-1 -mr-4 pr-4">
+                                       <TabsContent value="info" className="mt-2">
+                                         <ScrollArea className="h-[calc(85vh-130px)] -mr-4 pr-4">
                                            <div className="space-y-3 pb-2">
                                              <div className="grid grid-cols-2 gap-y-1 text-[10px] p-2 bg-primary/5 dark:bg-primary/20 rounded-lg border border-primary/10">
                                                {([
@@ -1185,8 +1185,8 @@ export const SurveyDetailPage: React.FC = () => {
                                        </TabsContent>
 
                                        {/* ── TAB JAWABAN ── */}
-                                       <TabsContent value="jawaban" className="flex-1 min-h-0 mt-2 data-[state=active]:flex data-[state=active]:flex-col">
-                                         <ScrollArea className="flex-1 -mr-4 pr-4">
+                                       <TabsContent value="jawaban" className="mt-2">
+                                         <ScrollArea className="h-[calc(85vh-130px)] -mr-4 pr-4">
                                            {(() => {
                                              const sectionNames: Record<string, string> = {
                                                'A': 'Kepemimpinan Nasional',
