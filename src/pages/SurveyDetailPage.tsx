@@ -1253,9 +1253,9 @@ export const SurveyDetailPage: React.FC = () => {
               <GoogleFormChartCard id="chart-sim5b"  title="Simulasi 5 Nama (D1c)" data={toChartData((data as any).electability?.simulation?.s5)} type="bar-horizontal" />
               <PieListCard id="chart-sim8"   title="Simulasi 8 Nama (D1b)"  data={toChartData((data as any).electability?.simulation?.s8)} />
               <PieListCard id="chart-sim10b" title="Simulasi 10 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s10)} />
-              <PieListCard id="chart-klas-pol" title="Klaster Politisi (D1e)"      data={toChartData((data as any).electability?.simulation?.klaster_politisi)} />
-              <PieListCard id="chart-klas-tok" title="Klaster Tokoh (D1f)"        data={toChartData((data as any).electability?.simulation?.klaster_tokoh)} />
-              <PieListCard id="chart-klas-pro" title="Klaster Profesional (D1g)"  data={toChartData((data as any).electability?.simulation?.klaster_profesional)} />
+              <PieListCard id="chart-klas-tok" title="Klaster Tokoh (D1e)"         data={toChartData((data as any).electability?.simulation?.klaster_tokoh)} />
+              <PieListCard id="chart-klas-pro" title="Klaster Profesional (D1f)"  data={toChartData((data as any).electability?.simulation?.klaster_profesional)} />
+              <PieListCard id="chart-klas-pol" title="Klaster Politisi (D1g)"     data={toChartData((data as any).electability?.simulation?.klaster_politisi)} />
             </div>
             {(data as any).electability?.open && (
               <>
