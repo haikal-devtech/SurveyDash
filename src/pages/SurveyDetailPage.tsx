@@ -1255,7 +1255,7 @@ export const SurveyDetailPage: React.FC = () => {
               <PieListCard id="chart-sim10b" title="Simulasi 10 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s10)} />
               <PieListCard id="chart-klas-tok" title="Klaster Tokoh (D1e)"         data={toChartData((data as any).electability?.simulation?.klaster_tokoh)} />
               <PieListCard id="chart-klas-pro" title="Klaster Profesional (D1f)"  data={toChartData((data as any).electability?.simulation?.klaster_profesional)} />
-              <PieListCard id="chart-klas-pol" title="Klaster Politisi (D1g)"     data={toChartData((data as any).electability?.simulation?.klaster_politisi)} />
+              <PieListCard id="chart-klas-pol" title="Klaster Politisi (D1d)"     data={toChartData((data as any).electability?.simulation?.klaster_politisi)} />
             </div>
             {(data as any).electability?.open && (
               <>
