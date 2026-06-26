@@ -1131,66 +1131,115 @@ export const SurveyDetailPage: React.FC = () => {
                                    <DialogTrigger render={
                                      <Button variant="outline" size="sm" className="h-7 text-xs font-bold">Detail Jawaban</Button>
                                    } />
-                                   <DialogContent className="max-w-[440px] max-h-[85vh] p-4 flex flex-col overflow-hidden">
+                                   <DialogContent className="max-w-[480px] max-h-[85vh] p-4 flex flex-col overflow-hidden">
                                      <DialogHeader className="space-y-1 shrink-0">
                                        <DialogTitle className="text-sm font-bold">Detail: {r.name}</DialogTitle>
                                        <DialogDescription className="text-[10px]">Transkrip lengkap jawaban survey.</DialogDescription>
                                      </DialogHeader>
-                                     <ScrollArea className="flex-1 -mr-4 pr-4 mt-3">
-                                       <div className="space-y-3">
-                                         {/* Data Diri */}
-                                         <div>
-                                           <h4 className="text-[9px] font-black uppercase text-primary tracking-widest mb-1.5">Data Diri</h4>
-                                           <div className="grid grid-cols-2 gap-y-1 text-[10px] p-2 bg-primary/5 dark:bg-primary/20 rounded-lg border border-primary/10">
-                                             {([
-                                               ['Jenis Kelamin', r.gender],
-                                               ['Pendidikan', r.education],
-                                               ['Umur', r.umur],
-                                               ['Pekerjaan', r.pekerjaan],
-                                               ['Penghasilan', r.penghasilan],
-                                               ['Agama', r.agama],
-                                               ['Suku', r.suku],
-                                               ['Desa/Kota', r.desa_kota],
-                                               ['Provinsi', r.provinsi],
-                                               ['Lokasi', r.location],
-                                               ['Afiliasi Politik', r.afiliasi_politik],
-                                               ['Surveyor', r.surveyor],
-                                               ['Waktu Pengisian', new Date(r.timestamp).toLocaleString('id-ID')],
-                                             ] as [string, string | undefined | null][]).filter(([, v]) => v).map(([label, val]) => (
-                                               <React.Fragment key={label}>
-                                                 <div className="text-muted-foreground">{label}</div>
-                                                 <div className="font-bold text-right text-foreground text-[10px] break-words">{val}</div>
-                                               </React.Fragment>
-                                             ))}
-                                           </div>
-                                         </div>
-                                         {/* Dokumentasi */}
-                                         <div>
-                                           <h4 className="text-[9px] font-black uppercase text-primary tracking-widest mb-1.5">Dokumentasi</h4>
-                                           {r.documentation && r.documentation.startsWith("http") ? (
-                                             <a href={r.documentation} target="_blank" rel="noreferrer" className="block w-full hover:opacity-80 transition-opacity">
-                                               <img src={r.documentation} alt="Dokumentasi" className="w-full h-auto max-h-32 object-cover rounded-md border shadow-sm" />
-                                             </a>
-                                           ) : (
-                                             <div className="p-2 bg-muted/50 rounded-md text-center text-[9px] text-muted-foreground border border-dashed">Tidak ada foto</div>
-                                           )}
-                                         </div>
-                                         {/* Jawaban Survei */}
-                                         {Object.keys(r.answers).length > 0 && (
-                                           <div>
-                                             <h4 className="text-[9px] font-black uppercase text-primary tracking-widest mb-1.5">Jawaban Survei</h4>
-                                             <div className="space-y-1.5">
-                                               {Object.entries(r.answers).filter(([, v]) => v !== '' && v !== null && v !== undefined).map(([key, val]) => (
-                                                 <div key={key} className="text-[10px] px-2.5 py-2 rounded-lg bg-muted/40 border border-border/30">
-                                                   <div className="text-muted-foreground font-medium mb-0.5">{key}</div>
-                                                   <div className="font-bold text-foreground">{String(val)}</div>
-                                                 </div>
+                                     <Tabs defaultValue="info" className="flex-1 flex flex-col min-h-0 mt-2">
+                                       <TabsList className="grid grid-cols-2 h-8 shrink-0">
+                                         <TabsTrigger value="info" className="text-xs">Info</TabsTrigger>
+                                         <TabsTrigger value="jawaban" className="text-xs">
+                                           Jawaban ({Object.values(r.answers).filter(v => v !== '' && v !== null && v !== undefined).length})
+                                         </TabsTrigger>
+                                       </TabsList>
+
+                                       {/* ── TAB INFO ── */}
+                                       <TabsContent value="info" className="flex-1 min-h-0 mt-2 data-[state=active]:flex data-[state=active]:flex-col">
+                                         <ScrollArea className="flex-1 -mr-4 pr-4">
+                                           <div className="space-y-3 pb-2">
+                                             <div className="grid grid-cols-2 gap-y-1 text-[10px] p-2 bg-primary/5 dark:bg-primary/20 rounded-lg border border-primary/10">
+                                               {([
+                                                 ['Jenis Kelamin', r.gender],
+                                                 ['Pendidikan', r.education],
+                                                 ['Umur', r.umur],
+                                                 ['Pekerjaan', r.pekerjaan],
+                                                 ['Penghasilan', r.penghasilan],
+                                                 ['Agama', r.agama],
+                                                 ['Suku', r.suku],
+                                                 ['Desa/Kota', r.desa_kota],
+                                                 ['Provinsi', r.provinsi],
+                                                 ['Lokasi', r.location],
+                                                 ['Afiliasi Politik', r.afiliasi_politik],
+                                                 ['Surveyor', r.surveyor],
+                                                 ['Waktu Pengisian', new Date(r.timestamp).toLocaleString('id-ID')],
+                                               ] as [string, string | undefined | null][]).filter(([, v]) => v).map(([label, val]) => (
+                                                 <React.Fragment key={label}>
+                                                   <div className="text-muted-foreground">{label}</div>
+                                                   <div className="font-bold text-right text-foreground text-[10px] break-words">{val}</div>
+                                                 </React.Fragment>
                                                ))}
                                              </div>
+                                             <div>
+                                               <h4 className="text-[9px] font-black uppercase text-primary tracking-widest mb-1.5">Dokumentasi</h4>
+                                               {r.documentation && r.documentation.startsWith("http") ? (
+                                                 <a href={r.documentation} target="_blank" rel="noreferrer" className="block w-full hover:opacity-80 transition-opacity">
+                                                   <img src={r.documentation} alt="Dokumentasi" className="w-full h-auto max-h-32 object-cover rounded-md border shadow-sm" />
+                                                 </a>
+                                               ) : (
+                                                 <div className="p-2 bg-muted/50 rounded-md text-center text-[9px] text-muted-foreground border border-dashed">Tidak ada foto</div>
+                                               )}
+                                             </div>
                                            </div>
-                                         )}
-                                       </div>
-                                     </ScrollArea>
+                                         </ScrollArea>
+                                       </TabsContent>
+
+                                       {/* ── TAB JAWABAN ── */}
+                                       <TabsContent value="jawaban" className="flex-1 min-h-0 mt-2 data-[state=active]:flex data-[state=active]:flex-col">
+                                         <ScrollArea className="flex-1 -mr-4 pr-4">
+                                           {(() => {
+                                             const sectionNames: Record<string, string> = {
+                                               'A': 'Kepemimpinan Nasional',
+                                               'B': 'Pilihan Capres Terbuka',
+                                               'C': 'Elektabilitas',
+                                               'D': 'Simulasi Pilpres',
+                                               'E': 'Partai Politik',
+                                               'F': 'Kinerja Pemerintah',
+                                               'G': 'Perilaku Pemilih',
+                                               'H': 'Emosi Publik',
+                                               'I': 'Kualitas Survei',
+                                             };
+                                             const grouped: Record<string, [string, string][]> = {};
+                                             Object.entries(r.answers)
+                                               .filter(([, v]) => v !== '' && v !== null && v !== undefined)
+                                               .forEach(([key, val]) => {
+                                                 const m = key.match(/\(([A-Z])\d/);
+                                                 const sec = m ? m[1] : '_';
+                                                 if (!grouped[sec]) grouped[sec] = [];
+                                                 grouped[sec].push([key, String(val)]);
+                                               });
+                                             const ordered = ['A','B','C','D','E','F','G','H','I','_'].filter(s => grouped[s]);
+                                             if (ordered.length === 0) return <p className="text-[10px] text-muted-foreground text-center py-8">Tidak ada jawaban.</p>;
+                                             return (
+                                               <div className="space-y-4 pb-2">
+                                                 {ordered.map(sec => (
+                                                   <div key={sec}>
+                                                     <h4 className="text-[9px] font-black uppercase text-primary tracking-widest mb-1.5">
+                                                       {sectionNames[sec] || 'Lainnya'}
+                                                     </h4>
+                                                     <div className="space-y-1">
+                                                       {grouped[sec].map(([key, val]) =>
+                                                         val.length > 55 ? (
+                                                           <div key={key} className="text-[10px] px-2.5 py-2 rounded-lg bg-muted/40 border border-border/30">
+                                                             <div className="text-muted-foreground font-medium mb-0.5">{key}</div>
+                                                             <div className="font-bold text-foreground leading-relaxed">{val}</div>
+                                                           </div>
+                                                         ) : (
+                                                           <div key={key} className="text-[10px] px-2.5 py-1.5 rounded-lg bg-muted/40 border border-border/30 flex items-start justify-between gap-2">
+                                                             <div className="text-muted-foreground font-medium shrink-0">{key}</div>
+                                                             <div className="font-bold text-foreground text-right">{val}</div>
+                                                           </div>
+                                                         )
+                                                       )}
+                                                     </div>
+                                                   </div>
+                                                 ))}
+                                               </div>
+                                             );
+                                           })()}
+                                         </ScrollArea>
+                                       </TabsContent>
+                                     </Tabs>
                                    </DialogContent>
                                  </Dialog>
                               </TableCell>
