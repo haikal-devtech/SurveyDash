@@ -16,6 +16,17 @@ export interface Respondent {
   documentation?: string | null;
   surveyor?: string | null;
   location?: string | null;
+  province?: string | null;
+  score_average?: number;
+  raw_answers?: Record<string, any>;
+}
+
+export interface CandidateRankItem {
+  name: string;
+  label?: string;
+  count?: number;
+  percentage?: number | string;
+  party?: string;
 }
 
 // ── SKM Survey Data (existing) ─────────────────────────────────────────────
@@ -25,13 +36,25 @@ export interface SurveyData {
     period: string;
     total_respondents: number;
     last_updated: string;
+<<<<<<< Updated upstream
     survey_type?: string;
+=======
+    sample_validity?: string;
+    data_mode?: string;
+    margin_of_error?: string;
+>>>>>>> Stashed changes
   };
   ikm: {
     score: number;
     category: string;
     label: string;
+<<<<<<< Updated upstream
   } | null;
+=======
+    interval?: string;
+    gap?: number;
+  };
+>>>>>>> Stashed changes
   indicators: {
     id: number;
     label: string;
@@ -58,6 +81,7 @@ export interface SurveyData {
     expectations: string[];
   };
   respondents?: Respondent[];
+<<<<<<< Updated upstream
 
   // Electoral fields (present when survey_type === 'ELECTORAL')
   national_leadership?: NationalLeadership;
@@ -67,6 +91,32 @@ export interface SurveyData {
   voter_behavior?: VoterBehavior;
   public_emotion?: PublicEmotion;
   surveyor_quality?: SurveyorQuality;
+=======
+  candidate_preference?: {
+    capres?: CandidateRankItem[];
+    capres_alternative?: CandidateRankItem[];
+    capres_closed?: CandidateRankItem[];
+    simulation_10?: CandidateRankItem[];
+    simulation_8?: CandidateRankItem[];
+    simulation_5?: CandidateRankItem[];
+    politisi?: CandidateRankItem[];
+    tokoh?: CandidateRankItem[];
+    profesional?: CandidateRankItem[];
+    parpol?: CandidateRankItem[];
+    parpol_closed?: CandidateRankItem[];
+  };
+  question_analysis?: {
+    national_leadership?: Record<string, any>;
+    leader_figures?: Record<string, any>;
+    presidential_electability?: Record<string, any>;
+    presidential_simulation?: Record<string, any>;
+    party_electability?: Record<string, any>;
+    government_performance?: Record<string, any>;
+    voter_behavior?: Record<string, any>;
+    public_emotion?: Record<string, any>;
+    surveyor_validation?: Record<string, any>;
+  };
+>>>>>>> Stashed changes
 }
 
 // ── Electoral shared types ─────────────────────────────────────────────────
@@ -185,17 +235,81 @@ export interface SamplingConfig {
 export interface SurveyConfig {
   id: string;
   name: string;
+  subtitle?: string;
   agency: string;
   period: string;
   scriptUrl: string;
   isActive: boolean;
   visibility: SurveyVisibility;
+<<<<<<< Updated upstream
   surveyType?: SurveyType;
   isPublic?: boolean;
   createdAt: any;
   createdBy: string;
   samplingConfig?: SamplingConfig;
+=======
+  isPublic?: boolean;
+  createdAt: any;
+  createdBy: string;
+  // Dashboard & formula config (stored in Firestore, authoritative source)
+  population?: number;
+  totalRespondents?: number;
+  confidenceLevel?: number;
+  marginErrorMode?: "slovin" | "manual";
+  manualMarginOfError?: string;
+  participationRate?: string;
+  reliabilityIndex?: number;
+  trend?: string;
+  sampleValidity?: string;
+  indexScoreMode?: "auto" | "manual";
+  manualIndexScore?: number;
+  targetScore?: number;
+  gapMode?: "auto" | "manual";
+  manualGap?: number;
+  qualityMode?: "auto" | "manual";
+  manualQualityLabel?: string;
+  manualQualityCategory?: string;
+  manualQualityInterval?: string;
+  presentationMode?: boolean;
+  slideVisibility?: SlideVisibility;
+>>>>>>> Stashed changes
 }
+
+export interface SlideVisibility {
+  summary: boolean;
+  indicators: boolean;
+  demographics: boolean;
+  publicExpectation: boolean;
+  respondents: boolean;
+  nationalLeadership: boolean;
+  leaderFigures: boolean;
+  presidentialElectability: boolean;
+  presidentialSimulation: boolean;
+  partyElectability: boolean;
+  governmentPerformance: boolean;
+  voterBehavior: boolean;
+  publicEmotion: boolean;
+  surveyorValidation: boolean;
+  rawData: boolean;
+}
+
+export const DEFAULT_SLIDE_VISIBILITY: SlideVisibility = {
+  summary: true,
+  indicators: true,
+  demographics: true,
+  publicExpectation: true,
+  respondents: true,
+  nationalLeadership: true,
+  leaderFigures: true,
+  presidentialElectability: true,
+  presidentialSimulation: true,
+  partyElectability: true,
+  governmentPerformance: true,
+  voterBehavior: true,
+  publicEmotion: true,
+  surveyorValidation: true,
+  rawData: false,
+};
 
 export interface UserProfile {
   id: string;

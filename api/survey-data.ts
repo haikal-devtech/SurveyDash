@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  let { scriptUrl } = req.query;
+  let { scriptUrl, mode } = req.query;
   
   if (!scriptUrl || typeof scriptUrl !== "string") {
     return res.status(400).json({ error: "Script URL is missing or invalid" });
@@ -89,9 +89,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await axios.get(scriptUrl, {
-      timeout: 15000,
-    });
+    const sep = scriptUrl.includes("?") ? "&" : "?";
+    const fetchUrl = mode === "presentation"
+      ? `${scriptUrl}${sep}mode=presentation`
+      : scriptUrl;
+    const response = await axios.get(fetchUrl, { timeout: 15000 });
     return res.json(response.data);
   } catch (error: any) {
     console.error("Error fetching survey data:", error.message);
