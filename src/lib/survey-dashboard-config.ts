@@ -103,31 +103,6 @@ const SKM_BPBD_DEFAULT: SurveyDashboardConfig = {
   sampleValidity: "95%",
 };
 
-const SKM_DP3_DEFAULT: SurveyDashboardConfig = {
-  surveyId: "skm-dp3ap2kb-tangsel-2025",
-  title: "SKM DP3AP2KB KOTA TANGERANG SELATAN",
-  institution: "Dinas Pemberdayaan Perempuan, Perlindungan Anak, Pengendalian Penduduk dan Keluarga Berencana",
-  period: "2025",
-  population: 0,
-  totalRespondents: 400,
-  confidenceLevel: 95,
-  marginErrorMode: "manual",
-  manualMarginOfError: "±5.00%",
-  indexScoreMode: "manual",
-  manualIndexScore: 0,
-  targetScore: 90.00,
-  gapMode: "auto",
-  manualGap: 0,
-  qualityMode: "auto",
-  manualQualityLabel: "D",
-  manualQualityCategory: "Tidak Baik",
-  manualQualityInterval: "0–64,99",
-  participationRate: "0%",
-  reliabilityIndex: 0,
-  trend: "0%",
-  sampleValidity: "0%",
-};
-
 const FALLBACK_DEFAULT: Omit<SurveyDashboardConfig, "surveyId"> = {
   title: "",
   institution: "",
@@ -155,7 +130,6 @@ const FALLBACK_DEFAULT: Omit<SurveyDashboardConfig, "surveyId"> = {
 export const DEFAULT_SURVEY_DASHBOARD_CONFIGS: Record<string, SurveyDashboardConfig> = {
   "surnas-kepemimpinan-2026": SURNAS_DEFAULT,
   "skm-bpbd-tangsel-2026": SKM_BPBD_DEFAULT,
-  "skm-dp3ap2kb-tangsel-2025": SKM_DP3_DEFAULT,
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
