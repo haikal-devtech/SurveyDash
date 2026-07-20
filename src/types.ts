@@ -36,25 +36,18 @@ export interface SurveyData {
     period: string;
     total_respondents: number;
     last_updated: string;
-<<<<<<< Updated upstream
     survey_type?: string;
-=======
     sample_validity?: string;
     data_mode?: string;
     margin_of_error?: string;
->>>>>>> Stashed changes
   };
   ikm: {
     score: number;
     category: string;
     label: string;
-<<<<<<< Updated upstream
-  } | null;
-=======
     interval?: string;
     gap?: number;
-  };
->>>>>>> Stashed changes
+  } | null;
   indicators: {
     id: number;
     label: string;
@@ -81,17 +74,6 @@ export interface SurveyData {
     expectations: string[];
   };
   respondents?: Respondent[];
-<<<<<<< Updated upstream
-
-  // Electoral fields (present when survey_type === 'ELECTORAL')
-  national_leadership?: NationalLeadership;
-  electability?: Electability;
-  party?: PartyData;
-  gov_performance?: GovPerformance;
-  voter_behavior?: VoterBehavior;
-  public_emotion?: PublicEmotion;
-  surveyor_quality?: SurveyorQuality;
-=======
   candidate_preference?: {
     capres?: CandidateRankItem[];
     capres_alternative?: CandidateRankItem[];
@@ -116,7 +98,6 @@ export interface SurveyData {
     public_emotion?: Record<string, any>;
     surveyor_validation?: Record<string, any>;
   };
->>>>>>> Stashed changes
 }
 
 // ── Electoral shared types ─────────────────────────────────────────────────
@@ -241,16 +222,11 @@ export interface SurveyConfig {
   scriptUrl: string;
   isActive: boolean;
   visibility: SurveyVisibility;
-<<<<<<< Updated upstream
   surveyType?: SurveyType;
   isPublic?: boolean;
   createdAt: any;
   createdBy: string;
   samplingConfig?: SamplingConfig;
-=======
-  isPublic?: boolean;
-  createdAt: any;
-  createdBy: string;
   // Dashboard & formula config (stored in Firestore, authoritative source)
   population?: number;
   totalRespondents?: number;
@@ -272,7 +248,6 @@ export interface SurveyConfig {
   manualQualityInterval?: string;
   presentationMode?: boolean;
   slideVisibility?: SlideVisibility;
->>>>>>> Stashed changes
 }
 
 export interface SlideVisibility {

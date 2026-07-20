@@ -30,11 +30,8 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import axios from "axios";
 import html2canvas from "html2canvas";
-<<<<<<< Updated upstream
-=======
 import { getSurveyDashboardConfig, buildConfigFromSurvey, resolveSurveyDashboard } from "@/lib/survey-dashboard-config";
 import { CandidateRankItem } from "@/types";
->>>>>>> Stashed changes
 
 // Helper for PNG Export
 const downloadPNG = async (elementId: string, filename: string) => {
@@ -245,8 +242,6 @@ export const SurveyDetailPage: React.FC = () => {
   const [respPage, setRespPage] = useState(1);
   const [respSort, setRespSort] = useState<{ key: string; dir: 'asc' | 'desc' }>({ key: 'timestamp', dir: 'desc' });
   const RESP_PER_PAGE = 50;
-<<<<<<< Updated upstream
-=======
   const surveyDashConfig = config
     ? buildConfigFromSurvey(config)
     : getSurveyDashboardConfig(id ?? "");
@@ -255,7 +250,6 @@ export const SurveyDetailPage: React.FC = () => {
     data?.indicators ?? undefined,
     data ?? undefined
   );
->>>>>>> Stashed changes
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -316,24 +310,12 @@ export const SurveyDetailPage: React.FC = () => {
         setTimeout(() => setLastNotification(null), 5000);
       }
 
-<<<<<<< Updated upstream
-      // GAS can return 200 with { error: "..." } when sheet is empty or script fails
-      if (!resp.data?.meta) {
-        setError(
-          resp.data?.error
-            ? `Script error: ${resp.data.error}`
-            : "Struktur data tidak valid. Pastikan Google Apps Script sudah dideploy dengan versi terbaru dan sheet tidak kosong."
-        );
-        return;
-      }
-=======
       if (!resp.data?.meta) {
         const errDetail = resp.data?.error ?? (typeof resp.data === "string" ? resp.data.slice(0, 200) : JSON.stringify(resp.data).slice(0, 200));
         setError(`Apps Script mengembalikan data tidak valid (tidak ada field 'meta'): ${errDetail}. Pastikan code.gs sudah dideploy dan doGet() mengembalikan JSON yang benar.`);
         return;
       }
 
->>>>>>> Stashed changes
       setData(resp.data);
       setError(null);
     } catch (err: any) {
@@ -879,77 +861,6 @@ export const SurveyDetailPage: React.FC = () => {
           </CardContent>
         </Card>
 
-<<<<<<< Updated upstream
-        {data.ikm ? (
-          <Card className="glass-card border-none relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-2 h-full" style={{
-              backgroundColor: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
-            }} />
-            <CardHeader className="pb-2">
-              <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Indeks Kepuasan (NIK)</CardDescription>
-              <CardTitle className="text-3xl md:text-4xl font-black tracking-tighter" style={{
-                color: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
-              }}>{data.ikm.score.toFixed(2)}</CardTitle>
-            </CardHeader>
-            <CardContent>
-               <Badge className="hover:opacity-90 border-none font-black px-4 py-1.5 rounded-full uppercase tracking-wider text-xs text-white" style={{
-                 backgroundColor: data.ikm.score >= 88.31 ? '#10b981' : data.ikm.score >= 76.61 ? '#3b82f6' : data.ikm.score >= 65.00 ? '#f59e0b' : '#ef4444'
-               }}>
-                 {(() => {
-                   const s = data.ikm.score;
-                   if (s >= 88.31) return "Mutu A — Sangat Baik";
-                   if (s >= 76.61) return "Mutu B — Baik";
-                   if (s >= 65.00) return "Mutu C — Kurang Baik";
-                   return "Mutu D — Tidak Baik";
-                 })()}
-               </Badge>
-               <p className="text-[10px] text-muted-foreground mt-2 font-mono">
-                 Nilai Interval: {data.ikm.score >= 88.31 ? "88,31–100" : data.ikm.score >= 76.61 ? "76,61–88,30" : data.ikm.score >= 65.00 ? "65,00–76,60" : "25,00–64,99"}
-               </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="glass-card border-none relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-2 h-full bg-violet-500/50" />
-            <CardHeader className="pb-2">
-              <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Tipe Survei</CardDescription>
-              <CardTitle className="text-xl font-black text-violet-600 dark:text-violet-400 tracking-tighter">ELECTORAL</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Badge className="bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-500/30 font-black uppercase text-xs">
-                Survei Elektoral & Kepemimpinan
-              </Badge>
-            </CardContent>
-          </Card>
-        )}
-
-        {data.ikm ? (
-          <Card className="glass-card border-none relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500/50" />
-            <CardHeader className="pb-2">
-              <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Target Mutu 2026</CardDescription>
-              <CardTitle className="text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">90.00</CardTitle>
-            </CardHeader>
-            <CardContent>
-               <div className="flex items-center gap-2 text-xs text-muted-foreground font-black uppercase tracking-wider bg-emerald-500/10 w-fit px-3 py-1 rounded-full border border-emerald-500/20">
-                 <TrendingUp className="w-4 h-4 text-emerald-500" />
-                 Gap: {(90 - data.ikm.score).toFixed(2)} poin
-               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="glass-card border-none relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-2 h-full bg-blue-500/50" />
-            <CardHeader className="pb-2">
-              <CardDescription className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">Instansi</CardDescription>
-              <CardTitle className="text-base font-black text-foreground tracking-tighter mt-1">{config.agency}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em]">{config.period}</p>
-            </CardContent>
-          </Card>
-        )}
-=======
         <Card className="glass-card border-none relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-2 h-full" style={{
             backgroundColor: dashboardSummary.indexScore >= 88.31 ? '#10b981' : dashboardSummary.indexScore >= 76.61 ? '#3b82f6' : dashboardSummary.indexScore >= 65.00 ? '#f59e0b' : '#ef4444'
@@ -985,7 +896,6 @@ export const SurveyDetailPage: React.FC = () => {
              </div>
           </CardContent>
         </Card>
->>>>>>> Stashed changes
 
         <Card className="glass-card border-none relative overflow-hidden group">
           <div className="absolute -right-6 -top-6 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700">
@@ -1002,47 +912,6 @@ export const SurveyDetailPage: React.FC = () => {
         </Card>
       </div>
 
-<<<<<<< Updated upstream
-      <Tabs defaultValue="indicators" className="space-y-4">
-        <TabsList className="bg-muted p-1 flex-wrap h-auto w-full justify-start gap-0.5">
-          <TabsTrigger value="indicators" className="gap-1.5 text-xs">
-            <LucideBarChart className="w-3.5 h-3.5" />
-            {isElectoral ? 'Elektabilitas' : '9 Indikator IKM'}
-          </TabsTrigger>
-          {isElectoral && <>
-            <TabsTrigger value="simulasi" className="gap-1.5 text-xs">
-              <TrendingUp className="w-3.5 h-3.5" />Simulasi
-            </TabsTrigger>
-            <TabsTrigger value="parpol" className="gap-1.5 text-xs">
-              <Shield className="w-3.5 h-3.5" />Parpol
-            </TabsTrigger>
-            <TabsTrigger value="kepemimpinan" className="gap-1.5 text-xs">
-              <GraduationCap className="w-3.5 h-3.5" />Kepemimpinan
-            </TabsTrigger>
-            <TabsTrigger value="kinerja" className="gap-1.5 text-xs">
-              <BriefcaseBusiness className="w-3.5 h-3.5" />Kinerja Pemerintah
-            </TabsTrigger>
-            <TabsTrigger value="pemilih" className="gap-1.5 text-xs">
-              <MapPin className="w-3.5 h-3.5" />Perilaku Pemilih
-            </TabsTrigger>
-            <TabsTrigger value="emosi" className="gap-1.5 text-xs">
-              <MessageSquare className="w-3.5 h-3.5" />Emosi Publik
-            </TabsTrigger>
-          </>}
-          <TabsTrigger value="demographics" className="gap-1.5 text-xs">
-            <PieChartIcon className="w-3.5 h-3.5" />Demografi
-          </TabsTrigger>
-          <TabsTrigger value="public" className="gap-1.5 text-xs">
-            <MessageSquare className="w-3.5 h-3.5" />Harapan Publik
-          </TabsTrigger>
-          {isElectoral && <TabsTrigger value="surveyor" className="gap-1.5 text-xs">
-            <Check className="w-3.5 h-3.5" />Surveyor
-          </TabsTrigger>}
-          <TabsTrigger value="respondents" className="gap-1.5 text-xs">
-            <Users className="w-3.5 h-3.5" />Daftar Responden
-          </TabsTrigger>
-        </TabsList>
-=======
       <Tabs defaultValue={firstActiveTab} className="space-y-4">
         <div className="overflow-x-auto pb-1">
           <TabsList className="bg-muted p-1 inline-flex h-auto gap-0.5 min-w-max flex-nowrap">
@@ -1063,7 +932,6 @@ export const SurveyDetailPage: React.FC = () => {
             {slideVis.rawData && <TabsTrigger value="rawData" className="gap-1.5 text-xs whitespace-nowrap"><Database className="w-3.5 h-3.5" />Data Mentah</TabsTrigger>}
           </TabsList>
         </div>
->>>>>>> Stashed changes
 
         {/* ── Ringkasan Survei ── */}
         {slideVis.summary && (
@@ -1465,112 +1333,6 @@ export const SurveyDetailPage: React.FC = () => {
                                        <DialogTitle className="text-sm font-bold">Detail: {r.name}</DialogTitle>
                                        <DialogDescription className="text-[10px]">Transkrip lengkap jawaban survey.</DialogDescription>
                                      </DialogHeader>
-<<<<<<< Updated upstream
-                                     <Tabs defaultValue="info" className="flex-1 flex flex-col min-h-0 mt-2">
-                                       <TabsList className="grid grid-cols-2 h-8 shrink-0">
-                                         <TabsTrigger value="info" className="text-xs">Info</TabsTrigger>
-                                         <TabsTrigger value="jawaban" className="text-xs">
-                                           Jawaban ({Object.values(r.answers).filter(v => v !== '' && v !== null && v !== undefined).length})
-                                         </TabsTrigger>
-                                       </TabsList>
-
-                                       {/* ── TAB INFO ── */}
-                                       <TabsContent value="info" className="mt-2">
-                                         <ScrollArea className="h-[calc(85vh-130px)] -mr-4 pr-4">
-                                           <div className="space-y-3 pb-2">
-                                             <div className="grid grid-cols-2 gap-y-1 text-[10px] p-2 bg-primary/5 dark:bg-primary/20 rounded-lg border border-primary/10">
-                                               {([
-                                                 ['Jenis Kelamin', r.gender],
-                                                 ['Pendidikan', r.education],
-                                                 ['Umur', r.umur],
-                                                 ['Pekerjaan', r.pekerjaan],
-                                                 ['Penghasilan', r.penghasilan],
-                                                 ['Agama', r.agama],
-                                                 ['Suku', r.suku],
-                                                 ['Desa/Kota', r.desa_kota],
-                                                 ['Provinsi', r.provinsi],
-                                                 ['Lokasi', r.location],
-                                                 ['Afiliasi Politik', r.afiliasi_politik],
-                                                 ['Surveyor', r.surveyor],
-                                                 ['Waktu Pengisian', new Date(r.timestamp).toLocaleString('id-ID')],
-                                               ] as [string, string | undefined | null][]).filter(([, v]) => v).map(([label, val]) => (
-                                                 <React.Fragment key={label}>
-                                                   <div className="text-muted-foreground">{label}</div>
-                                                   <div className="font-bold text-right text-foreground text-[10px] break-words">{val}</div>
-                                                 </React.Fragment>
-                                               ))}
-                                             </div>
-                                             <div>
-                                               <h4 className="text-[9px] font-black uppercase text-primary tracking-widest mb-1.5">Dokumentasi</h4>
-                                               {r.documentation && r.documentation.startsWith("http") ? (
-                                                 <a href={r.documentation} target="_blank" rel="noreferrer" className="block w-full hover:opacity-80 transition-opacity">
-                                                   <img src={r.documentation} alt="Dokumentasi" className="w-full h-auto max-h-32 object-cover rounded-md border shadow-sm" />
-                                                 </a>
-                                               ) : (
-                                                 <div className="p-2 bg-muted/50 rounded-md text-center text-[9px] text-muted-foreground border border-dashed">Tidak ada foto</div>
-                                               )}
-                                             </div>
-                                           </div>
-                                         </ScrollArea>
-                                       </TabsContent>
-
-                                       {/* ── TAB JAWABAN ── */}
-                                       <TabsContent value="jawaban" className="mt-2">
-                                         <ScrollArea className="h-[calc(85vh-130px)] -mr-4 pr-4">
-                                           {(() => {
-                                             const sectionNames: Record<string, string> = {
-                                               'A': 'Kepemimpinan Nasional',
-                                               'B': 'Pilihan Capres Terbuka',
-                                               'C': 'Elektabilitas',
-                                               'D': 'Simulasi Pilpres',
-                                               'E': 'Partai Politik',
-                                               'F': 'Kinerja Pemerintah',
-                                               'G': 'Perilaku Pemilih',
-                                               'H': 'Emosi Publik',
-                                               'I': 'Kualitas Survei',
-                                             };
-                                             const grouped: Record<string, [string, string][]> = {};
-                                             Object.entries(r.answers)
-                                               .filter(([, v]) => v !== '' && v !== null && v !== undefined)
-                                               .forEach(([key, val]) => {
-                                                 const m = key.match(/\(([A-Z])\d/);
-                                                 const sec = m ? m[1] : '_';
-                                                 if (!grouped[sec]) grouped[sec] = [];
-                                                 grouped[sec].push([key, String(val)]);
-                                               });
-                                             const ordered = ['A','B','C','D','E','F','G','H','I','_'].filter(s => grouped[s]);
-                                             if (ordered.length === 0) return <p className="text-[10px] text-muted-foreground text-center py-8">Tidak ada jawaban.</p>;
-                                             return (
-                                               <div className="space-y-4 pb-2">
-                                                 {ordered.map(sec => (
-                                                   <div key={sec}>
-                                                     <h4 className="text-[9px] font-black uppercase text-primary tracking-widest mb-1.5">
-                                                       {sectionNames[sec] || 'Lainnya'}
-                                                     </h4>
-                                                     <div className="space-y-1">
-                                                       {grouped[sec].map(([key, val]) =>
-                                                         val.length > 55 ? (
-                                                           <div key={key} className="text-[10px] px-2.5 py-2 rounded-lg bg-muted/40 border border-border/30">
-                                                             <div className="text-muted-foreground font-medium mb-0.5">{key}</div>
-                                                             <div className="font-bold text-foreground leading-relaxed">{val}</div>
-                                                           </div>
-                                                         ) : (
-                                                           <div key={key} className="text-[10px] px-2.5 py-1.5 rounded-lg bg-muted/40 border border-border/30 flex items-start justify-between gap-2">
-                                                             <div className="text-muted-foreground font-medium shrink-0">{key}</div>
-                                                             <div className="font-bold text-foreground text-right">{val}</div>
-                                                           </div>
-                                                         )
-                                                       )}
-                                                     </div>
-                                                   </div>
-                                                 ))}
-                                               </div>
-                                             );
-                                           })()}
-                                         </ScrollArea>
-                                       </TabsContent>
-                                     </Tabs>
-=======
                                      <div className="space-y-3 pt-2">
                                        <div className="grid grid-cols-2 gap-y-1 text-[10px] p-2 bg-primary/5 dark:bg-primary/20 rounded-lg border border-primary/10">
                                           <div className="text-muted-foreground">Jenis Kelamin</div>
@@ -1611,7 +1373,6 @@ export const SurveyDetailPage: React.FC = () => {
                                           </div>
                                        </div>
                                      </div>
->>>>>>> Stashed changes
                                    </DialogContent>
                                  </Dialog>
                               </TableCell>
@@ -1666,308 +1427,6 @@ export const SurveyDetailPage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
-<<<<<<< Updated upstream
-
-        {/* ── SIMULASI ── */}
-        {isElectoral && (
-          <TabsContent value="simulasi" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <GoogleFormChartCard id="chart-sim5b"  title="Simulasi 5 Nama (D1c)" data={toChartData((data as any).electability?.simulation?.s5)} type="bar-horizontal" />
-              <PieListCard id="chart-sim8"   title="Simulasi 8 Nama (D1b)"  data={toChartData((data as any).electability?.simulation?.s8)} />
-              <PieListCard id="chart-sim10b" title="Simulasi 10 Nama (D1a)" data={toChartData((data as any).electability?.simulation?.s10)} />
-              <PieListCard id="chart-klas-tok" title="Klaster Tokoh (D1e)"         data={toChartData((data as any).electability?.simulation?.klaster_tokoh)} />
-              <PieListCard id="chart-klas-pro" title="Klaster Profesional (D1f)"  data={toChartData((data as any).electability?.simulation?.klaster_profesional)} />
-              <PieListCard id="chart-klas-pol" title="Klaster Politisi (D1d)"     data={toChartData((data as any).electability?.simulation?.klaster_politisi)} />
-            </div>
-            {(data as any).electability?.open && (
-              <>
-                <p className="text-xs uppercase tracking-widest font-black text-muted-foreground pt-2">Jawaban Terbuka – Bagian B (Elektabilitas)</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { key: 'b1a', label: 'Pilihan Capres & Alasan (B1a)' },
-                    { key: 'b1b', label: 'Capres Alternatif (B1b)' },
-                    { key: 'b1c', label: 'Capres Ideal 2029 (B1c)' },
-                    { key: 'b1d', label: 'Latar Belakang Capres Ideal (B1d)' },
-                  ].map(({ key, label }) => {
-                    const items = (data as any).electability.open[key] ?? [];
-                    return items.length > 0 ? (
-                      <Card key={key} className="h-[220px] flex flex-col border-none shadow-sm bg-muted/20">
-                        <CardHeader className="pb-2"><CardTitle className="text-xs font-black">{label}</CardTitle></CardHeader>
-                        <CardContent className="flex-1 overflow-hidden">
-                          <ScrollArea className="h-full pr-2">
-                            <div className="space-y-1.5">
-                              {items.map((t: string, i: number) => (
-                                <p key={i} className="text-xs italic text-foreground/80 border-l-2 border-primary/40 pl-2">"{t}"</p>
-                              ))}
-                            </div>
-                          </ScrollArea>
-                        </CardContent>
-                      </Card>
-                    ) : null;
-                  })}
-                </div>
-              </>
-            )}
-          </TabsContent>
-        )}
-
-        {/* ── PARPOL ── */}
-        {isElectoral && (
-          <TabsContent value="parpol" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PieListCard id="chart-party-vote"  title="Pilihan Partai (E1d)"         data={toChartData((data as any).party?.vote_intention)} />
-              <PieListCard id="chart-party-like"  title="Tingkat Kesukaan Parpol (E1c)" data={toChartData((data as any).party?.likability)} />
-              <PieListCard id="chart-party-aware" title="Pengenalan Parpol (E1b)"       data={toChartData((data as any).party?.awareness)} />
-            </div>
-            {((data as any).party?.open_e1a?.length > 0) && (
-              <Card className="border-none shadow-sm bg-muted/20">
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-black">Pilihan Partai – Jawaban Terbuka (E1a)</CardTitle></CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-48 pr-2">
-                    <div className="space-y-2">
-                      {(data as any).party.open_e1a.map((t: string, i: number) => (
-                        <p key={i} className="text-xs italic text-foreground/80 border-l-2 border-primary/40 pl-2">"{t}"</p>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        )}
-
-        {/* ── KEPEMIMPINAN NASIONAL ── */}
-        {isElectoral && (
-          <TabsContent value="kepemimpinan" className="space-y-6">
-            {(() => {
-              const nl = (data as any).national_leadership;
-              const a1bAvg = nl?.a1b_satisfaction?.avg ?? 0;
-              const a1cAvg = nl?.a1c_optimism?.avg ?? 0;
-              return (
-                <>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Card className="col-span-2 border-none shadow-sm bg-muted/20">
-                      <CardHeader className="pb-2"><CardDescription className="text-xs uppercase tracking-widest font-black">Kepuasan Kepemimpinan (A1b)</CardDescription></CardHeader>
-                      <CardContent>
-                        <p className="text-5xl font-black text-primary">{a1bAvg.toFixed(1)}<span className="text-xl text-muted-foreground">/10</span></p>
-                        <Progress value={a1bAvg * 10} className="h-2 mt-3" />
-                      </CardContent>
-                    </Card>
-                    <Card className="col-span-2 border-none shadow-sm bg-muted/20">
-                      <CardHeader className="pb-2"><CardDescription className="text-xs uppercase tracking-widest font-black">Optimisme Pemimpin Baru (A1c)</CardDescription></CardHeader>
-                      <CardContent>
-                        <p className="text-5xl font-black text-emerald-500">{a1cAvg.toFixed(1)}<span className="text-xl text-muted-foreground">/10</span></p>
-                        <Progress value={a1cAvg * 10} className="h-2 mt-3" />
-                      </CardContent>
-                    </Card>
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <PieListCard id="chart-a1d" title="Masalah Utama Bangsa (A1d)"           data={toChartData(nl?.a1d_problems)} />
-                    <PieListCard id="chart-a2e" title="Karakter Pemimpin Dibutuhkan (A2e)"   data={toChartData(nl?.a2e_character)} />
-                    <GoogleFormChartCard id="chart-a2f" title="Perlu Pemimpin Baru? (A2f)"   data={toChartData(nl?.a2f_new_leader)} type="pie" />
-                    <PieListCard id="chart-a2g" title="Latar Belakang Ideal Pemimpin (A2g)"  data={toChartData(nl?.a2g_background)} />
-                  </div>
-                  {nl?.open && (
-                    <>
-                      <p className="text-xs uppercase tracking-widest font-black text-muted-foreground pt-2">Jawaban Terbuka – Bagian A</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[
-                          { key: 'a1a',  label: 'Kondisi Kepemimpinan Nasional (A1a)' },
-                          { key: 'a2a',  label: 'Pendapat tentang Kepemimpinan Prabowo (A2a)' },
-                          { key: 'a2b',  label: 'Kriteria Pemimpin yang Dibutuhkan (A2b)' },
-                          { key: 'a2c',  label: 'Yang Tidak Disukai dari Pemimpin (A2c)' },
-                          { key: 'a2d',  label: 'Saran untuk Pemimpin Mendatang (A2d)' },
-                          { key: 'a2h',  label: 'Tokoh Layak Jadi Pemimpin Nasional (A2h)' },
-                          { key: 'a2i',  label: 'Tokoh Lain yang Layak (A2i)' },
-                        ].map(({ key, label }) => (
-                          (nl.open[key]?.length > 0) && (
-                            <Card key={key} className="h-[220px] flex flex-col border-none shadow-sm bg-muted/20">
-                              <CardHeader className="pb-2"><CardTitle className="text-xs font-black">{label}</CardTitle></CardHeader>
-                              <CardContent className="flex-1 overflow-hidden">
-                                <ScrollArea className="h-full pr-2">
-                                  <div className="space-y-1.5">
-                                    {nl.open[key].map((t: string, i: number) => (
-                                      <p key={i} className="text-xs italic text-foreground/80 border-l-2 border-primary/40 pl-2">"{t}"</p>
-                                    ))}
-                                  </div>
-                                </ScrollArea>
-                              </CardContent>
-                            </Card>
-                          )
-                        ))}
-                      </div>
-                      <p className="text-xs uppercase tracking-widest font-black text-muted-foreground pt-2">Tokoh Unggul per Bidang (A2j)</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[
-                          { key: 'a2j_ekonomi',    label: 'Unggul Bidang Ekonomi' },
-                          { key: 'a2j_korupsi',    label: 'Unggul Pemberantasan Korupsi' },
-                          { key: 'a2j_diplomasi',  label: 'Unggul Diplomasi Internasional' },
-                          { key: 'a2j_pertahanan', label: 'Unggul Pertahanan & Keamanan' },
-                          { key: 'a2j_kesra',      label: 'Unggul Kesejahteraan Rakyat' },
-                        ].map(({ key, label }) => (
-                          (nl.open[key]?.length > 0) && (
-                            <Card key={key} className="h-[220px] flex flex-col border-none shadow-sm bg-muted/20">
-                              <CardHeader className="pb-2"><CardTitle className="text-xs font-black">{label}</CardTitle></CardHeader>
-                              <CardContent className="flex-1 overflow-hidden">
-                                <ScrollArea className="h-full pr-2">
-                                  <div className="space-y-1.5">
-                                    {nl.open[key].map((t: string, i: number) => (
-                                      <p key={i} className="text-xs italic text-foreground/80 border-l-2 border-emerald-500/40 pl-2">"{t}"</p>
-                                    ))}
-                                  </div>
-                                </ScrollArea>
-                              </CardContent>
-                            </Card>
-                          )
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </>
-              );
-            })()}
-          </TabsContent>
-        )}
-
-        {/* ── KINERJA PEMERINTAH ── */}
-        {isElectoral && (
-          <TabsContent value="kinerja" className="space-y-6">
-            {(() => {
-              const gp = (data as any).gov_performance;
-              const f5bAvg = gp?.f5b_score?.avg ?? 0;
-              const f3Data = gp?.f3_leadership
-                ? Object.entries(gp.f3_leadership).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(1) ?? '0') }))
-                : [];
-              const f4Data = gp?.f4_trust
-                ? Object.entries(gp.f4_trust).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(1) ?? '0') }))
-                : [];
-              return (
-                <>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Card className="col-span-2 border-none shadow-sm bg-muted/20">
-                      <CardHeader className="pb-2"><CardDescription className="text-xs uppercase tracking-widest font-black">Skor Kinerja Pemerintah (F5b)</CardDescription></CardHeader>
-                      <CardContent>
-                        <p className="text-5xl font-black text-primary">{f5bAvg.toFixed(1)}<span className="text-xl text-muted-foreground">/10</span></p>
-                        <Progress value={f5bAvg * 10} className="h-2 mt-3" />
-                      </CardContent>
-                    </Card>
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <GoogleFormChartCard id="chart-f3" title="Kepemimpinan & Arah Kebijakan (F3, avg 1-4)" data={f3Data} type="bar-horizontal" />
-                    <GoogleFormChartCard id="chart-f4" title="Kepercayaan & Legitimasi Publik (F4, avg 1-4)" data={f4Data} type="bar-horizontal" />
-                  </div>
-                  {gp?.open && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {[
-                        { key: 'f1a', label: 'Penilaian Kinerja Umum (F1a)' },
-                        { key: 'f5a', label: 'Penilaian Keseluruhan (F5a)' },
-                        { key: 'f5c', label: 'Kondisi Perekonomian (F5c)' },
-                        { key: 'f5d', label: 'Kondisi Demokrasi & Hukum (F5d)' },
-                        { key: 'f5e', label: 'Kondisi Kesejahteraan (F5e)' },
-                      ].map(({ key, label }) => (
-                        <Card key={key} className="h-[260px] flex flex-col border-none shadow-sm bg-muted/20">
-                          <CardHeader className="pb-2"><CardTitle className="text-sm font-black">{label}</CardTitle></CardHeader>
-                          <CardContent className="flex-1 overflow-hidden">
-                            <ScrollArea className="h-full pr-2">
-                              <div className="space-y-2">
-                                {(gp.open[key] ?? []).map((t: string, i: number) => (
-                                  <p key={i} className="text-xs italic text-foreground/80 border-l-2 border-primary/40 pl-2">"{t}"</p>
-                                ))}
-                              </div>
-                            </ScrollArea>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-          </TabsContent>
-        )}
-
-        {/* ── PERILAKU PEMILIH ── */}
-        {isElectoral && (
-          <TabsContent value="pemilih" className="space-y-6">
-            {(() => {
-              const vb = (data as any).voter_behavior;
-              const g2Data = vb?.g2_campaign
-                ? Object.entries(vb.g2_campaign).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(2) ?? '0') }))
-                : [];
-              const g3Data = vb?.g3_factors
-                ? Object.entries(vb.g3_factors).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(2) ?? '0') }))
-                : [];
-              return (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <PieListCard         id="chart-g1b" title="Pertimbangan Memilih (G1b)"       data={toChartData(vb?.g1b)} />
-                    <GoogleFormChartCard id="chart-g2"  title="Model Kampanye Disukai (G2, avg)" data={g2Data} type="bar-horizontal" />
-                    <GoogleFormChartCard id="chart-g3"  title="Faktor Penentu Pilihan (G3, avg)" data={g3Data} type="bar-horizontal" />
-                  </div>
-                  {(vb?.open_g1a?.length > 0) && (
-                    <Card className="border-none shadow-sm bg-muted/20">
-                      <CardHeader className="pb-2"><CardTitle className="text-sm font-black">Pertimbangan Memilih – Jawaban Terbuka (G1a)</CardTitle></CardHeader>
-                      <CardContent>
-                        <ScrollArea className="h-48 pr-2">
-                          <div className="space-y-2">
-                            {vb.open_g1a.map((t: string, i: number) => (
-                              <p key={i} className="text-xs italic text-foreground/80 border-l-2 border-primary/40 pl-2">"{t}"</p>
-                            ))}
-                          </div>
-                        </ScrollArea>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              );
-            })()}
-          </TabsContent>
-        )}
-
-        {/* ── EMOSI PUBLIK ── */}
-        {isElectoral && (
-          <TabsContent value="emosi" className="space-y-6">
-            <PieListCard
-              id="chart-d4-trust"
-              title="Tingkat Kepercayaan Tokoh (D4, skala 0-10)"
-              data={Object.entries((data as any).public_emotion?.h2_trust ?? {}).map(([name, v]: any) => ({ name, value: parseFloat(v.avg?.toFixed(1) ?? '0') }))}
-            />
-            {Object.entries((data as any).public_emotion?.h1 ?? {}).map(([leader, sentiment]: any) => (
-              <Card key={leader} className="border-none shadow-sm bg-muted/20">
-                <CardHeader>
-                  <CardTitle className="text-base font-black">{leader}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[
-                      { key: 'opinion',  label: 'Pendapat', color: 'blue' },
-                      { key: 'liked',    label: 'Yang Disukai', color: 'green' },
-                      { key: 'disliked', label: 'Yang Tidak Disukai', color: 'red' },
-                      { key: 'action',   label: 'Yang Harus Dilakukan', color: 'purple' },
-                    ].map(({ key, label, color }) => (
-                      <div key={key} className="space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
-                        <div className="space-y-1.5">
-                          {(sentiment[key] ?? []).map((t: string, i: number) => (
-                            <p key={i} className={`text-xs italic text-foreground/80 border-l-2 pl-2 border-${color}-400`}>"{t}"</p>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-        )}
-
-        {/* ── SURVEYOR ── */}
-        {isElectoral && (
-          <TabsContent value="surveyor" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PieListCard id="chart-surveyor-names" title="Distribusi Surveyor" data={toChartData((data as any).surveyor_names)} />
-            </div>
-=======
         )}
 
         {/* ── Kepemimpinan Nasional ── */}
@@ -2261,7 +1720,6 @@ export const SurveyDetailPage: React.FC = () => {
                   : <SlideEmptyState label="Data Mentah / Audit Responden" icon={Database} />}
               </CardContent>
             </Card>
->>>>>>> Stashed changes
           </TabsContent>
         )}
 

@@ -2,21 +2,26 @@ import React, { useEffect, useState } from "react";
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, query, where, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
-<<<<<<< Updated upstream
-import { SurveyConfig, UserProfile, SamplingConfig, SurveyType } from "@/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-=======
-import { SurveyConfig, UserProfile, SlideVisibility, DEFAULT_SLIDE_VISIBILITY } from "@/types";
+import { SurveyConfig, UserProfile, SamplingConfig, SurveyType, SlideVisibility, DEFAULT_SLIDE_VISIBILITY } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
->>>>>>> Stashed changes
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-<<<<<<< Updated upstream
-import { Plus, Trash2, Edit3, Shield, User as UserIcon, Check, X, Users, Settings2, Globe, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, Edit3, Shield, User as UserIcon, Check, X, Users, Globe, ChevronDown, ChevronUp, RotateCcw, Save, Info, BarChart2, Layers } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  SurveyDashboardConfig,
+  DEFAULT_SURVEY_DASHBOARD_CONFIGS,
+  buildConfigFromSurvey,
+  calculateSlovinMarginError,
+  calculateGap,
+  getQualityByScore,
+  resolveSurveyDashboard,
+} from "@/lib/survey-dashboard-config";
+import axios from "axios";
 
 const DEFAULT_SAMPLING: SamplingConfig = {
   confidenceLevel: 95,
@@ -113,19 +118,6 @@ function SamplingForm({
     </div>
   );
 }
-=======
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, Edit3, Shield, User as UserIcon, Check, X, Users, Globe, RotateCcw, Save, Info, BarChart2, Layers, ToggleLeft, ToggleRight } from "lucide-react";
-import {
-  SurveyDashboardConfig,
-  DEFAULT_SURVEY_DASHBOARD_CONFIGS,
-  buildConfigFromSurvey,
-  calculateSlovinMarginError,
-  calculateGap,
-  getQualityByScore,
-  resolveSurveyDashboard,
-} from "@/lib/survey-dashboard-config";
-import axios from "axios";
 
 const SLIDE_GROUPS: { label: string; slides: { key: keyof SlideVisibility; label: string }[] }[] = [
   {
@@ -164,7 +156,6 @@ const SLIDE_GROUPS: { label: string; slides: { key: keyof SlideVisibility; label
     ],
   },
 ];
->>>>>>> Stashed changes
 
 export const AdminPage: React.FC = () => {
   const { user, role } = useAuth();
@@ -189,8 +180,6 @@ export const AdminPage: React.FC = () => {
   const [editingSurvey, setEditingSurvey] = useState<SurveyConfig | null>(null);
   const [isUpdatingSurvey, setIsUpdatingSurvey] = useState(false);
 
-<<<<<<< Updated upstream
-=======
   // Per-survey dashboard config state (loaded when edit modal opens)
   const [editingDashConfig, setEditingDashConfig] = useState<SurveyDashboardConfig | null>(null);
   const [dashSaveStatus, setDashSaveStatus] = useState<"idle" | "saved" | "reset">("idle");
@@ -328,8 +317,6 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-
->>>>>>> Stashed changes
   const handlePromoteUser = async (uId: string, newRole: "SUPER_ADMIN" | "ADMIN" | "VIEWER") => {
     setIsUpdatingUser(uId);
     try {
@@ -435,14 +422,8 @@ export const AdminPage: React.FC = () => {
         period: editingSurvey.period,
         scriptUrl: editingSurvey.scriptUrl,
         visibility: editingSurvey.visibility,
-<<<<<<< Updated upstream
         surveyType: editingSurvey.surveyType ?? "SKM",
         samplingConfig: editingSurvey.samplingConfig ?? DEFAULT_SAMPLING,
-      });
-      setSurveys(surveys.map(s => s.id === editingSurvey.id ? editingSurvey : s));
-      setEditingSurvey(null);
-      alert("Survei berhasil diperbarui!");
-=======
         // Dashboard & formula config
         population: editingDashConfig.population,
         totalRespondents: editingDashConfig.totalRespondents,
@@ -501,7 +482,6 @@ export const AdminPage: React.FC = () => {
       setSurveys(surveys.map(s => s.id === editingSurvey.id ? updatedSurvey : s));
       setDashSaveStatus("saved");
       setTimeout(() => { closeEditSurvey(); }, 1200);
->>>>>>> Stashed changes
     } catch (err) {
       console.error(err);
       alert("Gagal memperbarui survei.");
@@ -762,49 +742,6 @@ export const AdminPage: React.FC = () => {
             <DialogTitle>Edit Survei</DialogTitle>
             <DialogDescription>Perbarui data survei yang sudah ada.</DialogDescription>
           </DialogHeader>
-<<<<<<< Updated upstream
-          {editingSurvey && (
-            <form onSubmit={handleEditSurvey} className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Nama Survei</label>
-                <Input placeholder="Contoh: SKM Layanan Kebencanaan" required value={editingSurvey.name} onChange={e => setEditingSurvey({ ...editingSurvey, name: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Instansi / Unit Kerja</label>
-                <Input placeholder="Nama Instansi / Unit Kerja" required value={editingSurvey.agency} onChange={e => setEditingSurvey({ ...editingSurvey, agency: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Periode</label>
-                <Input placeholder="Triwulan I 2026" required value={editingSurvey.period} onChange={e => setEditingSurvey({ ...editingSurvey, period: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">URL Script (Web App)</label>
-                <Input placeholder="https://script.google.com/macros/s/.../exec" required value={editingSurvey.scriptUrl} onChange={e => setEditingSurvey({ ...editingSurvey, scriptUrl: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Tipe Survei</label>
-                <select
-                  className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                  value={editingSurvey.surveyType ?? "SKM"}
-                  onChange={e => setEditingSurvey({ ...editingSurvey, surveyType: e.target.value as SurveyType })}
-                >
-                  <option value="SKM">SKM — Survei Kepuasan Masyarakat (IKM)</option>
-                  <option value="ELECTORAL">ELECTORAL — Survei Elektoral & Kepemimpinan</option>
-                </select>
-              </div>
-              <SamplingForm
-                value={editingSurvey.samplingConfig ?? DEFAULT_SAMPLING}
-                onChange={sc => setEditingSurvey({ ...editingSurvey, samplingConfig: sc })}
-              />
-              <DialogFooter className="pt-4">
-                <Button type="button" variant="outline" onClick={() => setEditingSurvey(null)}>Batal</Button>
-                <Button type="submit" disabled={isUpdatingSurvey}>
-                  {isUpdatingSurvey ? "Menyimpan..." : "Simpan Perubahan"}
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
-=======
 
           {editingSurvey && editingDashConfig && (() => {
             const dc = editingDashConfig;
@@ -872,7 +809,22 @@ export const AdminPage: React.FC = () => {
                             <option value="PUBLIC">Publik</option>
                           </select>
                         </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Tipe Survei</label>
+                          <select
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            value={editingSurvey.surveyType ?? "SKM"}
+                            onChange={e => setEditingSurvey({ ...editingSurvey, surveyType: e.target.value as SurveyType })}
+                          >
+                            <option value="SKM">SKM — Survei Kepuasan Masyarakat (IKM)</option>
+                            <option value="ELECTORAL">ELECTORAL — Survei Elektoral & Kepemimpinan</option>
+                          </select>
+                        </div>
                       </div>
+                      <SamplingForm
+                        value={editingSurvey.samplingConfig ?? DEFAULT_SAMPLING}
+                        onChange={sc => setEditingSurvey({ ...editingSurvey, samplingConfig: sc })}
+                      />
                     </form>
 
                     {/* Mode Data Presentasi */}
@@ -1278,7 +1230,6 @@ export const AdminPage: React.FC = () => {
               </Tabs>
             );
           })()}
->>>>>>> Stashed changes
         </DialogContent>
       </Dialog>
     </div>
