@@ -103,6 +103,31 @@ const SKM_BPBD_DEFAULT: SurveyDashboardConfig = {
   sampleValidity: "95%",
 };
 
+const SKM_SERUT_DEFAULT: SurveyDashboardConfig = {
+  surveyId: "skm-serut-2026-s1",
+  title: "SKM KECAMATAN SERPONG UTARA",
+  institution: "Kecamatan Serpong Utara",
+  period: "Semester 1 Tahun 2026",
+  population: 0,
+  totalRespondents: 400,
+  confidenceLevel: 95,
+  marginErrorMode: "manual",
+  manualMarginOfError: "±5.00%",
+  indexScoreMode: "auto",
+  manualIndexScore: 0,
+  targetScore: 90.0,
+  gapMode: "auto",
+  manualGap: 0,
+  qualityMode: "auto",
+  manualQualityLabel: "D",
+  manualQualityCategory: "Tidak Baik",
+  manualQualityInterval: "0–64,99",
+  participationRate: "0%",
+  reliabilityIndex: 0,
+  trend: "0%",
+  sampleValidity: "0%",
+};
+
 const FALLBACK_DEFAULT: Omit<SurveyDashboardConfig, "surveyId"> = {
   title: "",
   institution: "",
@@ -130,6 +155,7 @@ const FALLBACK_DEFAULT: Omit<SurveyDashboardConfig, "surveyId"> = {
 export const DEFAULT_SURVEY_DASHBOARD_CONFIGS: Record<string, SurveyDashboardConfig> = {
   "surnas-kepemimpinan-2026": SURNAS_DEFAULT,
   "skm-bpbd-tangsel-2026": SKM_BPBD_DEFAULT,
+  "skm-serut-2026-s1": SKM_SERUT_DEFAULT,
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
