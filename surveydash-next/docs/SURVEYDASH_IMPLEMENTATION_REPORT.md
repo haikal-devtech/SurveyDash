@@ -28,4 +28,10 @@ The supplied master document is a product target, not a claim that every roadmap
 
 ## Release evidence
 
-To be finalized after preview and production verification with the exact commit, deployment and original-row preservation results.
+Product code commit: e812c2dc4031bb827fcd4a119a80082f829023fd. GitHub push completed on both codex/surveydash-product and codex/surveydash-studio. Preview dpl_4mZt6tNsnGC8ujGdJJFiCETS3qgP and production dpl_8q3T6JTbEUj2MBQQeyGEvtGqFmfC reached Ready. Canonical production URL: https://surveydash-studio.vercel.app.
+
+Production HTTP smoke passed 26 requests. Fourteen public pages/assets returned HTTP 200. Browser production login, the slide editor and 17-slide preview with keyboard navigation were verified without console errors. Preview login and a fixture created in staging confirmed the preview reads the staging database. Cloud image upload and a five-page PDF containing the private image were also verified.
+
+After migration and production smoke, every original survey, submission, audit record, template, user and account remained present and byte-equivalent after normalized serialization. Original 147 submissions were unchanged. Three archived QA surveys, one synthetic response/audit and two archived QA templates were added only under the dedicated test account. Existing accounts were neither replaced nor reset.
+
+![Live production slide editor using labeled simulation data](production-slide-studio.png)

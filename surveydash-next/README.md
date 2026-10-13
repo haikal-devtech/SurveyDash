@@ -2,7 +2,7 @@
 
 Proyek Next.js baru untuk mengelola seluruh proses survei dalam satu website: pembuat form → tabel respons → analisis → presentasi.
 
-Versi online untuk pengujian: [surveydash-studio.vercel.app](https://surveydash-studio.vercel.app). Pilih **Buat workspace** untuk membuat akun baru. Akun dan data lokal tidak otomatis disalin ke cloud. Workspace baru berisi contoh berlabel simulasi, lalu Anda dapat membuat survei sendiri.
+Versi online untuk pengujian: [surveydash-studio.vercel.app](https://surveydash-studio.vercel.app). Pilih **Buat workspace** untuk membuat akun baru. Akun dan data lokal tidak otomatis disalin ke cloud. Workspace baru dimulai kosong. Pilih **Coba contoh SKM** bila ingin mencoba data simulasi, atau langsung buat survei sendiri.
 
 ## Jalankan lokal
 
@@ -15,7 +15,7 @@ pnpm setup
 pnpm dev
 ```
 
-Buka **http://127.0.0.1:3100**. Pilih **Buat workspace** untuk membuat akun Anda. Setiap workspace baru mempunyai dua survei contoh, termasuk 48 respons simulasi SKM. Contoh ini bukan hasil penelitian atau data DAMKAR yang sebenarnya.
+Buka **http://127.0.0.1:3100**. Pilih **Buat workspace** untuk membuat akun Anda. Contoh SKM tersedia melalui tombol **Coba contoh SKM** di beranda. Contoh memakai 48 respons simulasi berlabel, bukan hasil penelitian atau data DAMKAR yang sebenarnya.
 
 Di Windows pada komputer ini, dependencies dan database sudah disiapkan. Anda juga dapat menjalankan **`start.cmd`** dari folder proyek untuk membuka server lokal tanpa mengetik perintah pnpm. Launcher menggunakan runtime Node.js Codex jika tersedia. Biarkan terminalnya terbuka selama memakai aplikasi.
 
@@ -26,23 +26,25 @@ Database dan rahasia sesi lokal ada pada `.data/` dan `.env.local`, keduanya dia
 ## Fitur yang sudah bekerja
 
 - Autentikasi email/kata sandi dengan Better Auth. Pemilik workspace hanya dapat membaca dan mengubah surveinya sendiri.
-- Template SKM dengan sembilan unsur, template pengalaman layanan, dan form kosong. Struktur survei dapat disimpan sebagai template pribadi.
+- Template SKM, evaluasi layanan, kepuasan pelanggan dan form kosong. Form, layout, paket survei dan dokumen slide dapat disimpan, dipratinjau, dipakai ulang, diduplikasi, diubah namanya, diarsipkan dan dipulihkan.
 - Pembuat pertanyaan: teks, paragraf, pilihan tunggal/jamak, skala penilaian, angka, dan tanggal. Pertanyaan bisa digeser, dinaikkan/diturunkan, dan diduplikasi.
 - Form publik dalam website yang sama, termasuk validasi wajib isi dan pengiriman yang tidak menggandakan respons saat permintaan dicoba ulang.
 - Status **Draft / Buka / Tutup**, terpisah dari visibilitas **Publik / Link saja / Privat**. Publik masuk portal; link saja tersembunyi dari portal; privat tidak bisa diakses melalui link responden.
 - Tabel respons dengan pencarian, pengurutan, pilihan kolom, pagination, koreksi sel, dan ekspor CSV. Koreksi menyimpan nilai sebelum/sesudah serta memakai revision untuk mendeteksi konflik.
 - Analisis demografi, distribusi jawaban, capaian target, dan IKM. IKM hanya berlaku pada survei SKM dengan sembilan unsur. Nilai kosong tidak diberi skor 1.
-- Kanvas presentasi: seret pertanyaan ke kanvas, pindahkan/perbesar komponen, ganti pie/bar/tabel, tambahkan kartu angka/catatan, simpan layout, lalu buka mode presentasi. Ada tombol cetak/PDF melalui browser.
+- Studio slide 16:9 dengan teks, bentuk, gambar, pie/bar/tabel, metrik terikat ke data, drag/resize, lapisan, undo/redo, autosave, tema dan pratinjau. Buat slide otomatis dari analisis dan ekspor PDF/PPTX. File ekspor mempertahankan tampilan sebagai gambar; komponen PowerPoint tidak dapat diedit terpisah.
+- Beranda dengan starter template dan tabel survei; pencarian, duplikat, arsip, sampah dan pemulihan.
+- Pengaturan akun/workspace, penggunaan bulanan aktual dan impor Google Form JSON dengan preview serta catatan item yang tidak didukung.
 - PostgreSQL untuk deployment Vercel; SQLite sebagai pilihan lokal tanpa layanan cloud.
 
 ## Cara mencoba satu alur lengkap
 
 1. Buat survei dari template **Pengalaman layanan** atau **Form kosong**.
-2. Atur pertanyaan; simpan perubahan.
+2. Atur pertanyaan; editor menyimpan otomatis dan menampilkan statusnya.
 3. Pada tab **Form**, klik **Buka form**. Salin link dan isi dari tab baru.
-4. Pada tab **Data**, muat ulang. Respons muncul sebagai baris baru. Koreksi sel bila perlu; lihat riwayatnya.
-5. Pada tab **Presentasi**, seret pertanyaan dari panel kiri ke kanvas atau klik tombol tambah. Pilih grafik yang cocok, atur ukuran, dan simpan.
-6. Klik **Presentasikan** untuk menampilkan hasil. Tombol Escape keluar dari mode presentasi.
+4. Pada tab **Data**, muat ulang. Respons muncul sebagai baris baru. Aktifkan **Koreksi data** bila perlu; lihat riwayatnya.
+5. Pada tab **Presentasi**, pilih **Buat dari analisis** atau **Presentasi kosong**. Atur teks/grafik/gambar, posisi dan ukuran pada editor slide.
+6. Klik **Pratinjau** untuk menampilkan slide, gunakan panah, lalu Escape untuk keluar. **Ekspor** menyediakan PDF dan PowerPoint. **Template** menyimpan desain untuk digunakan kembali.
 7. Ubah status menjadi **Tutup**, simpan, lalu buka lagi link form. Pengiriman jawaban baru akan ditolak oleh server.
 
 ## Fondasi arsitektur
@@ -71,6 +73,7 @@ Jawaban menyimpan snapshot pertanyaan. Label dan urutan pertanyaan tidak menjadi
 ## Pemeriksaan
 
 ```powershell
+pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
@@ -78,9 +81,9 @@ pnpm build
 
 ## Batas versi pertama
 
-Versi online memakai PostgreSQL melalui Prisma Postgres di Vercel Marketplace. Saat `DATABASE_URL` terisi, seluruh data dan tabel autentikasi memakai PostgreSQL. Deployment Vercel menolak fallback SQLite agar data tidak ditulis ke filesystem sementara.
+Versi online memakai PostgreSQL melalui Prisma Postgres di Vercel Marketplace. Produksi memakai `DATABASE_URL`. Preview wajib memakai `STAGING_DATABASE_URL` yang terpisah untuk seluruh data dan autentikasi. Deployment Vercel menolak fallback SQLite agar data tidak ditulis ke filesystem sementara.
 
-Tabel berfokus pada jawaban survei; formula Excel bebas, copy-paste banyak sel, upload dokumentasi, conditional branching, impor data Google Sheets, manajemen tim/admin/surveyor, dan slide presentasi multi-halaman belum dibuat. Spreadsheet CSV sudah dapat diekspor. Penyegaran respons saat ini memakai tombol **Muat ulang**, bukan subscription realtime.
+Tabel berfokus pada jawaban survei. Formula Excel bebas, copy-paste banyak sel, conditional branching, impor respons Google Sheets, manajemen tim/admin/surveyor dan public shared-deck link belum tersedia. Impor JSON saat ini hanya memindahkan instrumen Google Form. CSV, PDF dan PowerPoint sudah dapat diekspor. Penyegaran respons memakai tombol **Muat ulang**, bukan subscription realtime.
 
 Pendaftaran workspace terbuka untuk pengujian. Verifikasi email, pemulihan kata sandi melalui email, kebijakan undangan, dan manajemen tim belum tersedia. `TRUST_PROXY=true` dipakai pada deployment Vercel yang mengelola header alamat IP.
 
@@ -116,3 +119,7 @@ Referensi dipilih dari dokumentasi resmi dan repositori dengan lisensi MIT. Apli
 | [dnd kit](https://github.com/clauderic/dnd-kit)                                                | Referensi riset reorder; versi ini memakai drag HTML dan tombol keyboard                      |
 
 Lisensi masing-masing dependency tetap menjadi milik pengembangnya. Detail tersedia di paket yang diinstal dan berkas [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Dokumentasi rilis produk
+
+Lihat [laporan implementasi](docs/SURVEYDASH_IMPLEMENTATION_REPORT.md), [route map](docs/SURVEYDASH_ROUTE_MAP.md), [UI system](docs/SURVEYDASH_UI_SYSTEM.md), [arsitektur](docs/SURVEYDASH_ARCHITECTURE.md) dan [rilis/recovery](docs/SURVEYDASH_RELEASE.md). Integrasi OAuth, SMTP dan pembayaran belum diaktifkan; tidak ada checkout atau harga berbayar buatan.
