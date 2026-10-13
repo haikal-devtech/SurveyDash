@@ -2,6 +2,8 @@
 
 Proyek Next.js baru untuk mengelola seluruh proses survei dalam satu website: pembuat form → tabel respons → analisis → presentasi.
 
+Versi online untuk pengujian: [surveydash-studio.vercel.app](https://surveydash-studio.vercel.app). Pilih **Buat workspace** untuk membuat akun baru. Akun dan data lokal tidak otomatis disalin ke cloud. Workspace baru berisi contoh berlabel simulasi, lalu Anda dapat membuat survei sendiri.
+
 ## Jalankan lokal
 
 Memerlukan Node.js **24.15+** dan pnpm. Database lokal memakai `node:sqlite`, sehingga tidak membutuhkan akun layanan cloud untuk mencoba aplikasi.
@@ -85,6 +87,8 @@ Pendaftaran workspace terbuka untuk pengujian. Verifikasi email, pemulihan kata 
 ## Deployment cloud
 
 Project Vercel **surveydash-studio** membangun folder `surveydash-next` pada repository SurveyDash. Database **surveydash-studio-db** menggunakan paket gratis Prisma Postgres di Singapura dan terpisah dari database aplikasi lain.
+
+Branch production: `codex/surveydash-studio`. Push ke branch ini memicu deployment otomatis pada project Studio. Folder `surveydash-next` menyimpan aplikasi baru; root repository tetap berisi aplikasi sebelumnya.
 
 Konfigurasi server: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, dan `TRUST_PROXY`. Rahasia disimpan di environment Vercel dan tidak masuk Git. Jangan menambahkan prefix `NEXT_PUBLIC_` pada kredensial database atau rahasia sesi.
 

@@ -36,4 +36,18 @@ Pemeriksaan menemukan loop render Recharts ketika beberapa grafik kanvas dipasan
 
 ## Batas verifikasi
 
-Pemeriksaan dilakukan pada aplikasi lokal dan data simulasi. Hosting produksi, PostgreSQL/Supabase, email nyata, impor Google Sheets, backup, manajemen tim, dan ekspor slide multi-halaman belum dikonfigurasi atau diuji. Cetak/PDF menggunakan fasilitas browser; hasil cetak belum diaudit sebagai dokumen laporan final.
+Pemeriksaan memakai data simulasi. Email nyata, impor Google Sheets, backup yang dikelola aplikasi, manajemen tim, dan ekspor slide multi-halaman belum dikonfigurasi atau diuji. Cetak/PDF menggunakan fasilitas browser; hasil cetak belum diaudit sebagai dokumen laporan final.
+
+## Verifikasi deployment cloud — 14 Oktober 2026
+
+URL: `https://surveydash-studio.vercel.app`. Project Vercel `surveydash-studio`, root `surveydash-next`, branch production `codex/surveydash-studio`, Node.js 24, region function dan database Singapura.
+
+- Prisma Postgres paket gratis dibuat khusus sebagai `surveydash-studio-db`. Skema aplikasi dan tabel Better Auth dimigrasikan; seluruh koneksi memakai PostgreSQL di cloud.
+- Build Vercel berhasil dan deployment mencapai `READY`.
+- Pengujian langsung PostgreSQL lolos: dua penyimpanan schema dengan version sama menghasilkan satu sukses dan satu konflik; empat submit bersamaan dengan request key sama menghasilkan satu baris; koreksi bersamaan menghasilkan satu perubahan dan satu audit; pembuatan workspace contoh bersamaan menghasilkan tepat dua survei.
+- HTTP smoke pada URL production lolos: signup, sesi, isolasi owner, validasi, pengiriman, empat retry bersamaan, persistensi jawaban, koreksi, audit, publik/link/privat, penutupan, template pribadi, dan penolakan request tanpa Origin.
+- Browser cloud lolos: login, seed workspace contoh, buat survei dari template, ganti label pertanyaan, simpan, buka form, isi melalui halaman responden, konfirmasi tersimpan, muat ulang tabel, koreksi sel, dan buka riwayat.
+- Browser cloud lolos: ganti bar menjadi pie, tambahkan grafik pertanyaan, simpan, reload, dan buka mode presentasi. Bukti tampilan tersimpan di `cloud-presentation-preview.jpg`.
+- Environment database dan rahasia autentikasi berada di Vercel; `.env.cloud.local`, `.vercel/`, dan kredensial akun QA diabaikan Git.
+
+Pengujian cloud menggunakan akun dan respons sintetis. Data DAMKAR/Google Sheets lama belum diimpor.
