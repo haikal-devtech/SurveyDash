@@ -15,6 +15,7 @@ export default async function SurveyPage({ params }: { params: Promise<{ id: str
   }
   return (
     <SurveyEditor
+      key={survey.id}
       initialSurvey={survey}
       initialSubmissions={await listSubmissions(id)}
       initialAudit={await listAudit(id)}

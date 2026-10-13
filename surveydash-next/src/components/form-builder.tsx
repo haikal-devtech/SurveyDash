@@ -135,7 +135,34 @@ export function FormBuilder({
                 </button>
                 <span className="question-number">{index + 1}</span>
                 <strong>{q.label || 'Pertanyaan baru'}</strong>
-                <Badge>{questionTypes.find((t) => t.type === q.type)?.label}</Badge>
+                <select
+                  className="question-type-select"
+                  aria-label={`Jenis pertanyaan ${index + 1}`}
+                  value={q.type}
+                  disabled={hasResponses}
+                  onChange={(e) => {
+                    const type = e.target.value as QuestionType;
+                    change({
+                      ...q,
+                      type,
+                      scored: false,
+                      options: ['choice', 'checkbox', 'rating'].includes(type)
+                        ? q.options.length >= 2
+                          ? q.options.map((option) => ({ id: option.id, label: option.label }))
+                          : Array.from({ length: type === 'rating' ? 4 : 2 }, (_, i) => ({
+                              id: crypto.randomUUID(),
+                              label: `Pilihan ${i + 1}`,
+                            }))
+                        : [],
+                    });
+                  }}
+                >
+                  {questionTypes.map((item) => (
+                    <option key={item.type} value={item.type}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
                 <Button
                   variant="ghost"
                   style={{ padding: 3, minHeight: 26 }}

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   flexRender,
   getCoreRowModel,
@@ -21,6 +21,8 @@ import {
   ChevronRight,
   ArrowUpDown,
   Table2,
+  Pencil,
+  Eye,
 } from 'lucide-react';
 import type { Answer, AuditEntry, Question, Submission, Survey } from '@/lib/types';
 import { answerLabel, csvCell } from '@/lib/model';
@@ -31,10 +33,12 @@ function EditableCell({
   question: q,
   row,
   onCommit,
+  readOnly,
 }: {
   question: Question;
   row: Submission;
   onCommit: (q: Question, row: Submission, value: Answer) => Promise<boolean>;
+  readOnly: boolean;
 }) {
   const value = row.answers[q.id] ?? '';
   const [draft, setDraft] = useState(String(value));
@@ -42,10 +46,6 @@ function EditableCell({
   const [modal, setModal] = useState(false);
   const [multiple, setMultiple] = useState<Answer>(value);
   const cancelled = useRef(false);
-  useEffect(() => {
-    setDraft(String(value));
-    setMultiple(value);
-  }, [value]);
   async function commit(next: Answer) {
     if (JSON.stringify(next) === JSON.stringify(value)) return;
     setPending(true);
@@ -53,6 +53,7 @@ function EditableCell({
     if (!ok) setDraft(String(value));
     setPending(false);
   }
+  if (readOnly) return <span className="cell-readonly">{answerLabel(q, value)}</span>;
   if (q.type === 'choice' || q.type === 'rating')
     return (
       <select
@@ -144,6 +145,8 @@ export function ResponseTable({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [visibility, setVisibility] = useState<VisibilityState>({});
   const [history, setHistory] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [details, setDetails] = useState<Submission | null>(null);
   async function commit(q: Question, row: Submission, value: Answer) {
     try {
       const response = await fetch(`/api/surveys/${survey.id}`, {
@@ -182,10 +185,33 @@ export function ResponseTable({
       header: q.label,
       accessorFn: (r: Submission) => answerLabel(q, r.answers[q.id]),
       cell: (info: { row: { original: Submission } }) => (
-        <EditableCell question={q} row={info.row.original} onCommit={commit} />
+        <EditableCell
+          key={`${info.row.original.id}:${info.row.original.revision}:${q.id}`}
+          question={q}
+          row={info.row.original}
+          onCommit={commit}
+          readOnly={!editing}
+        />
       ),
     })),
+    {
+      id: 'details',
+      header: 'Detail',
+      enableSorting: false,
+      enableHiding: false,
+      cell: (info) => (
+        <Button
+          variant="ghost"
+          aria-label={`Detail respons ${info.row.original.id.slice(0, 8)}`}
+          onClick={() => setDetails(info.row.original)}
+        >
+          <Eye size={14} />
+        </Button>
+      ),
+    },
   ];
+  // TanStack exposes mutable getters; keep this hook outside compiler memoization.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: rows,
     columns,
@@ -222,7 +248,7 @@ export function ResponseTable({
       <div className="panel-intro">
         <div>
           <h2>Semua jawaban, satu tempat.</h2>
-          <p>Klik sel untuk mengoreksi jawaban. Perubahan langsung tersimpan dan analisis diperbarui.</p>
+          <p>Jawaban ditampilkan dalam mode baca. Aktifkan koreksi data untuk mengubah sel dengan riwayat.</p>
         </div>
         <Badge tone="purple">{rows.length} respons</Badge>
       </div>
@@ -239,6 +265,10 @@ export function ResponseTable({
             />
           </div>
           <div className="actions">
+            <Button variant="secondary" aria-pressed={editing} onClick={() => setEditing((value) => !value)}>
+              <Pencil size={13} />
+              {editing ? 'Selesai koreksi' : 'Koreksi data'}
+            </Button>
             <details style={{ position: 'relative' }}>
               <summary className="btn btn-secondary" style={{ listStyle: 'none' }}>
                 <Columns3 size={13} />
@@ -410,6 +440,31 @@ export function ResponseTable({
           <p className="hint">Belum ada koreksi jawaban.</p>
         )}
       </Modal>
+      {details && (
+        <Modal
+          open
+          onOpenChange={(open) => {
+            if (!open) setDetails(null);
+          }}
+          title="Detail respons"
+          description={new Date(details.submittedAt).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}
+          wide
+        >
+          <div className="response-details">
+            {details.questionSnapshot.map((q) => (
+              <div key={q.id}>
+                <strong>{q.label}</strong>
+                <p>{answerLabel(q, details.answers[q.id])}</p>
+              </div>
+            ))}
+          </div>
+          <div className="modal-footer">
+            <Button variant="secondary" onClick={() => setDetails(null)}>
+              Tutup
+            </Button>
+          </div>
+        </Modal>
+      )}
     </>
   );
 }

@@ -1,13 +1,15 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowRight, Loader2, ShieldCheck, BarChart3 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import { Brand } from './brand';
 import { Button, Badge } from './ui';
 
-export function LoginForm() {
-  const [register, setRegister] = useState(false);
+export function LoginForm({ initialRegister = false }: { initialRegister?: boolean }) {
+  const router = useRouter();
+  const [register, setRegister] = useState(initialRegister);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +27,8 @@ export function LoginForm() {
         setError(result.error.message ?? 'Tidak dapat masuk. Periksa email dan kata sandi.');
         return;
       }
-      window.location.href = '/studio';
+      router.replace('/studio');
+      router.refresh();
     } catch {
       setError('Koneksi gagal. Coba lagi.');
     } finally {

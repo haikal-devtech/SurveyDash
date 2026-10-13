@@ -1,16 +1,16 @@
 @import 'tailwindcss';
 @theme inline {
   --color-brand: #7755d8;
-  --font-sans: 'Segoe UI', Arial, sans-serif;
+  --font-sans: 'Inter Variable', 'Segoe UI', Arial, sans-serif;
 }
 :root {
-  --bg: #f7f7fa;
+  --bg: #fafafc;
   --card: #fff;
-  --ink: #272637;
+  --ink: #20203d;
   --muted: #767080;
   --border: #e9e9f0;
-  --purple: #7755d8;
-  --purple-soft: #f0ebfa;
+  --purple: #7549df;
+  --purple-soft: #eee8fb;
   --green: #259c75;
 }
 * {
@@ -20,7 +20,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family: 'Segoe UI', Arial, sans-serif;
+  font-family: 'Inter Variable', 'Segoe UI', Arial, sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
 }

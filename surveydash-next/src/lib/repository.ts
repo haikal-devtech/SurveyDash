@@ -32,14 +32,16 @@ const parseSubmission = (row: SqlRow): Submission => ({
   revision: Number(row.revision),
 });
 
-export async function listSurveys(ownerId: string): Promise<Survey[]> {
+export async function listSurveys(ownerId: string, includeArchived = false): Promise<Survey[]> {
   return (
     await getDb()
       .prepare(
         'SELECT surveys.*, (SELECT count(*) FROM submissions WHERE survey_id = surveys.id) AS response_count FROM surveys WHERE owner_id = ? ORDER BY updated_at DESC',
       )
       .all(ownerId)
-  ).map((row) => parseSurvey(row as SqlRow));
+  )
+    .map((row) => parseSurvey(row as SqlRow))
+    .filter((s) => includeArchived || (!s.archivedAt && !s.deletedAt));
 }
 export async function getSurvey(id: string, ownerId: string): Promise<Survey> {
   const row = await getDb()
@@ -124,6 +126,15 @@ export async function updateSurvey(id: string, ownerId: string, input: unknown):
     const before = await getSurvey(id, ownerId);
     if (before.version !== parsed.version)
       throw new AppError('Survei sudah diperbarui di tab lain. Muat ulang sebelum menyimpan.', 409);
+    if ((before.archivedAt || before.deletedAt) && parsed.status === 'open')
+      throw new AppError('Pulihkan survei sebelum membuka form.');
+    if (process.env.ENFORCE_FREE_LIMITS === 'true' && parsed.status === 'open' && before.status !== 'open') {
+      await db.lockOwner(ownerId);
+      const { getUsage } = await import('./workspace-repository');
+      const { assertCapacity } = await import('./plans');
+      const usage = await getUsage(ownerId);
+      assertCapacity(usage.activeSurveys, usage.activeLimit, 'survei aktif');
+    }
     assertSchemaCompatible(before, parsed, (await listSubmissions(id)).length > 0);
     const after: Survey = {
       ...before,
@@ -229,6 +240,13 @@ export async function submitResponse(token: string, input: unknown, requestKey: 
     }
     assertAcceptingResponses(survey);
     const answers = validateAnswers(survey.questions, input);
+    if (process.env.ENFORCE_FREE_LIMITS === 'true') {
+      await db.lockOwner(survey.ownerId);
+      const { getUsage } = await import('./workspace-repository');
+      const { assertCapacity } = await import('./plans');
+      const usage = await getUsage(survey.ownerId);
+      assertCapacity(usage.responses, usage.responseLimit, 'respons bulan ini');
+    }
     const id = randomUUID();
     await db
       .prepare(
@@ -306,7 +324,7 @@ export async function listAudit(surveyId: string): Promise<AuditEntry[]> {
 export async function listPublicSurveys() {
   return (await getDb().prepare('SELECT payload FROM surveys ORDER BY updated_at DESC').all())
     .map((row) => JSON.parse(String(row.payload)) as Survey)
-    .filter((s) => s.visibility === 'public' && s.status !== 'draft')
+    .filter((s) => !s.archivedAt && !s.deletedAt && s.visibility === 'public' && s.status !== 'draft')
     .map((s) => ({
       title: s.title,
       description: s.description,
@@ -326,6 +344,63 @@ export async function allowSubmission(key: string): Promise<boolean> {
     )
     .get(key, now + 60_000);
   return Number(row?.count ?? 0) <= 20;
+}
+
+export async function manageSurvey(
+  id: string,
+  ownerId: string,
+  action: 'duplicate' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'opened',
+): Promise<Survey> {
+  return getDb().transaction(async () => {
+    const source = await getSurvey(id, ownerId);
+    const now = new Date().toISOString();
+    if (action === 'duplicate') {
+      const clone: Survey = {
+        ...structuredClone(source),
+        id: randomUUID(),
+        token: randomUUID().replaceAll('-', ''),
+        title: `${source.title.slice(0, 180)} (salinan)`,
+        status: 'draft',
+        visibility: 'link',
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: null,
+        deletedAt: null,
+        responseCount: 0,
+        demo: false,
+      };
+      await insertSurvey(clone);
+      return clone;
+    }
+    const next: Survey = { ...source, version: source.version + 1, updatedAt: now };
+    if (action === 'archive') {
+      next.archivedAt = now;
+      next.status = 'closed';
+    }
+    if (action === 'unarchive') {
+      next.archivedAt = null;
+      next.status = 'draft';
+    }
+    if (action === 'trash') {
+      next.deletedAt = now;
+      next.status = 'closed';
+    }
+    if (action === 'restore') {
+      next.deletedAt = null;
+      next.archivedAt = null;
+      next.status = 'draft';
+    }
+    if (action === 'opened') {
+      next.lastOpenedAt = now;
+      next.version = source.version;
+      next.updatedAt = source.updatedAt;
+    }
+    await getDb()
+      .prepare('UPDATE surveys SET payload = ?, updated_at = ? WHERE id = ? AND owner_id = ?')
+      .run(JSON.stringify(next), next.updatedAt, id, ownerId);
+    return next;
+  });
 }
 
 export async function ensureDemoWorkspace(ownerId: string) {

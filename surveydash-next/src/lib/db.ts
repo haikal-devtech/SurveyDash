@@ -14,8 +14,12 @@ const globalDb = globalThis as typeof globalThis & {
 };
 const transactions = (globalDb.studioTransactions ??= new AsyncLocalStorage());
 export function getAuthDatabase(): Pool | DatabaseSync {
-  if (process.env.DATABASE_URL) {
-    const connectionUrl = new URL(process.env.DATABASE_URL);
+  const connectionString =
+    process.env.VERCEL_ENV === 'preview' ? process.env.STAGING_DATABASE_URL : process.env.DATABASE_URL;
+  if (process.env.VERCEL_ENV === 'preview' && !connectionString)
+    throw new Error('STAGING_DATABASE_URL wajib untuk preview yang terisolasi.');
+  if (connectionString) {
+    const connectionUrl = new URL(connectionString);
     // Keep certificate verification explicit when pg adopts libpq SSL semantics.
     if (['require', 'prefer', 'verify-ca'].includes(connectionUrl.searchParams.get('sslmode') ?? ''))
       connectionUrl.searchParams.set('sslmode', 'verify-full');
@@ -60,6 +64,16 @@ const schema = `
     CREATE TABLE IF NOT EXISTS templates (
       id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, name TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS workspace_settings (owner_id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS presentations (
+      id TEXT PRIMARY KEY, survey_id TEXT NOT NULL REFERENCES surveys(id), owner_id TEXT NOT NULL,
+      payload TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS presentations_owner ON presentations(owner_id, survey_id);
+    CREATE TABLE IF NOT EXISTS presentation_assets (
+      id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, name TEXT NOT NULL, mime TEXT NOT NULL,
+      content TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL, created_at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS public_rate_limits (
       key TEXT PRIMARY KEY, count INTEGER NOT NULL, expires_at BIGINT NOT NULL
     );`;
@@ -87,10 +101,13 @@ export function getDb() {
       };
     },
     get lockSuffix() {
-      return process.env.DATABASE_URL && transactions.getStore() ? ' FOR UPDATE' : '';
+      return transactions.getStore() && !(transactions.getStore() instanceof DatabaseSync)
+        ? ' FOR UPDATE'
+        : '';
     },
     async lockOwner(ownerId: string) {
-      if (process.env.DATABASE_URL) await query('SELECT pg_advisory_xact_lock(hashtext(?))', [ownerId]);
+      if (!(getAuthDatabase() instanceof DatabaseSync))
+        await query('SELECT pg_advisory_xact_lock(hashtext(?))', [ownerId]);
     },
     async transaction<T>(work: () => Promise<T>): Promise<T> {
       if (transactions.getStore()) return work();

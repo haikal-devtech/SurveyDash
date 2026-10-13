@@ -188,7 +188,9 @@ export function calculateStats(survey: Survey, rows: Submission[]): SurveyStats 
 }
 
 export function canAccessForm(survey: Survey) {
-  return survey.status !== 'draft' && survey.visibility !== 'private';
+  return (
+    !survey.archivedAt && !survey.deletedAt && survey.status !== 'draft' && survey.visibility !== 'private'
+  );
 }
 export function assertAcceptingResponses(survey: Survey) {
   if (!canAccessForm(survey)) throw new ModelError('Form tidak tersedia.');

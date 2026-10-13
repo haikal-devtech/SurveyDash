@@ -82,14 +82,20 @@ export function decodeTemplate(row: Record<string, string | number | null>): Sav
     createdAt: String(row.created_at),
     archivedAt: payload.archivedAt ?? null,
     builtIn: false,
+    slidePreset: payload.slidePreset,
   };
 }
 
 export function presentationBindings(template: SavedTemplate) {
-  return template.questions.filter((q) => template.widgets.some((w) => w.questionId === q.id));
+  return template.questions.filter(
+    (q) =>
+      template.widgets.some((w) => w.questionId === q.id) ||
+      template.slidePreset?.slides.some((s) => s.elements.some((e) => e.binding?.questionId === q.id)),
+  );
 }
 export function compatibleTargets(template: SavedTemplate, source: Question, survey: Survey) {
   const types = template.widgets.filter((w) => w.questionId === source.id).map((w) => w.type);
+  if (template.slidePreset) return survey.questions.filter((q) => q.options.length > 0);
   return survey.questions.filter((q) => types.every((type) => allowedWidgets(q).includes(type)));
 }
 export function suggestBindings(template: SavedTemplate, survey: Survey): Record<string, string> {

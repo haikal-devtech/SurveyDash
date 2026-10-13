@@ -1,11 +1,10 @@
 import { z } from 'zod';
 import { api, checkOrigin, readJson, requireUser } from '@/lib/http';
-import { createSurvey, ensureDemoWorkspace, listSurveys, listTemplates } from '@/lib/repository';
+import { createSurvey, listSurveys, listTemplates } from '@/lib/repository';
 export const runtime = 'nodejs';
 export async function GET() {
   return api(async () => {
     const user = await requireUser();
-    await ensureDemoWorkspace(user.id);
     return { surveys: await listSurveys(user.id), templates: await listTemplates(user.id) };
   });
 }

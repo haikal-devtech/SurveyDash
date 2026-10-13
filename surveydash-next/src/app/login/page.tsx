@@ -1,4 +1,4 @@
 import { LoginForm } from '@/components/login-form';
-export default function LoginPage() {
-  return <LoginForm />;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
+  return <LoginForm initialRegister={(await searchParams).mode === 'signup'} />;
 }

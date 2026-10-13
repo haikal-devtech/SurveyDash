@@ -2,9 +2,6 @@
 import { useMemo, useState } from 'react';
 import ReactGridLayout, { useContainerWidth, type Layout } from 'react-grid-layout';
 import {
-  PieChart as PieIcon,
-  BarChart3,
-  Table2,
   Hash,
   Type,
   GripVertical,

@@ -24,7 +24,7 @@ export function PresentationTemplatePicker({
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
-        setTemplates(data.templates.filter((t: SavedTemplate) => t.category !== 'form'));
+        setTemplates(data.templates.filter((t: SavedTemplate) => t.category !== 'form' && !t.slidePreset));
       })
       .catch((error) => {
         if (!controller.signal.aborted) setError(error.message ?? 'Gagal memuat template.');

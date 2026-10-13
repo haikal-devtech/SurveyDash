@@ -42,7 +42,7 @@ export function ApplyPresentationDialog({
     setPending(true);
     setError('');
     try {
-      const widgets = mapPresentation(template, target, mapping);
+      const widgets = template.slidePreset ? [] : mapPresentation(template, target, mapping);
       if (onApplied) {
         onApplied(widgets);
         onClose();
@@ -56,7 +56,9 @@ export function ApplyPresentationDialog({
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       onClose();
-      router.push(`/studio/${target.id}`);
+      router.push(
+        template.slidePreset ? `/studio/${target.id}/presentations/${data.id}` : `/studio/${target.id}`,
+      );
       router.refresh();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Template gagal dipakai.');
@@ -97,8 +99,10 @@ export function ApplyPresentationDialog({
         ) : (
           <>
             <p className="template-safe-note">
-              {template.widgets.length} komponen untuk <strong>{target.title}</strong>. Pilih pertanyaan yang
-              menjadi sumber data setiap grafik.
+              {template.slidePreset
+                ? `${template.slidePreset.slides.length} slide`
+                : `${template.widgets.length} komponen`}{' '}
+              untuk <strong>{target.title}</strong>. Pilih pertanyaan yang menjadi sumber data setiap grafik.
             </p>
             <div className="template-bindings">
               {bindings.map((source) => (
@@ -128,7 +132,9 @@ export function ApplyPresentationDialog({
               ))}
             </div>
             <div className="banner">
-              Susunan presentasi saat ini akan diganti.{' '}
+              {template.slidePreset
+                ? 'Dokumen presentasi baru akan dibuat. '
+                : 'Susunan presentasi saat ini akan diganti. '}
               {onApplied
                 ? 'Anda dapat meninjau hasilnya sebelum menyimpan perubahan.'
                 : 'Form dan jawaban yang sudah masuk tetap tersedia.'}

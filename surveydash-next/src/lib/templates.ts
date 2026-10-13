@@ -123,6 +123,16 @@ export const templateDefinitions = [
     questions: experienceQuestions,
   },
   {
+    id: 'customer',
+    name: 'Kepuasan pelanggan',
+    description: 'Pengalaman pelanggan, kepuasan, dan saran untuk bisnis.',
+    kind: 'custom' as const,
+    questions: experienceQuestions.map((q) => ({
+      ...structuredClone(q),
+      label: q.id === 'satisfaction' ? 'Seberapa puas Anda dengan produk atau layanan kami?' : q.label,
+    })),
+  },
+  {
     id: 'blank',
     name: 'Mulai dari kosong',
     description: 'Susun pertanyaan sesuai kebutuhan penelitian Anda.',

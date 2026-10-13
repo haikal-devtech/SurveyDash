@@ -1,5 +1,5 @@
 'use client';
-import { Bookmark, Copy, ExternalLink, Save, Eye, ShieldCheck } from 'lucide-react';
+import { Bookmark, Copy, Save, Eye, ShieldCheck } from 'lucide-react';
 import type { Survey } from '@/lib/types';
 import { Button } from './ui';
 export function SettingsPanel({

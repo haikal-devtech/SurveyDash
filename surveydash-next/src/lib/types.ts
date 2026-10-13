@@ -44,6 +44,9 @@ export interface Survey {
   updatedAt: string;
   responseCount?: number;
   demo: boolean;
+  archivedAt?: string | null;
+  deletedAt?: string | null;
+  lastOpenedAt?: string;
 }
 export interface Submission {
   id: string;
@@ -55,6 +58,10 @@ export interface Submission {
 }
 export type TemplateCategory = 'form' | 'presentation' | 'survey';
 export interface SavedTemplate {
+  slidePreset?: {
+    theme: import('./presentation-model').PresentationTheme;
+    slides: import('./presentation-model').Slide[];
+  };
   id: string;
   name: string;
   description: string;

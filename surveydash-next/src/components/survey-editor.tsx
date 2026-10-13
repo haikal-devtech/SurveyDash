@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Save,
@@ -14,7 +15,6 @@ import {
   PanelsTopLeft,
   Settings2,
   Play,
-  RefreshCw,
   Loader2,
   Bookmark,
   X,
@@ -30,6 +30,7 @@ import { SaveTemplateDialog } from './save-template-dialog';
 import { PresentationTemplatePicker } from './presentation-template-picker';
 import { SettingsPanel } from './settings-panel';
 import { AnalyticsPanel } from './analytics-panel';
+import { PresentationHub } from './presentation-hub';
 const DashboardCanvas = dynamic(() => import('./dashboard-canvas').then((m) => m.DashboardCanvas), {
   ssr: false,
   loading: () => (
@@ -57,10 +58,11 @@ export function SurveyEditor({
   initialSubmissions: Submission[];
   initialAudit: AuditEntry[];
 }) {
+  const router = useRouter();
   const [survey, setSurvey] = useState(initialSurvey);
   const [rows, setRows] = useState(initialSubmissions);
   const [audit, setAudit] = useState(initialAudit);
-  const [tab, setTab] = useState('analytics');
+  const [tab, setTab] = useState('questions');
   const [dirty, setDirty] = useState(false);
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState('');
@@ -70,6 +72,8 @@ export function SurveyEditor({
   const [templatePicker, setTemplatePicker] = useState(false);
   const [previewValues, setPreviewValues] = useState<Record<string, string | string[] | number>>({});
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestSurvey = useRef(survey);
+  const saving = useRef(false);
   const stats = useMemo(() => calculateStats(survey, rows), [survey, rows]);
   function notify(message: string) {
     setNotice(message);
@@ -90,11 +94,15 @@ export function SurveyEditor({
     return () => window.removeEventListener('keydown', keyboard);
   }, []);
   function change(next: Survey) {
+    latestSurvey.current = next;
     setSurvey(next);
     setDirty(true);
     setError('');
   }
-  async function save(next = survey) {
+  async function save(next = latestSurvey.current, quiet = false) {
+    if (saving.current) return false;
+    saving.current = true;
+    const atStart = latestSurvey.current;
     setPending(true);
     setError('');
     try {
@@ -105,14 +113,27 @@ export function SurveyEditor({
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error);
-      setSurvey(data);
-      setDirty(false);
-      notify('Perubahan tersimpan.');
+      if (latestSurvey.current === atStart) {
+        latestSurvey.current = data;
+        setSurvey(data);
+        setDirty(false);
+      } else {
+        const merged = {
+          ...latestSurvey.current,
+          version: data.version,
+          status: latestSurvey.current.status === atStart.status ? data.status : latestSurvey.current.status,
+        };
+        latestSurvey.current = merged;
+        setSurvey(merged);
+        setDirty(true);
+      }
+      if (!quiet) notify('Perubahan tersimpan.');
       return true;
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Gagal menyimpan.');
       return false;
     } finally {
+      saving.current = false;
       setPending(false);
     }
   }
@@ -127,6 +148,7 @@ export function SurveyEditor({
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error);
       setSurvey(data.survey);
+      latestSurvey.current = data.survey;
       setRows(data.submissions);
       setAudit(data.audit);
       setError('');
@@ -145,10 +167,46 @@ export function SurveyEditor({
       setError('Tidak dapat menyalin link. Buka form lalu salin alamatnya.');
     }
   }
+  const autoSave = useEffectEvent(() => {
+    void save(latestSurvey.current, true);
+  });
+  useEffect(() => {
+    if (!dirty || pending || error) return;
+    const autosave = setTimeout(autoSave, 900);
+    return () => clearTimeout(autosave);
+  }, [survey, dirty, pending, error]);
+  useEffect(() => {
+    function warn(event: BeforeUnloadEvent) {
+      if (dirty) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    }
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+  useEffect(() => {
+    void fetch(`/api/surveys/${initialSurvey.id}/manage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'opened' }),
+    });
+  }, [initialSurvey.id]);
   return (
     <>
       <div className="editor-header">
-        <Link className="back-link" href="/studio">
+        <Link
+          className="back-link"
+          href="/studio"
+          onClick={(event) => {
+            if (dirty) {
+              event.preventDefault();
+              void save().then((ok) => {
+                if (ok) router.push('/studio');
+              });
+            }
+          }}
+        >
           <ArrowLeft size={13} />
           Semua survei
         </Link>
@@ -166,6 +224,15 @@ export function SurveyEditor({
               </Badge>
               {survey.demo && <Badge>Data simulasi</Badge>}
               {dirty && <Badge tone="amber">Belum disimpan</Badge>}
+              <Badge tone={error && dirty ? 'amber' : 'green'}>
+                {pending
+                  ? 'Menyimpan…'
+                  : error && dirty
+                    ? 'Gagal menyimpan'
+                    : dirty
+                      ? 'Menunggu autosave'
+                      : 'Tersimpan'}
+              </Badge>
             </div>
             <h1>{survey.title}</h1>
             <p>
@@ -287,23 +354,27 @@ export function SurveyEditor({
       )}
       {tab === 'presentation' && (
         <>
-          <div className="panel-intro">
-            <div>
-              <h2>Susun cerita di balik data.</h2>
-              <p>Seret pertanyaan ke kanvas. Atur jenis grafik, posisi, dan ukuran.</p>
+          <PresentationHub survey={survey} />
+          <details className="dashboard-layout-details">
+            <summary>Kanvas dashboard satu halaman</summary>
+            <div className="panel-intro">
+              <div>
+                <h2>Susun cerita di balik data.</h2>
+                <p>Seret pertanyaan ke kanvas. Atur jenis grafik, posisi, dan ukuran.</p>
+              </div>
+              <div className="actions">
+                <Button variant="secondary" onClick={() => setTemplatePicker(true)}>
+                  <Bookmark size={13} />
+                  Pakai template
+                </Button>
+                <Button variant="secondary" onClick={() => setPresenting(true)}>
+                  <Play size={13} />
+                  Mode presentasi
+                </Button>
+              </div>
             </div>
-            <div className="actions">
-              <Button variant="secondary" onClick={() => setTemplatePicker(true)}>
-                <Bookmark size={13} />
-                Pakai template
-              </Button>
-              <Button variant="secondary" onClick={() => setPresenting(true)}>
-                <Play size={13} />
-                Mode presentasi
-              </Button>
-            </div>
-          </div>
-          <DashboardCanvas survey={survey} rows={rows} stats={stats} onChange={change} editing />
+            <DashboardCanvas survey={survey} rows={rows} stats={stats} onChange={change} editing />
+          </details>
         </>
       )}
       {tab === 'settings' && (

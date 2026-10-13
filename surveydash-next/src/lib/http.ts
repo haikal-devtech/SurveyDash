@@ -16,11 +16,31 @@ export function checkOrigin(request: Request) {
   // Match the configured origins instead of trusting the incoming Host header.
   if (!origin || !trustedOrigins().includes(origin)) throw new AppError('Asal permintaan tidak valid.', 403);
 }
-export async function readJson(request: Request) {
-  if (Number(request.headers.get('content-length') ?? 0) > 250000)
+export async function readLimitedBody(request: Request, limit = 250000): Promise<Buffer> {
+  if (Number(request.headers.get('content-length') ?? 0) > limit)
     throw new AppError('Permintaan terlalu besar.', 413);
-  const text = await request.text();
-  if (text.length > 250000) throw new AppError('Permintaan terlalu besar.', 413);
+  const reader = request.body?.getReader();
+  if (!reader) return Buffer.alloc(0);
+  const chunks: Buffer[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const result = await reader.read();
+      if (result.done) break;
+      size += result.value.byteLength;
+      if (size > limit) {
+        await reader.cancel();
+        throw new AppError('Permintaan terlalu besar.', 413);
+      }
+      chunks.push(Buffer.from(result.value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks);
+}
+export async function readJson(request: Request, limit = 250000) {
+  const text = (await readLimitedBody(request, limit)).toString('utf8');
   try {
     return JSON.parse(text);
   } catch {

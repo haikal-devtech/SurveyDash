@@ -21,6 +21,7 @@ import { CreateSurvey } from './create-survey';
 import { SaveTemplateDialog } from './save-template-dialog';
 import { ApplyPresentationDialog } from './apply-presentation-dialog';
 import { Badge, Button, EmptyState, Modal } from './ui';
+import { SlideThumbnail } from './slide-renderer';
 
 const icons = { form: ClipboardList, presentation: LayoutTemplate, survey: Layers3 };
 const widgetLabels = {
@@ -83,7 +84,22 @@ function TemplatePreview({ template, onClose }: { template: SavedTemplate; onClo
       )}
       {template.category !== 'form' && (
         <section className="template-preview-section">
-          <h3>Presentasi · {template.widgets.length} komponen</h3>
+          <h3>
+            Presentasi ·{' '}
+            {template.slidePreset
+              ? `${template.slidePreset.slides.length} slide`
+              : `${template.widgets.length} komponen`}
+          </h3>
+          {template.slidePreset && (
+            <div className="presentation-documents">
+              {template.slidePreset.slides.map((slide) => (
+                <div key={slide.id}>
+                  <SlideThumbnail slide={slide} />
+                  <p className="hint">{slide.name}</p>
+                </div>
+              ))}
+            </div>
+          )}
           <p className="hint">Pratinjau susunan. Grafik memakai jawaban dari survei tujuan.</p>
           <div className="template-layout-preview" aria-label="Susunan komponen presentasi">
             {template.widgets.map((w) => (
@@ -112,10 +128,18 @@ function TemplatePreview({ template, onClose }: { template: SavedTemplate; onClo
     </Modal>
   );
 }
-export function TemplateLibrary({ saved, surveys }: { saved: SavedTemplate[]; surveys: Survey[] }) {
+export function TemplateLibrary({
+  saved,
+  surveys,
+  initialQuery = '',
+}: {
+  saved: SavedTemplate[];
+  surveys: Survey[];
+  initialQuery?: string;
+}) {
   const [personal, setPersonal] = useState(saved);
   const [category, setCategory] = useState<TemplateCategory | 'all'>('all');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialQuery);
   const [archived, setArchived] = useState(false);
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<SavedTemplate | null>(null);
@@ -282,7 +306,9 @@ export function TemplateLibrary({ saved, surveys }: { saved: SavedTemplate[]; su
                 <span className="hint">
                   {template.category !== 'presentation'
                     ? `${template.questions.length} pertanyaan`
-                    : `${template.widgets.length} komponen`}
+                    : template.slidePreset
+                      ? `${template.slidePreset.slides.length} slide`
+                      : `${template.widgets.length} komponen`}
                   {template.category === 'survey' ? ` · ${template.widgets.length} komponen` : ''}
                 </span>
               </div>
