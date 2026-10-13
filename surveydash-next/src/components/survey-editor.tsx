@@ -20,12 +20,14 @@ import {
   X,
   Info,
 } from 'lucide-react';
-import type { AuditEntry, Submission, Survey } from '@/lib/types';
+import type { AuditEntry, Submission, Survey, TemplateCategory } from '@/lib/types';
 import { calculateStats } from '@/lib/model';
-import { Button, Badge, Modal, FullscreenDialog } from './ui';
+import { Button, Badge, FullscreenDialog } from './ui';
 import { FormBuilder } from './form-builder';
 import { QuestionInput } from './question-input';
 import { ResponseTable } from './response-table';
+import { SaveTemplateDialog } from './save-template-dialog';
+import { PresentationTemplatePicker } from './presentation-template-picker';
 import { SettingsPanel } from './settings-panel';
 import { AnalyticsPanel } from './analytics-panel';
 const DashboardCanvas = dynamic(() => import('./dashboard-canvas').then((m) => m.DashboardCanvas), {
@@ -64,8 +66,8 @@ export function SurveyEditor({
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [presenting, setPresenting] = useState(false);
-  const [templateDialog, setTemplateDialog] = useState(false);
-  const [templateName, setTemplateName] = useState('');
+  const [templateCategory, setTemplateCategory] = useState<TemplateCategory | null>(null);
+  const [templatePicker, setTemplatePicker] = useState(false);
   const [previewValues, setPreviewValues] = useState<Record<string, string | string[] | number>>({});
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stats = useMemo(() => calculateStats(survey, rows), [survey, rows]);
@@ -143,34 +145,6 @@ export function SurveyEditor({
       setError('Tidak dapat menyalin link. Buka form lalu salin alamatnya.');
     }
   }
-  async function template() {
-    setTemplateName(survey.title);
-    setTemplateDialog(true);
-  }
-  async function saveTemplate(event: React.FormEvent) {
-    event.preventDefault();
-    const name = templateName.trim();
-    if (!name) return;
-    if (dirty) {
-      if (!(await save())) return;
-    }
-    setPending(true);
-    try {
-      const resp = await fetch(`/api/surveys/${survey.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'template', name }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error);
-      setTemplateDialog(false);
-      notify('Template tersimpan di pustaka workspace.');
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Gagal menyimpan template.');
-    } finally {
-      setPending(false);
-    }
-  }
   return (
     <>
       <div className="editor-header">
@@ -200,6 +174,7 @@ export function SurveyEditor({
             </p>
           </div>
           <div className="actions">
+            <Button variant="secondary" disabled={pending} onClick={() => setTemplateCategory(tab === 'presentation' ? 'presentation' : tab === 'questions' || tab === 'form' ? 'form' : 'survey')}><Bookmark size={13} />Simpan template</Button>
             <Button variant="secondary" onClick={() => setPresenting(true)}>
               <Play size={13} />
               Presentasikan
@@ -302,10 +277,7 @@ export function SurveyEditor({
               <h2>Susun cerita di balik data.</h2>
               <p>Seret pertanyaan ke kanvas. Atur jenis grafik, posisi, dan ukuran.</p>
             </div>
-            <Button variant="secondary" onClick={() => setPresenting(true)}>
-              <Play size={13} />
-              Mode presentasi
-            </Button>
+            <div className="actions"><Button variant="secondary" onClick={() => setTemplatePicker(true)}><Bookmark size={13} />Pakai template</Button><Button variant="secondary" onClick={() => setPresenting(true)}><Play size={13} />Mode presentasi</Button></div>
           </div>
           <DashboardCanvas survey={survey} rows={rows} stats={stats} onChange={change} editing />
         </>
@@ -315,7 +287,7 @@ export function SurveyEditor({
           survey={survey}
           onChange={change}
           onSave={save}
-          onTemplate={template}
+          onTemplate={() => setTemplateCategory('survey')}
           onCopy={copyLink}
           pending={pending}
         />
@@ -347,41 +319,8 @@ export function SurveyEditor({
         )}
         <DashboardCanvas survey={survey} rows={rows} stats={stats} editing={false} />
       </FullscreenDialog>
-      <Modal
-        open={templateDialog}
-        onOpenChange={setTemplateDialog}
-        title="Simpan template pertanyaan"
-        description="Gunakan kembali struktur pertanyaan ini pada survei berikutnya."
-      >
-        <form onSubmit={saveTemplate}>
-          <div className="field">
-            <label htmlFor="template-name">Nama template</label>
-            <input
-              id="template-name"
-              className="input"
-              minLength={3}
-              maxLength={200}
-              required
-              value={templateName}
-              onChange={(e) => setTemplateName(e.target.value)}
-            />
-          </div>
-          {error && (
-            <div className="banner banner-error" role="alert" style={{ marginTop: 15 }}>
-              {error}
-            </div>
-          )}
-          <div className="modal-footer">
-            <Button variant="secondary" onClick={() => setTemplateDialog(false)}>
-              Batal
-            </Button>
-            <Button type="submit" disabled={pending}>
-              <Bookmark size={13} />
-              Simpan template
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      {templateCategory && <SaveTemplateDialog survey={survey} initialCategory={templateCategory} onClose={() => setTemplateCategory(null)} onSaved={() => notify('Template tersimpan di pustaka workspace.')} />}
+      {templatePicker && <PresentationTemplatePicker survey={survey} onClose={() => setTemplatePicker(false)} onApply={(widgets) => { change({ ...survey, widgets }); notify('Template diterapkan ke editor. Simpan perubahan untuk menyimpan susunannya.'); }} />}
       {notice && (
         <div className="toast" role="status">
           <Check size={13} style={{ display: 'inline', marginRight: 8 }} />

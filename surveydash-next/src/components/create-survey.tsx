@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Layers3, ClipboardList, Plus, ArrowRight, Loader2 } from 'lucide-react';
 import { templateDefinitions } from '@/lib/templates';
-import type { Question, Survey } from '@/lib/types';
+import type { SavedTemplate } from '@/lib/types';
 import { Button, Modal } from './ui';
-export type SavedTemplate = { id: string; name: string; questions: Question[]; kind: Survey['kind'] };
+export type { SavedTemplate } from '@/lib/types';
 export function CreateSurvey({
   open,
   onOpenChange,
@@ -71,9 +71,9 @@ export function CreateSurvey({
         <div className="template-options">
           {[
             ...templateDefinitions,
-            ...templates.map((t) => ({
+            ...templates.filter((t) => t.category !== 'presentation' && !t.archivedAt).map((t) => ({
               ...t,
-              description: `${t.questions.length} pertanyaan dari workspace Anda.`,
+              description: `${t.questions.length} pertanyaan${t.category === 'survey' ? ` + ${t.widgets.length} komponen presentasi` : ''} dari workspace Anda.`,
             })),
           ].map((t) => (
             <button

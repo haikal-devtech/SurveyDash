@@ -53,6 +53,20 @@ export interface Submission {
   questionSnapshot: Question[];
   revision: number;
 }
+export type TemplateCategory = 'form' | 'presentation' | 'survey';
+export interface SavedTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: TemplateCategory;
+  kind: Survey['kind'];
+  questions: Question[];
+  widgets: Widget[];
+  settings: { description: string; institution: string; target: number };
+  createdAt: string | null;
+  archivedAt: string | null;
+  builtIn: boolean;
+}
 export interface AuditEntry {
   id: string;
   submissionId: string;

@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { getDb } from './db';
-import type { Answer, AuditEntry, Question, Submission, Survey } from './types';
+import type { Answer, AuditEntry, SavedTemplate, Submission, Survey, TemplateCategory } from './types';
 import {
   assertAcceptingResponses,
   assertSchemaCompatible,
   surveyInputSchema,
   validateAnswers,
 } from './model';
-import { defaultWidgets, templateDefinitions } from './templates';
+import { defaultWidgets } from './templates';
+import { decodeTemplate, mapPresentation, systemTemplates, templateFromSurvey } from './template-model';
 
 type SqlRow = Record<string, string | number | null>;
 export class AppError extends Error {
@@ -61,38 +62,39 @@ async function insertSurvey(survey: Survey) {
     )
     .run(survey.id, survey.ownerId, survey.token, JSON.stringify(survey), survey.createdAt, survey.updatedAt);
 }
-export async function listTemplates(ownerId: string) {
+export async function listTemplates(ownerId: string, includeArchived = false): Promise<SavedTemplate[]> {
   return (
     await getDb()
-      .prepare('SELECT id, name, payload FROM templates WHERE owner_id = ? ORDER BY created_at DESC')
+      .prepare('SELECT * FROM templates WHERE owner_id = ? ORDER BY created_at DESC')
       .all(ownerId)
-  ).map((row) => ({
-    id: String(row.id),
-    name: String(row.name),
-    ...(JSON.parse(String(row.payload)) as { questions: Question[]; kind: Survey['kind'] }),
-  }));
+  ).map(decodeTemplate).filter((t) => includeArchived || !t.archivedAt);
+}
+export async function getTemplate(id: string, ownerId: string): Promise<SavedTemplate> {
+  const builtIn = systemTemplates.find((t) => t.id === id);
+  if (builtIn) return structuredClone(builtIn);
+  const row = await getDb().prepare('SELECT * FROM templates WHERE id = ? AND owner_id = ?' + getDb().lockSuffix).get(id, ownerId);
+  if (!row) throw new AppError('Template tidak ditemukan.', 404);
+  return decodeTemplate(row);
 }
 export async function createSurvey(ownerId: string, title: string, templateId: string): Promise<Survey> {
-  const template =
-    templateDefinitions.find((t) => t.id === templateId) ??
-    (await listTemplates(ownerId)).find((t) => t.id === templateId);
-  if (!template) throw new AppError('Template tidak ditemukan.');
+  const template = await getTemplate(templateId, ownerId);
+  if (template.archivedAt) throw new AppError('Pulihkan template sebelum menggunakannya.');
+  if (template.category === 'presentation') throw new AppError('Pilih template form atau paket survei untuk membuat survei baru.');
   const now = new Date().toISOString();
   const survey: Survey = {
     id: randomUUID(),
     ownerId,
     title: title.trim(),
-    description:
-      'Terima kasih telah meluangkan waktu untuk memberikan masukan. Jawaban Anda membantu kami meningkatkan kualitas layanan.',
-    institution: '',
+    description: template.settings.description || 'Terima kasih telah meluangkan waktu untuk memberikan masukan. Jawaban Anda membantu kami meningkatkan kualitas layanan.',
+    institution: template.settings.institution,
     status: 'draft',
     visibility: 'link',
     kind: template.kind,
     token: randomUUID().replaceAll('-', ''),
     questions: structuredClone(template.questions),
-    widgets: templateId === 'blank' ? [] : defaultWidgets(template.kind),
+    widgets: template.category === 'survey' ? structuredClone(template.widgets) : templateId === 'blank' ? [] : defaultWidgets(template.kind),
     version: 1,
-    target: 400,
+    target: template.settings.target,
     createdAt: now,
     updatedAt: now,
     demo: false,
@@ -125,18 +127,46 @@ export async function updateSurvey(id: string, ownerId: string, input: unknown):
     return after;
   });
 }
-export async function saveTemplate(survey: Survey, name: string) {
+export async function saveTemplate(survey: Survey, name: string, category: TemplateCategory = 'form', description = '') {
   const id = randomUUID();
+  const createdAt = new Date().toISOString();
+  const template = templateFromSurvey(survey, { name, category, description }, id, createdAt);
   await getDb()
     .prepare('INSERT INTO templates VALUES (?, ?, ?, ?, ?)')
     .run(
       id,
       survey.ownerId,
       name,
-      JSON.stringify({ questions: survey.questions, kind: survey.kind }),
-      new Date().toISOString(),
+      JSON.stringify(template),
+      createdAt,
     );
-  return { id, name };
+  return template;
+}
+export async function updateTemplate(id: string, ownerId: string, changes: { name?: string; description?: string; archived?: boolean }) {
+  return getDb().transaction(async () => {
+    const current = await getTemplate(id, ownerId);
+    if (current.builtIn) throw new AppError('Template bawaan tidak dapat diubah. Buat salinan terlebih dahulu.', 403);
+    const after = {
+      ...current, name: changes.name ?? current.name, description: changes.description ?? current.description,
+      archivedAt: changes.archived === undefined ? current.archivedAt : changes.archived ? new Date().toISOString() : null,
+    };
+    await getDb().prepare('UPDATE templates SET name = ?, payload = ? WHERE id = ? AND owner_id = ?').run(after.name, JSON.stringify(after), id, ownerId);
+    return after;
+  });
+}
+export async function duplicateTemplate(id: string, ownerId: string, name: string) {
+  const source = await getTemplate(id, ownerId);
+  const template: SavedTemplate = { ...source, id: randomUUID(), name, createdAt: new Date().toISOString(), archivedAt: null, builtIn: false };
+  await getDb().prepare('INSERT INTO templates VALUES (?, ?, ?, ?, ?)').run(template.id, ownerId, name, JSON.stringify(template), template.createdAt!);
+  return template;
+}
+export async function applyTemplate(id: string, ownerId: string, surveyId: string, version: number, mapping: Record<string, string>) {
+  return getDb().transaction(async () => {
+    const template = await getTemplate(id, ownerId);
+    const survey = await getSurvey(surveyId, ownerId);
+    if (survey.version !== version) throw new AppError('Survei sudah diperbarui. Muat ulang sebelum memakai template.', 409);
+    return updateSurvey(surveyId, ownerId, { ...survey, widgets: mapPresentation(template, survey, mapping) });
+  });
 }
 export async function listSubmissions(surveyId: string): Promise<Submission[]> {
   return (

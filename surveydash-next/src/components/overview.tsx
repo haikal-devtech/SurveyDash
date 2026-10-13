@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { Submission, Survey } from '@/lib/types';
+import { systemTemplates } from '@/lib/template-model';
 import { CreateSurvey, type SavedTemplate } from './create-survey';
 import { Badge, Button } from './ui';
 
@@ -67,7 +68,7 @@ export function Overview({
     },
     {
       label: 'Template tersedia',
-      value: 3 + templates.length,
+      value: systemTemplates.length + templates.length,
       icon: <PanelsTopLeft size={15} />,
       foot: 'Siap untuk survei berikutnya',
     },

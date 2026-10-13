@@ -7,7 +7,9 @@
  * ─── CARA DEPLOY ────────────────────────────────────────────────────────────────
  *   1. Buka spreadsheet hasil Google Form → Extensions → Apps Script
  *   2. Hapus semua kode lama, paste seluruh kode ini
- *   3. Save (Ctrl+S), lalu Deploy → New Deployment → Web App
+ *   3. Save (Ctrl+S), lalu Deploy → Manage deployments → Edit → New version
+ *      → Deploy untuk memperbarui Web App dengan URL /exec yang sama.
+ *      Untuk deployment pertama: Deploy → New Deployment → Web App
  *        - Execute as     : Me
  *        - Who has access : Anyone
  *   4. Salin Web App URL (diakhiri /exec) → Admin SurveyDash → field "URL Script"
@@ -45,7 +47,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 const CFG = {
   // — Nama sheet —
-  RESPONSE_SHEET:     'Form responses 1',   // sheet respons asli Google Form
+  RESPONSE_SHEET:     'Form Responses 1',   // sheet respons asli Google Form
   PRESENTATION_SHEET: 'Presentasi',         // subset untuk mode presentasi
   SETTINGS_SHEET:     'survey_settings',    // dibuat otomatis saat saveSettings
 
@@ -84,6 +86,22 @@ const INDICATOR_LABELS = [
   'Perilaku Pelaksana',                      // 7
   'Penanganan Pengaduan, Saran dan Masukan', // 8
   'Sarana dan Prasarana',                    // 9
+];
+
+// Jawaban Google Form DAMKAR berupa teks, tanpa angka skor.
+// Urutan pilihan setiap unsur adalah skor 1, 2, 3, 4.
+// Jawaban kosong dikeluarkan dari rata-rata unsur terkait; jumlah responden
+// survei tetap mencakup seluruh baris dengan timestamp.
+const INDICATOR_OPTIONS = [
+  ['Tidak sesuai', 'Kurang sesuai', 'Sesuai', 'Sangat sesuai'],
+  ['Tidak mudah', 'Kurang mudah', 'Mudah', 'Sangat mudah'],
+  ['Tidak cepat', 'Kurang cepat', 'Cepat', 'Sangat cepat'],
+  ['Sangat mahal', 'Cukup mahal', 'Murah', 'Gratis'],
+  ['Tidak sesuai', 'Kurang sesuai', 'Sesuai', 'Sangat sesuai'],
+  ['Tidak kompeten', 'Kurang kompeten', 'Kompeten', 'Sangat kompeten'],
+  ['Tidak sopan dan ramah', 'Kurang sopan dan ramah', 'Sopan dan ramah', 'Sangat sopan dan ramah'],
+  ['Tidak ada', 'Ada tetapi kurang berfungsi', 'Berfungsi tetapi tidak maksimal', 'Dikelola dengan baik'],
+  ['Buruk', 'Cukup', 'Baik', 'Sangat baik'],
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -131,8 +149,7 @@ function buildSurveyData_(usePresentation) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = null;
   if (usePresentation) sheet = ss.getSheetByName(CFG.PRESENTATION_SHEET);
-  if (!sheet) sheet = ss.getSheetByName(CFG.RESPONSE_SHEET);
-  if (!sheet) sheet = ss.getSheets()[0]; // fallback: sheet pertama
+  if (!sheet) sheet = responseSheet_(ss);
 
   const data = sheet.getDataRange().getValues();
   const rows = data.slice(1); // buang header
@@ -141,6 +158,7 @@ function buildSurveyData_(usePresentation) {
     id: i + 1,
     label: label,
     totalScore: 0,
+    answeredRespondents: 0,
     distribution: [0, 0, 0, 0], // [skor 1, 2, 3, 4]
     avg: 0,
   }));
@@ -175,8 +193,19 @@ function buildSurveyData_(usePresentation) {
     // 2. Skor indikator (9 unsur)
     const answers = {};
     for (let i = 0; i < 9; i++) {
-      const score = parseScore_(row[CFG.START_INDIKATOR + i]);
+      let score;
+      try {
+        score = parseScore_(row[CFG.START_INDIKATOR + i], i);
+      } catch (err) {
+        throw new Error('Baris ' + (rows.indexOf(row) + 2) + ', unsur ' + (i + 1) + ': ' + err.message);
+      }
+      // Sel kosong tetap kosong; tidak dianggap sebagai jawaban skor 1.
+      if (score === null) {
+        answers[INDICATOR_LABELS[i]] = '';
+        continue;
+      }
       indicators[i].totalScore += score;
+      indicators[i].answeredRespondents++;
       indicators[i].distribution[score - 1]++;
       answers[INDICATOR_LABELS[i]] = score;
     }
@@ -209,8 +238,13 @@ function buildSurveyData_(usePresentation) {
   const bobot = 1 / 9; // 9 unsur berbobot sama
   if (total > 0) {
     indicators.forEach(ind => {
-      ind.avg = Number((ind.totalScore / total).toFixed(2));
-      nilaiIndeks += ind.avg * bobot;
+      if (!ind.answeredRespondents) {
+        throw new Error('Unsur "' + ind.label + '" belum memiliki jawaban. Periksa kolom indikator.');
+      }
+      const average = ind.totalScore / ind.answeredRespondents;
+      ind.avg = Number(average.toFixed(2));
+      // Pembulatan hanya untuk tampilan, setelah perhitungan IKM selesai.
+      nilaiIndeks += average * bobot;
     });
   }
   const ikmScore = Number((nilaiIndeks * 25).toFixed(2));
@@ -234,6 +268,8 @@ function buildSurveyData_(usePresentation) {
     },
     indicators: indicators.map(ind => ({
       id: ind.id, label: ind.label, avg: ind.avg, distribution: ind.distribution,
+      answered_respondents: ind.answeredRespondents,
+      missing_responses: total - ind.answeredRespondents,
     })),
     demographics: demographics,
     open_ended: openEnded,
@@ -255,13 +291,32 @@ function bump_(obj, key) {
   obj[k] = (obj[k] || 0) + 1;
 }
 
-// Ambil skor 1–4 dari sel jawaban (mis. "b. Kurang Sesuai, 2" → 2).
-function parseScore_(cell) {
-  const digits = String(cell == null ? '' : cell).match(/[1-4]/g);
-  let score = digits ? parseInt(digits[digits.length - 1], 10) : 1;
-  if (score < 1) score = 1;
-  if (score > 4) score = 4;
-  return score;
+function responseSheet_(ss) {
+  const sheet = ss.getSheetByName(CFG.RESPONSE_SHEET) || ss.getSheets().find(s =>
+    s.getName().toLowerCase() === CFG.RESPONSE_SHEET.toLowerCase()
+  );
+  if (!sheet) throw new Error('Sheet respons "' + CFG.RESPONSE_SHEET + '" tidak ditemukan.');
+  return sheet;
+}
+
+// Terima teks pilihan form dan format lama dengan skor eksplisit.
+// Angka di nomor telepon/tahun atau teks yang tidak dikenali bukan skor SKM.
+function parseScore_(cell, indicatorIndex) {
+  const text = String(cell == null ? '' : cell).trim();
+  if (!text) return null;
+
+  const normalized = text.toLowerCase().replace(/\s+/g, ' ')
+    .replace(/^[a-d][.)]\s*/, '');
+  const options = INDICATOR_OPTIONS[indicatorIndex] || [];
+  const optionIndex = options.findIndex(option => option.toLowerCase() === normalized);
+  if (optionIndex >= 0) return optionIndex + 1;
+
+  const explicitScore = text.match(/^[1-4]$/) ||
+    text.match(/[,;:]\s*([1-4])\s*$/) || text.match(/\(([1-4])\)\s*$/) ||
+    text.match(/^([1-4])[.)]\s+\S/);
+  if (explicitScore) return Number(explicitScore[1] || explicitScore[0]);
+
+  throw new Error('Jawaban "' + text + '" tidak dikenali. Periksa pilihan jawaban dan pemetaan kolom.');
 }
 
 // Konversi Indeks Kepuasan Masyarakat → mutu pelayanan (Permen PAN-RB 14/2017).
@@ -297,8 +352,7 @@ function saveSettings_(settings) {
 
 function fillPresentationSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const src = ss.getSheetByName(CFG.RESPONSE_SHEET);
-  if (!src) throw new Error('Sheet respons "' + CFG.RESPONSE_SHEET + '" tidak ditemukan.');
+  const src = responseSheet_(ss);
   let dst = ss.getSheetByName(CFG.PRESENTATION_SHEET);
   if (!dst) dst = ss.insertSheet(CFG.PRESENTATION_SHEET);
   dst.clear();
