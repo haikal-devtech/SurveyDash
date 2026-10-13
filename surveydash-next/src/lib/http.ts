@@ -1,0 +1,41 @@
+import { headers } from 'next/headers';
+import { auth } from './auth';
+import { AppError } from './repository';
+import { ZodError } from 'zod';
+import { trustedOrigins } from './origins';
+import { ModelError } from './model';
+
+export async function requireUser() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new AppError('Silakan masuk untuk mengelola survei.', 401);
+  return session.user;
+}
+export function checkOrigin(request: Request) {
+  const origin = request.headers.get('origin');
+  // Next.js can reconstruct request.url with localhost even for 127.0.0.1.
+  // Match the configured origins instead of trusting the incoming Host header.
+  if (!origin || !trustedOrigins().includes(origin)) throw new AppError('Asal permintaan tidak valid.', 403);
+}
+export async function readJson(request: Request) {
+  if (Number(request.headers.get('content-length') ?? 0) > 250000)
+    throw new AppError('Permintaan terlalu besar.', 413);
+  const text = await request.text();
+  if (text.length > 250000) throw new AppError('Permintaan terlalu besar.', 413);
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new AppError('Format data tidak valid.');
+  }
+}
+export async function api(work: () => Promise<unknown> | unknown) {
+  try {
+    return Response.json(await work(), { headers: { 'Cache-Control': 'no-store' } });
+  } catch (error) {
+    if (error instanceof ZodError)
+      return Response.json({ error: error.issues[0]?.message ?? 'Data tidak valid.' }, { status: 400 });
+    if (error instanceof AppError) return Response.json({ error: error.message }, { status: error.status });
+    if (error instanceof ModelError) return Response.json({ error: error.message }, { status: 400 });
+    console.error('SurveyDash API failure', { name: error instanceof Error ? error.name : 'UnknownError' });
+    return Response.json({ error: 'Terjadi kesalahan saat menyimpan data.' }, { status: 500 });
+  }
+}
