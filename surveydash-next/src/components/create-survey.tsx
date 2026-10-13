@@ -71,10 +71,12 @@ export function CreateSurvey({
         <div className="template-options">
           {[
             ...templateDefinitions,
-            ...templates.filter((t) => t.category !== 'presentation' && !t.archivedAt).map((t) => ({
-              ...t,
-              description: `${t.questions.length} pertanyaan${t.category === 'survey' ? ` + ${t.widgets.length} komponen presentasi` : ''} dari workspace Anda.`,
-            })),
+            ...templates
+              .filter((t) => t.category !== 'presentation' && !t.archivedAt)
+              .map((t) => ({
+                ...t,
+                description: `${t.questions.length} pertanyaan${t.category === 'survey' ? ` + ${t.widgets.length} komponen presentasi` : ''} dari workspace Anda.`,
+              })),
           ].map((t) => (
             <button
               type="button"

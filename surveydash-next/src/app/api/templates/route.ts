@@ -7,7 +7,10 @@ export const runtime = 'nodejs';
 export async function GET(request: Request) {
   return api(async () => {
     const user = await requireUser();
-    const templates = await listTemplates(user.id, new URL(request.url).searchParams.get('archived') === 'include');
+    const templates = await listTemplates(
+      user.id,
+      new URL(request.url).searchParams.get('archived') === 'include',
+    );
     return { templates: [...systemTemplates, ...templates] };
   });
 }
@@ -15,9 +18,12 @@ export async function POST(request: Request) {
   return api(async () => {
     checkOrigin(request);
     const user = await requireUser();
-    const input = templateMetadataSchema.extend({ surveyId: z.string().max(100), snapshot: z.unknown().optional() }).parse(await readJson(request));
+    const input = templateMetadataSchema
+      .extend({ surveyId: z.string().max(100), snapshot: z.unknown().optional() })
+      .parse(await readJson(request));
     const source = await getSurvey(input.surveyId, user.id);
-    const snapshot = input.snapshot === undefined ? source : { ...source, ...surveyInputSchema.parse(input.snapshot) };
+    const snapshot =
+      input.snapshot === undefined ? source : { ...source, ...surveyInputSchema.parse(input.snapshot) };
     return saveTemplate(snapshot, input.name, input.category, input.description);
   });
 }

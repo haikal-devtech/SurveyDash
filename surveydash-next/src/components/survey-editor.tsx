@@ -174,7 +174,22 @@ export function SurveyEditor({
             </p>
           </div>
           <div className="actions">
-            <Button variant="secondary" disabled={pending} onClick={() => setTemplateCategory(tab === 'presentation' ? 'presentation' : tab === 'questions' || tab === 'form' ? 'form' : 'survey')}><Bookmark size={13} />Simpan template</Button>
+            <Button
+              variant="secondary"
+              disabled={pending}
+              onClick={() =>
+                setTemplateCategory(
+                  tab === 'presentation'
+                    ? 'presentation'
+                    : tab === 'questions' || tab === 'form'
+                      ? 'form'
+                      : 'survey',
+                )
+              }
+            >
+              <Bookmark size={13} />
+              Simpan template
+            </Button>
             <Button variant="secondary" onClick={() => setPresenting(true)}>
               <Play size={13} />
               Presentasikan
@@ -277,7 +292,16 @@ export function SurveyEditor({
               <h2>Susun cerita di balik data.</h2>
               <p>Seret pertanyaan ke kanvas. Atur jenis grafik, posisi, dan ukuran.</p>
             </div>
-            <div className="actions"><Button variant="secondary" onClick={() => setTemplatePicker(true)}><Bookmark size={13} />Pakai template</Button><Button variant="secondary" onClick={() => setPresenting(true)}><Play size={13} />Mode presentasi</Button></div>
+            <div className="actions">
+              <Button variant="secondary" onClick={() => setTemplatePicker(true)}>
+                <Bookmark size={13} />
+                Pakai template
+              </Button>
+              <Button variant="secondary" onClick={() => setPresenting(true)}>
+                <Play size={13} />
+                Mode presentasi
+              </Button>
+            </div>
           </div>
           <DashboardCanvas survey={survey} rows={rows} stats={stats} onChange={change} editing />
         </>
@@ -319,8 +343,24 @@ export function SurveyEditor({
         )}
         <DashboardCanvas survey={survey} rows={rows} stats={stats} editing={false} />
       </FullscreenDialog>
-      {templateCategory && <SaveTemplateDialog survey={survey} initialCategory={templateCategory} onClose={() => setTemplateCategory(null)} onSaved={() => notify('Template tersimpan di pustaka workspace.')} />}
-      {templatePicker && <PresentationTemplatePicker survey={survey} onClose={() => setTemplatePicker(false)} onApply={(widgets) => { change({ ...survey, widgets }); notify('Template diterapkan ke editor. Simpan perubahan untuk menyimpan susunannya.'); }} />}
+      {templateCategory && (
+        <SaveTemplateDialog
+          survey={survey}
+          initialCategory={templateCategory}
+          onClose={() => setTemplateCategory(null)}
+          onSaved={() => notify('Template tersimpan di pustaka workspace.')}
+        />
+      )}
+      {templatePicker && (
+        <PresentationTemplatePicker
+          survey={survey}
+          onClose={() => setTemplatePicker(false)}
+          onApply={(widgets) => {
+            change({ ...survey, widgets });
+            notify('Template diterapkan ke editor. Simpan perubahan untuk menyimpan susunannya.');
+          }}
+        />
+      )}
       {notice && (
         <div className="toast" role="status">
           <Check size={13} style={{ display: 'inline', marginRight: 8 }} />
