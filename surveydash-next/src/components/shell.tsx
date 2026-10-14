@@ -13,21 +13,29 @@ import {
   X,
   Search,
   ArrowUpRight,
+  ShieldCheck,
 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import type { PlanUsage } from '@/lib/plans';
 import { Brand } from './brand';
 import { Button } from './ui';
+import { ReturnWorkspace } from './admin-workspaces';
 export function Shell({
   children,
   name,
   workspace,
   usage,
+  isAdmin = false,
+  managingOther = false,
+  userId,
 }: {
   children: React.ReactNode;
   name: string;
   workspace: { name: string; description: string };
   usage: PlanUsage;
+  isAdmin?: boolean;
+  managingOther?: boolean;
+  userId: string;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -35,7 +43,8 @@ export function Shell({
   const [query, setQuery] = useState('');
   const section = pathname.split('/')[2];
   const focused =
-    !!section && !['templates', 'surveys', 'settings', 'search', 'import', 'onboarding'].includes(section);
+    !!section &&
+    !['templates', 'surveys', 'settings', 'search', 'import', 'onboarding', 'admin'].includes(section);
   const canvas = pathname.includes('/presentations/');
   const links = [
     { href: '/studio', label: 'Beranda', icon: LayoutDashboard },
@@ -43,6 +52,7 @@ export function Shell({
     { href: '/studio/templates', label: 'Template', icon: PanelsTopLeft },
     { href: '/surveys', label: 'Portal responden', icon: Globe },
     { href: '/studio/settings', label: 'Pengaturan', icon: Settings2 },
+    ...(isAdmin ? [{ href: '/studio/admin', label: 'Admin workspace', icon: ShieldCheck }] : []),
   ];
   return (
     <div className={`workspace ${focused ? 'focus-workspace' : ''} ${canvas ? 'slide-workspace' : ''}`}>
@@ -98,7 +108,7 @@ export function Shell({
             <span className="avatar">{name.slice(0, 1).toUpperCase()}</span>
             <Link href="/studio/settings/account">
               <strong>{name}</strong>
-              <small>Akun pribadi</small>
+              <small>{isAdmin ? 'Admin platform' : 'Akses penuh workspace'}</small>
             </Link>
             <button
               className="btn btn-ghost"
@@ -155,7 +165,10 @@ export function Shell({
             </Link>
           </header>
         )}
-        <div className="content">{children}</div>
+        <div className="content">
+          {managingOther && <ReturnWorkspace userId={userId} />}
+          {children}
+        </div>
       </main>
     </div>
   );

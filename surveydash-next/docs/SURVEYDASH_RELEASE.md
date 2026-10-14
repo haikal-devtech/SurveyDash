@@ -19,3 +19,5 @@ Sharing release additionally uses `scripts/smoke-sharing.mjs`: anonymous access,
 Rollback: redeploy the last stable Git commit `93f768181c077fe31d09f4a49465168d00b25887` or restore its Vercel deployment. Keep the additive tables in place; old code ignores them. Do not restore a historical backup over a live production database because that would discard newer responses. Inspect incidents and restore to a new isolated database first.
 
 No paid plan, renewal, checkout or third-party billing agreement was activated. Actual Free beta usage is shown. Quotas are disabled by default until business limits are explicitly configured.
+
+Admin provisioning is an explicit operator action: `scripts/provision-access.ts <staging|production> <approved-admin-email> ...`. It grants roles by account ID, preserves existing passwords, and writes generated credentials only to ignored `test-results/client-credentials.json`. It provisions a separate client demo workspace; no production responses are copied. Never run it from a build hook or commit credential files. `scripts/smoke-access.ts` only runs with the staging-only guard and removes its temporary QA role.

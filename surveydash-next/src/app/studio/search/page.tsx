@@ -1,3 +1,4 @@
+import { requireWorkspaceUser } from '@/lib/http';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -7,10 +8,11 @@ import { systemTemplates, templateLabels } from '@/lib/template-model';
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ query?: string }> }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect('/login');
+  const workspaceUser = await requireWorkspaceUser();
   const query = (await searchParams).query?.trim().slice(0, 200) ?? '';
   const [surveys, templates] = await Promise.all([
-    listSurveys(session.user.id),
-    listTemplates(session.user.id),
+    listSurveys(workspaceUser.ownerId),
+    listTemplates(workspaceUser.ownerId),
   ]);
   const matches = (text: string) =>
     !!query && text.toLocaleLowerCase('id-ID').includes(query.toLocaleLowerCase('id-ID'));

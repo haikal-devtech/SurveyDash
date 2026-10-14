@@ -1,3 +1,4 @@
+import { requireWorkspaceUser } from '@/lib/http';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -7,7 +8,8 @@ import { Badge } from '@/components/ui';
 export default async function MembershipPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect('/login');
-  const usage = await getUsage(session.user.id);
+  const workspaceUser = await requireWorkspaceUser();
+  const usage = await getUsage(workspaceUser.ownerId);
   return (
     <>
       <div className="page-heading">

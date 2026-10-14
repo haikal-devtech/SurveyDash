@@ -1,3 +1,4 @@
+import { requireWorkspaceUser } from '@/lib/http';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
@@ -6,7 +7,8 @@ import { SettingsForm } from '@/components/settings-forms';
 export default async function WorkspacePage() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect('/login');
-  const workspace = await getWorkspace(session.user.id);
+  const workspaceUser = await requireWorkspaceUser();
+  const workspace = await getWorkspace(workspaceUser.ownerId);
   return (
     <>
       <div className="page-heading">

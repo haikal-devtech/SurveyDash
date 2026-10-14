@@ -23,7 +23,7 @@
 
 Google OAuth requires provider credentials, consent configuration and scopes; direct account connection is not enabled. SMTP password recovery and team invitations require an email service. Paid plans need approved prices, a provider and webhook configuration; this release creates no fake invoices or charges.
 
-Collaborative roles/invitations, platform admin, billing administration and configurable respondent access groups are not implemented. The form builder retains a single ordered question list rather than section branching. Response pagination is client-side over the owned dataset; very large workspaces need server pagination and aggregation. Asset retention is persistent and owner scoped, with no asset deletion screen yet. Exported PDF/PPTX is visual, not searchable text or editable chart objects.
+Collaborative roles/invitations, billing administration and configurable respondent access groups are not implemented. The form builder retains a single ordered question list rather than section branching. Response pagination is client-side over the owned dataset; very large workspaces need server pagination and aggregation. Asset retention is persistent and owner scoped, with no asset deletion screen yet. Exported PDF/PPTX is visual, not searchable text or editable chart objects.
 
 The supplied master document is a product target, not a claim that every roadmap item is available. The working release focuses on the survey/template/presentation ecosystem, while unavailable integrations are identified explicitly.
 
@@ -40,3 +40,11 @@ After migration and production smoke, every original survey, submission, audit r
 ## Presentation sharing follow-up
 
 Local staging passed 38 HTTP checks for sharing lifecycle and the existing 26-request survey flow. The browser verified explicit activation, slide/keyboard navigation, 375px layout without horizontal overflow, revocation returning 404, and archive recovery. The SQLite connection applies its busy timeout before switching journal mode so parallel build workers can initialize safely. The production build and all 20 tests passed. Private production backup studio-2026-10-14T06-23-01.608Z.json was created before the follow-up migration; all original rows were still present and unchanged.
+
+## Requested administrator and client access
+
+Platform administrators can select and manage workspaces, while account profile identity stays unchanged and corrections retain the real actor. Normal clients have full product features only in their own workspace. The client test workspace is seeded with labeled simulations, templates and a 17-slide report. Existing passwords are preserved. Credentials are stored privately outside Git. All 21 repository tests passed, including forged-cookie isolation and revoked-role behavior; staging access HTTP checks passed 15 requests and the client survey flow passed 26 requests.
+
+Sharing follow-up deployment: commit 240e56e1949d0ca2e071d8ae99751a8973ba255e; preview dpl_7QE9UGncqMxS5ENQCtDKea7rYN24 and production dpl_2R63dmvH2HkubfPmZMsTTy9gG9w8 Ready. Production sharing smoke passed 38 requests and the 17-slide viewer was checked in the browser. All original rows remained unchanged.
+
+![Production shared viewer with labeled simulation data](production-shared-viewer.png)

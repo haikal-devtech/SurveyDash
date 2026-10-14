@@ -270,6 +270,7 @@ export async function editAnswer(
   questionId: string,
   value: Answer,
   revision: number,
+  actorId: string = ownerId,
 ): Promise<Submission> {
   const db = getDb();
   return db.transaction(async () => {
@@ -302,7 +303,7 @@ export async function editAnswer(
         questionId,
         JSON.stringify(before),
         JSON.stringify(value),
-        ownerId,
+        actorId,
         new Date().toISOString(),
       );
     return { ...submission, revision: submission.revision + 1 };

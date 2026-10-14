@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 const base = process.env.SMOKE_BASE_URL ?? 'http://127.0.0.1:3100';
-const account = JSON.parse(await readFile('test-results/cloud-account.json', 'utf8'));
+const account = JSON.parse(
+  await readFile(process.env.SMOKE_ACCOUNT_FILE ?? 'test-results/cloud-account.json', 'utf8'),
+);
 let cookie = '';
 let checks = 0;
 async function request(path, method = 'GET', body, expected = 200, authenticated = true) {

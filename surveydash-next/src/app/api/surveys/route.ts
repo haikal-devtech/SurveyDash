@@ -1,20 +1,20 @@
 import { z } from 'zod';
-import { api, checkOrigin, readJson, requireUser } from '@/lib/http';
+import { api, checkOrigin, readJson, requireWorkspaceUser } from '@/lib/http';
 import { createSurvey, listSurveys, listTemplates } from '@/lib/repository';
 export const runtime = 'nodejs';
 export async function GET() {
   return api(async () => {
-    const user = await requireUser();
-    return { surveys: await listSurveys(user.id), templates: await listTemplates(user.id) };
+    const user = await requireWorkspaceUser();
+    return { surveys: await listSurveys(user.ownerId), templates: await listTemplates(user.ownerId) };
   });
 }
 export async function POST(request: Request) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireUser();
+    const user = await requireWorkspaceUser();
     const input = z
       .object({ title: z.string().trim().min(3).max(200), templateId: z.string().max(100) })
       .parse(await readJson(request));
-    return await createSurvey(user.id, input.title, input.templateId);
+    return await createSurvey(user.ownerId, input.title, input.templateId);
   });
 }

@@ -1,3 +1,4 @@
+import { requireWorkspaceUser } from '@/lib/http';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
@@ -9,9 +10,20 @@ export const metadata = { robots: { index: false, follow: false } };
 export default async function StudioLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect('/login');
-  const [usage, workspace] = await Promise.all([getUsage(session.user.id), getWorkspace(session.user.id)]);
+  const workspaceUser = await requireWorkspaceUser();
+  const [usage, workspace] = await Promise.all([
+    getUsage(workspaceUser.ownerId),
+    getWorkspace(workspaceUser.ownerId),
+  ]);
   return (
-    <Shell name={session.user.name} usage={usage} workspace={workspace}>
+    <Shell
+      name={session.user.name}
+      usage={usage}
+      workspace={workspace}
+      isAdmin={workspaceUser.isAdmin}
+      managingOther={workspaceUser.managingOther}
+      userId={session.user.id}
+    >
       {children}
     </Shell>
   );

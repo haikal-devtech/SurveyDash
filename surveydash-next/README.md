@@ -124,3 +124,7 @@ Lisensi masing-masing dependency tetap menjadi milik pengembangnya. Detail terse
 ## Dokumentasi rilis produk
 
 Lihat [laporan implementasi](docs/SURVEYDASH_IMPLEMENTATION_REPORT.md), [route map](docs/SURVEYDASH_ROUTE_MAP.md), [UI system](docs/SURVEYDASH_UI_SYSTEM.md), [arsitektur](docs/SURVEYDASH_ARCHITECTURE.md) dan [rilis/recovery](docs/SURVEYDASH_RELEASE.md). Integrasi OAuth, SMTP dan pembayaran belum diaktifkan; tidak ada checkout atau harga berbayar buatan.
+
+## Admin dan akun client uji
+
+Admin platform yang ditetapkan pengelola memiliki menu **Admin workspace** untuk memilih workspace. Akun login dan profil tetap milik admin tersebut. Banner mode admin menyediakan tombol kembali ke workspace sendiri. Akun client memiliki akses semua fitur pada workspace uji terpisah; data simulasi, template dan slide awal disiapkan tanpa menyalin jawaban produksi.

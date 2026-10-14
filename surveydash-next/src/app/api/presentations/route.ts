@@ -1,14 +1,14 @@
 import { z } from 'zod';
-import { api, checkOrigin, readJson, requireUser } from '@/lib/http';
+import { api, checkOrigin, readJson, requireWorkspaceUser } from '@/lib/http';
 import { createPresentation, listPresentations } from '@/lib/presentation-repository';
 export const runtime = 'nodejs';
 export async function GET(request: Request) {
   return api(async () => {
-    const user = await requireUser();
+    const user = await requireWorkspaceUser();
     const surveyId = z.string().min(1).max(100).parse(new URL(request.url).searchParams.get('surveyId'));
     return listPresentations(
       surveyId,
-      user.id,
+      user.ownerId,
       new URL(request.url).searchParams.get('archived') === 'include',
     );
   });
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireUser();
+    const user = await requireWorkspaceUser();
     const input = z
       .object({
         surveyId: z.string().max(100),
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
           .default([]),
       })
       .parse(await readJson(request));
-    return createPresentation(input.surveyId, user.id, input.title, input.theme, [
+    return createPresentation(input.surveyId, user.ownerId, input.title, input.theme, [
       ...new Set(input.sections),
     ]);
   });

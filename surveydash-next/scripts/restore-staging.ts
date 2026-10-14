@@ -27,6 +27,7 @@ const order = [
   'audit',
   'public_rate_limits',
   'workspace_settings',
+  'platform_admins',
   'presentations',
   'presentation_assets',
   'presentation_shares',

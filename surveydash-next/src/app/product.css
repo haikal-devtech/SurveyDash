@@ -1036,3 +1036,35 @@
     transition: none !important;
   }
 }
+
+.admin-workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 20px;
+}
+.admin-workspace-card {
+  padding: 24px;
+}
+.admin-workspace-card h2 {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+.admin-workspace-card p {
+  overflow-wrap: anywhere;
+}
+.admin-workspace-card .actions {
+  margin: 20px 0;
+}
+.admin-context {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  background: #f3edfd;
+  color: #6133ba;
+  border: 1px solid #ded0f3;
+  padding: 14px 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 12px;
+}

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { api, checkOrigin, readJson, requireUser } from '@/lib/http';
+import { api, checkOrigin, readJson, requireWorkspaceUser } from '@/lib/http';
 import {
   getSurvey,
   listSubmissions,
@@ -12,10 +12,10 @@ type Context = { params: Promise<{ id: string }> };
 export const runtime = 'nodejs';
 export async function GET(_request: Request, context: Context) {
   return api(async () => {
-    const user = await requireUser();
+    const user = await requireWorkspaceUser();
     const { id } = await context.params;
     return {
-      survey: await getSurvey(id, user.id),
+      survey: await getSurvey(id, user.ownerId),
       submissions: await listSubmissions(id),
       audit: await listAudit(id),
     };
@@ -24,26 +24,26 @@ export async function GET(_request: Request, context: Context) {
 export async function PATCH(request: Request, context: Context) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireUser();
+    const user = await requireWorkspaceUser();
     const { id } = await context.params;
-    return await updateSurvey(id, user.id, await readJson(request));
+    return await updateSurvey(id, user.ownerId, await readJson(request));
   });
 }
 export async function POST(request: Request, context: Context) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireUser();
+    const user = await requireWorkspaceUser();
     const { id } = await context.params;
     const input = z
       .object({ action: z.literal('template'), name: z.string().trim().min(3).max(200) })
       .parse(await readJson(request));
-    return await saveTemplate(await getSurvey(id, user.id), input.name);
+    return await saveTemplate(await getSurvey(id, user.ownerId), input.name);
   });
 }
 export async function PUT(request: Request, context: Context) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireUser();
+    const user = await requireWorkspaceUser();
     const { id } = await context.params;
     const input = z
       .object({
@@ -53,6 +53,14 @@ export async function PUT(request: Request, context: Context) {
         revision: z.number().int().min(1),
       })
       .parse(await readJson(request));
-    return await editAnswer(id, user.id, input.submissionId, input.questionId, input.value, input.revision);
+    return await editAnswer(
+      id,
+      user.ownerId,
+      input.submissionId,
+      input.questionId,
+      input.value,
+      input.revision,
+      user.id,
+    );
   });
 }

@@ -16,7 +16,7 @@ export default function PrivacyPage() {
         ],
         [
           'Akses dan pembagian',
-          'Jawaban dan pengelolaan survei membutuhkan akun pemilik. Form dapat dipasang publik, link saja, atau privat. Pemilik dapat mengaktifkan link presentasi tanpa login setelah meninjau isi slide. Link menampilkan versi yang disetujui, termasuk angka agregat, teks manual dan gambar, tanpa tabel jawaban atau akses editor. Link dapat dicabut dan otomatis dicabut saat presentasi diarsipkan atau survei dipindahkan ke sampah. Salinan yang sudah dimiliki penerima tidak dapat ditarik kembali. Ekspor oleh pemilik dapat memuat data survei dan harus dibagikan secara bertanggung jawab.',
+          'Jawaban dan pengelolaan survei membutuhkan akun pemilik atau admin platform yang diberi akses oleh pengelola. Admin dapat memilih workspace untuk membantu mengelola form, data, template dan presentasi; koreksi tetap mencatat akun yang melakukan perubahan. Form dapat dipasang publik, link saja, atau privat. Pemilik dapat mengaktifkan link presentasi tanpa login setelah meninjau isi slide. Link menampilkan versi yang disetujui, termasuk angka agregat, teks manual dan gambar, tanpa tabel jawaban atau akses editor. Link dapat dicabut dan otomatis dicabut saat presentasi diarsipkan atau survei dipindahkan ke sampah. Salinan yang sudah dimiliki penerima tidak dapat ditarik kembali. Ekspor oleh pemilik dapat memuat data survei dan harus dibagikan secara bertanggung jawab.',
         ],
         [
           'Penyimpanan dan penyedia layanan',

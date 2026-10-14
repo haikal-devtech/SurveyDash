@@ -1,4 +1,5 @@
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
+import { resolveAccess, WORKSPACE_COOKIE, isPlatformAdmin } from './access-repository';
 import { auth } from './auth';
 import { AppError } from './repository';
 import { ZodError } from 'zod';
@@ -9,6 +10,15 @@ export async function requireUser() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new AppError('Silakan masuk untuk mengelola survei.', 401);
   return session.user;
+}
+export async function requireWorkspaceUser() {
+  const user = await requireUser();
+  return { ...user, ...(await resolveAccess(user.id, (await cookies()).get(WORKSPACE_COOKIE)?.value)) };
+}
+export async function requireAdmin() {
+  const user = await requireUser();
+  if (!(await isPlatformAdmin(user.id))) throw new AppError('Akses admin diperlukan.', 403);
+  return user;
 }
 export function checkOrigin(request: Request) {
   const origin = request.headers.get('origin');

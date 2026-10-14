@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { api, checkOrigin, readJson, requireUser } from '@/lib/http';
+import { api, checkOrigin, readJson, requireWorkspaceUser } from '@/lib/http';
 import { parseFormsImport } from '@/lib/forms-import';
 import { createSurvey, updateSurvey, AppError } from '@/lib/repository';
 import { getDb } from '@/lib/db';
@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 export async function POST(request: Request) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireUser();
+    const user = await requireWorkspaceUser();
     const input = z
       .object({ source: z.unknown(), acknowledge: z.boolean().default(false) })
       .parse(await readJson(request, 500000));
@@ -20,8 +20,8 @@ export async function POST(request: Request) {
     if (imported.warnings.length && !input.acknowledge)
       throw new AppError('Tinjau dan setujui catatan impor terlebih dahulu.');
     return getDb().transaction(async () => {
-      const survey = await createSurvey(user.id, imported.title, 'blank');
-      return updateSurvey(survey.id, user.id, {
+      const survey = await createSurvey(user.ownerId, imported.title, 'blank');
+      return updateSurvey(survey.id, user.ownerId, {
         ...survey,
         description: imported.description,
         questions: imported.questions,

@@ -67,6 +67,7 @@ const schema = `
       id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, name TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS workspace_settings (owner_id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS platform_admins (user_id TEXT PRIMARY KEY, granted_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS presentations (
       id TEXT PRIMARY KEY, survey_id TEXT NOT NULL REFERENCES surveys(id), owner_id TEXT NOT NULL,
       payload TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL

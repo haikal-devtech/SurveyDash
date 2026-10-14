@@ -1,3 +1,4 @@
+import { requireWorkspaceUser } from '@/lib/http';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
@@ -10,9 +11,10 @@ export default async function AllSurveysPage({
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect('/login');
+  const workspaceUser = await requireWorkspaceUser();
   const [surveys, templates, query] = await Promise.all([
-    listSurveys(session.user.id, true),
-    listTemplates(session.user.id),
+    listSurveys(workspaceUser.ownerId, true),
+    listTemplates(workspaceUser.ownerId),
     searchParams,
   ]);
   return (
