@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Save,
@@ -20,8 +20,7 @@ import {
   X,
   Info,
 } from 'lucide-react';
-import type { AuditEntry, Submission, Survey, TemplateCategory } from '@/lib/types';
-import { calculateStats } from '@/lib/model';
+import type { Survey, SurveyInsights, TemplateCategory } from '@/lib/types';
 import { Button, Badge, FullscreenDialog } from './ui';
 import { FormBuilder } from './form-builder';
 import { QuestionInput } from './question-input';
@@ -49,19 +48,15 @@ const tabs = [
   { id: 'presentation', label: 'Presentasi', icon: PanelsTopLeft },
   { id: 'settings', label: 'Pengaturan', icon: Settings2 },
 ];
-export function SurveyEditor({
-  initialSurvey,
-  initialSubmissions,
-  initialAudit,
-}: {
-  initialSurvey: Survey;
-  initialSubmissions: Submission[];
-  initialAudit: AuditEntry[];
-}) {
+export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
   const router = useRouter();
   const [survey, setSurvey] = useState(initialSurvey);
-  const [rows, setRows] = useState(initialSubmissions);
-  const [audit, setAudit] = useState(initialAudit);
+  const [insights, setInsights] = useState<SurveyInsights | null>(null);
+  const [insightsKey, setInsightsKey] = useState('');
+  const [insightsFailure, setInsightsFailure] = useState<{ key: string; message: string } | null>(null);
+  const [insightsEpoch, setInsightsEpoch] = useState(0);
+  const [dashboardOpen, setDashboardOpen] = useState(false);
+  const [generateFromAnalysis, setGenerateFromAnalysis] = useState(false);
   const [tab, setTab] = useState('questions');
   const [dirty, setDirty] = useState(false);
   const [pending, setPending] = useState(false);
@@ -74,7 +69,47 @@ export function SurveyEditor({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestSurvey = useRef(survey);
   const saving = useRef(false);
-  const stats = useMemo(() => calculateStats(survey, rows), [survey, rows]);
+  const responseCount = survey.responseCount ?? 0;
+  const needsInsights = tab === 'analytics' || (tab === 'presentation' && dashboardOpen) || presenting;
+  const includeSamples = dashboardOpen || presenting;
+  const requestKey = survey.id + ':' + survey.version + ':' + insightsEpoch + ':' + includeSamples;
+  const insightsError = insightsFailure?.key === requestKey ? insightsFailure.message : '';
+  const insightsLoading = needsInsights && insightsKey !== requestKey && !insightsError;
+  useEffect(() => {
+    if (!needsInsights) return;
+    const controller = new AbortController();
+    fetch('/api/surveys/' + survey.id + '/insights?samples=' + includeSamples, { signal: controller.signal })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+        if (!controller.signal.aborted) {
+          setInsights(data);
+          setInsightsKey(requestKey);
+          setInsightsFailure(null);
+        }
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted)
+          setInsightsFailure({
+            key: requestKey,
+            message: error instanceof Error ? error.message : 'Analisis gagal dimuat.',
+          });
+      });
+    return () => controller.abort();
+  }, [needsInsights, survey.id, requestKey, includeSamples]);
+  const insightsStatus = insightsError ? (
+    <div className="empty-state" role="alert">
+      <p>{insightsError}</p>
+      <Button variant="secondary" onClick={() => setInsightsEpoch((value) => value + 1)}>
+        Coba lagi
+      </Button>
+    </div>
+  ) : (
+    <div className="empty-state" role="status">
+      <Loader2 size={22} className="animate-spin" />
+      <p>Menyiapkan analisis…</p>
+    </div>
+  );
   function notify(message: string) {
     setNotice(message);
     if (timer.current) clearTimeout(timer.current);
@@ -144,13 +179,12 @@ export function SurveyEditor({
     }
     setPending(true);
     try {
-      const resp = await fetch(`/api/surveys/${survey.id}`);
+      const resp = await fetch(`/api/surveys/${survey.id}?view=metadata`);
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error);
       setSurvey(data.survey);
       latestSurvey.current = data.survey;
-      setRows(data.submissions);
-      setAudit(data.audit);
+      setInsightsEpoch((value) => value + 1);
       setError('');
       notify('Data terbaru sudah dimuat.');
     } catch (error) {
@@ -236,7 +270,7 @@ export function SurveyEditor({
             </div>
             <h1>{survey.title}</h1>
             <p>
-              {survey.institution || 'Instansi belum diatur'} · {rows.length} responden ·{' '}
+              {survey.institution || 'Instansi belum diatur'} · {responseCount} responden ·{' '}
               {survey.questions.length} pertanyaan
             </p>
           </div>
@@ -271,7 +305,10 @@ export function SurveyEditor({
             <button
               key={t.id}
               className={tab === t.id ? 'active' : ''}
-              onClick={() => setTab(t.id)}
+              onClick={() => {
+                setGenerateFromAnalysis(false);
+                setTab(t.id);
+              }}
               aria-current={tab === t.id ? 'page' : undefined}
             >
               <t.icon size={14} />
@@ -286,7 +323,7 @@ export function SurveyEditor({
         </div>
       )}
       {tab === 'questions' && (
-        <FormBuilder survey={survey} hasResponses={rows.length > 0} onChange={change} />
+        <FormBuilder survey={survey} hasResponses={responseCount > 0} onChange={change} />
       )}
       {tab === 'form' && (
         <>
@@ -339,23 +376,35 @@ export function SurveyEditor({
       {tab === 'data' && (
         <ResponseTable
           survey={survey}
-          rows={rows}
-          audit={audit}
           onRefresh={refresh}
-          onEdited={(row) => {
-            setRows((prev) => prev.map((r) => (r.id === row.id ? row : r)));
+          onEdited={() => {
+            setInsightsEpoch((value) => value + 1);
             notify('Jawaban diperbarui. Riwayat koreksi tersimpan.');
           }}
           onError={setError}
         />
       )}
-      {tab === 'analytics' && (
-        <AnalyticsPanel survey={survey} rows={rows} stats={stats} onRefresh={refresh} />
-      )}
+      {tab === 'analytics' &&
+        (insightsLoading || !insights || insightsError ? (
+          insightsStatus
+        ) : (
+          <AnalyticsPanel
+            survey={survey}
+            insights={insights}
+            onRefresh={refresh}
+            onGenerate={() => {
+              setGenerateFromAnalysis(true);
+              setTab('presentation');
+            }}
+          />
+        ))}
       {tab === 'presentation' && (
         <>
-          <PresentationHub survey={survey} />
-          <details className="dashboard-layout-details">
+          <PresentationHub survey={survey} initialGenerate={generateFromAnalysis} />
+          <details
+            className="dashboard-layout-details"
+            onToggle={(event) => setDashboardOpen(event.currentTarget.open)}
+          >
             <summary>Kanvas dashboard satu halaman</summary>
             <div className="panel-intro">
               <div>
@@ -373,7 +422,12 @@ export function SurveyEditor({
                 </Button>
               </div>
             </div>
-            <DashboardCanvas survey={survey} rows={rows} stats={stats} onChange={change} editing />
+            {dashboardOpen &&
+              (insightsLoading || !insights || insightsError ? (
+                insightsStatus
+              ) : (
+                <DashboardCanvas survey={survey} insights={insights} onChange={change} editing />
+              ))}
           </details>
         </>
       )}
@@ -393,7 +447,7 @@ export function SurveyEditor({
             <Badge tone="purple">HASIL SURVEI{survey.demo ? ' · DATA SIMULASI' : ''}</Badge>
             <h1 style={{ marginTop: 14, fontSize: 29 }}>{survey.title}</h1>
             <p>
-              {survey.institution} · {rows.length} responden
+              {survey.institution} · {responseCount} responden
             </p>
           </div>
           <div className="actions presentation-controls">
@@ -412,7 +466,11 @@ export function SurveyEditor({
             Layout ini belum disimpan.
           </div>
         )}
-        <DashboardCanvas survey={survey} rows={rows} stats={stats} editing={false} />
+        {insightsLoading || !insights || insightsError ? (
+          insightsStatus
+        ) : (
+          <DashboardCanvas survey={survey} insights={insights} editing={false} />
+        )}
       </FullscreenDialog>
       {templateCategory && (
         <SaveTemplateDialog

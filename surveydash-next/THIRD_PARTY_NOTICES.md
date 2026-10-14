@@ -17,6 +17,9 @@ Paket utama dan sumber lisensinya:
 - tailwind-merge — MIT: https://github.com/dcastil/tailwind-merge/blob/main/LICENSE.md
 - Zod — MIT: https://github.com/colinhacks/zod/blob/main/LICENSE
 - Lucide — ISC, sebagian ikon MIT: https://lucide.dev/license
+- Nodemailer — MIT-0: https://github.com/nodemailer/nodemailer/blob/master/LICENSE
+- Google Auth Library — Apache-2.0: https://github.com/googleapis/google-auth-library-nodejs/blob/main/LICENSE
+- SMTP Server (pengujian lokal) — MIT-0: https://github.com/nodemailer/smtp-server/blob/master/LICENSE
 
 Referensi visual shadcn/ui: https://github.com/shadcn-ui/ui/blob/main/LICENSE.md (MIT).
 Riset dnd kit: https://github.com/clauderic/dnd-kit/blob/master/LICENSE (MIT); tidak menjadi dependency versi ini.

@@ -1,17 +1,9 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import ReactGridLayout, { useContainerWidth, type Layout } from 'react-grid-layout';
-import {
-  Hash,
-  Type,
-  GripVertical,
-  Plus,
-  Trash2,
-  Pencil,
-  MousePointer2,
-} from 'lucide-react';
-import type { Question, Submission, Survey, SurveyStats, Widget, WidgetType } from '@/lib/types';
-import { allowedWidgets, answerLabel, distribution } from '@/lib/model';
+import { Hash, Type, GripVertical, Plus, Trash2, Pencil, MousePointer2 } from 'lucide-react';
+import type { Question, Survey, SurveyInsights, Widget, WidgetType } from '@/lib/types';
+import { allowedWidgets } from '@/lib/model';
 import { Button, Modal } from './ui';
 
 const colors = ['#ab8bcc', '#cdb9e0', '#90b8ac', '#d4b779', '#a9b7d4', '#d1a1b6', '#8f79b0'];
@@ -25,16 +17,15 @@ const typeLabels: Record<WidgetType, string> = {
 function WidgetView({
   widget,
   survey,
-  rows,
-  stats,
+  insights,
 }: {
   widget: Widget;
   survey: Survey;
-  rows: Submission[];
-  stats: SurveyStats;
+  insights: SurveyInsights;
 }) {
+  const { stats } = insights;
   const q = survey.questions.find((q) => q.id === widget.questionId);
-  const data = useMemo(() => (q ? distribution(q, rows) : []), [q, rows]);
+  const data = q ? (insights.questions[q.id]?.distribution ?? []) : [];
   if (widget.type === 'metric')
     return (
       <>
@@ -51,11 +42,16 @@ function WidgetView({
   if (widget.type === 'text')
     return <p className="widget-note">{widget.content || 'Tambahkan catatan untuk presentasi Anda.'}</p>;
   if (!q) return <div className="chart-empty">Pilih pertanyaan untuk komponen ini.</div>;
-  if (!rows.length) return <div className="chart-empty">Grafik muncul setelah ada jawaban.</div>;
+  if (!stats.total) return <div className="chart-empty">Grafik muncul setelah ada jawaban.</div>;
   if (widget.type === 'table')
     return (
       <div style={{ height: '100%', overflow: 'auto' }}>
         <table className="widget-table">
+          {!q.options.length && (
+            <caption className="hint">
+              Sampel 50 jawaban terbaru; jawaban panjang disingkat. Buka Data untuk isi lengkap.
+            </caption>
+          )}
           <thead>
             <tr>
               <th>{q.options.length ? 'Pilihan jawaban' : 'Jawaban'}</th>
@@ -70,9 +66,9 @@ function WidgetView({
                     <td style={{ textAlign: 'right' }}>{d.count}</td>
                   </tr>
                 ))
-              : rows.slice(0, 50).map((r) => (
-                  <tr key={r.id}>
-                    <td>{answerLabel(q, r.answers[q.id])}</td>
+              : (insights.questions[q.id]?.samples ?? []).map((answer, index) => (
+                  <tr key={index}>
+                    <td>{answer}</td>
                   </tr>
                 ))}
           </tbody>
@@ -145,14 +141,12 @@ function WidgetView({
 }
 export function DashboardCanvas({
   survey,
-  rows,
-  stats,
+  insights,
   onChange,
   editing,
 }: {
   survey: Survey;
-  rows: Submission[];
-  stats: SurveyStats;
+  insights: SurveyInsights;
   onChange?: (s: Survey) => void;
   editing: boolean;
 }) {
@@ -319,7 +313,7 @@ export function DashboardCanvas({
                     )}
                   </div>
                   <div className="widget-body">
-                    <WidgetView widget={w} survey={survey} rows={rows} stats={stats} />
+                    <WidgetView widget={w} survey={survey} insights={insights} />
                   </div>
                 </section>
               </div>

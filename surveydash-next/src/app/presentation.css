@@ -1,6 +1,34 @@
 .presentation-hub {
   margin-bottom: 32px;
 }
+.generation-preflight {
+  margin: 18px 0;
+  padding: 16px;
+  background: #faf8fd;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.generation-preflight h3 {
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.generation-preflight dl {
+  display: grid;
+  gap: 12px;
+}
+.generation-preflight dt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  gap: 8px;
+}
+.generation-preflight dd {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
 .presentation-documents {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -395,6 +423,16 @@
   font-weight: 600;
   margin-bottom: 20px;
 }
+.inspector-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.inspector-heading h3 {
+  margin-bottom: 0;
+}
 .canvas-inspector label {
   display: flex;
   flex-direction: column;
@@ -667,6 +705,8 @@
   .canvas-toolbar .btn {
     font-size: 10px;
     padding: 7px;
+    min-height: 44px;
+    min-width: 44px;
   }
   .slide-list,
   .canvas-inspector {

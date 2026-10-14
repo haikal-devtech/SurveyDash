@@ -33,7 +33,11 @@ export default function HelpPage() {
         ],
         [
           'Akun dan pemulihan',
-          'Pengaturan akun dapat mengubah nama tampilan. Pemulihan kata sandi melalui email belum diaktifkan; simpan kredensial Anda dengan aman.',
+          'Pengaturan akun dapat mengubah nama tampilan dan foto profil. Jika pemulihan email tersedia, pilih Lupa kata sandi pada halaman login. Link berlaku 30 menit. Jika layanan belum aktif, hubungi pengelola melalui halaman Kontak.',
+        ],
+        [
+          'Mengimpor Google Forms',
+          'Jika sambungan Google tersedia, buka Impor Google Forms, sambungkan akun, lalu masukkan link editor atau ID form. Tinjau pertanyaan dan catatan item yang tidak didukung sebelum membuat salinan. Impor JSON tetap tersedia. Form sumber dan jawaban lama di Google tidak diubah.',
         ],
       ]}
     >

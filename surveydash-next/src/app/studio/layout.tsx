@@ -18,6 +18,7 @@ export default async function StudioLayout({ children }: { children: React.React
   return (
     <Shell
       name={session.user.name}
+      image={session.user.image}
       usage={usage}
       workspace={workspace}
       isAdmin={workspaceUser.isAdmin}

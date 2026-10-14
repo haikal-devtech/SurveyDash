@@ -10,10 +10,12 @@ import {
 } from '@/lib/repository';
 type Context = { params: Promise<{ id: string }> };
 export const runtime = 'nodejs';
-export async function GET(_request: Request, context: Context) {
+export async function GET(request: Request, context: Context) {
   return api(async () => {
     const user = await requireWorkspaceUser();
     const { id } = await context.params;
+    if (new URL(request.url).searchParams.get('view') === 'metadata')
+      return { survey: await getSurvey(id, user.ownerId) };
     return {
       survey: await getSurvey(id, user.ownerId),
       submissions: await listSubmissions(id),

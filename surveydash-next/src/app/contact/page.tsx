@@ -1,6 +1,7 @@
 export const metadata = { title: 'Kontak — SurveyDash Studio', alternates: { canonical: '/contact' } };
 import Link from 'next/link';
 import { PublicFrame } from '@/components/public-frame';
+import { SUPPORT_EMAIL } from '@/lib/support';
 export default function ContactPage() {
   return (
     <PublicFrame>
@@ -31,15 +32,12 @@ export default function ContactPage() {
         <section>
           <h2>Permintaan privasi</h2>
           <p>
-            {process.env.SUPPORT_EMAIL
-              ? 'Hubungi pengelola melalui email berikut untuk permintaan terkait data.'
-              : 'Alamat kontak khusus pengelola belum dipublikasikan. Jangan menaruh permintaan yang berisi data pribadi pada isu GitHub publik.'}
+            Hubungi pengelola melalui email berikut untuk bantuan dan permintaan terkait data. Jangan sertakan
+            kata sandi atau token sesi.
           </p>
-          {process.env.SUPPORT_EMAIL && (
-            <a className="text-link" href={`mailto:${process.env.SUPPORT_EMAIL}`}>
-              {process.env.SUPPORT_EMAIL}
-            </a>
-          )}
+          <a className="text-link" href={`mailto:${SUPPORT_EMAIL}`}>
+            {SUPPORT_EMAIL}
+          </a>
         </section>
       </article>
     </PublicFrame>

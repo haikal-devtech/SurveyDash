@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, WandSparkles, Copy, Archive, ArchiveRestore, Loader2, ArrowRight } from 'lucide-react';
-import type { Survey } from '@/lib/types';
+import type { Survey, SurveyInsights } from '@/lib/types';
+import { presentationPreflight } from '@/lib/presentation-preflight';
 import {
   themes,
   type PresentationDocument,
@@ -20,11 +21,17 @@ const sections: [SlideSection, string][] = [
   ['charts', 'Distribusi jawaban'],
   ['conclusion', 'Kesimpulan'],
 ];
-export function PresentationHub({ survey }: { survey: Survey }) {
+export function PresentationHub({
+  survey,
+  initialGenerate = false,
+}: {
+  survey: Survey;
+  initialGenerate?: boolean;
+}) {
   const router = useRouter();
   const [documents, setDocuments] = useState<PresentationDocument[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState<'blank' | 'generate' | null>(null);
+  const [mode, setMode] = useState<'blank' | 'generate' | null>(initialGenerate ? 'generate' : null);
   const [title, setTitle] = useState(survey.title);
   const [theme, setTheme] = useState<PresentationTheme>('professional');
   const [selected, setSelected] = useState<SlideSection[]>([
@@ -39,6 +46,25 @@ export function PresentationHub({ survey }: { survey: Survey }) {
   const [pending, setPending] = useState(false);
   const [archive, setArchive] = useState<PresentationDocument | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [insights, setInsights] = useState<SurveyInsights | null>(null);
+  const [preflightError, setPreflightError] = useState('');
+  const [preflightEpoch, setPreflightEpoch] = useState(0);
+  const preflight = insights ? presentationPreflight(survey, insights, selected) : [];
+  useEffect(() => {
+    if (mode !== 'generate') return;
+    const controller = new AbortController();
+    fetch('/api/surveys/' + survey.id + '/insights', { signal: controller.signal })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+        if (!controller.signal.aborted) setInsights(data);
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted)
+          setPreflightError(error instanceof Error ? error.message : 'Sumber data gagal dimuat.');
+      });
+    return () => controller.abort();
+  }, [mode, survey.id, preflightEpoch]);
   const visible = documents.filter((item) => (showArchived ? !!item.archivedAt : !item.archivedAt));
   useEffect(() => {
     const controller = new AbortController();
@@ -56,8 +82,14 @@ export function PresentationHub({ survey }: { survey: Survey }) {
       });
     return () => controller.abort();
   }, [survey.id]);
+  function beginGeneration() {
+    setInsights(null);
+    setPreflightError('');
+    setMode('generate');
+  }
   async function create(event: React.FormEvent) {
     event.preventDefault();
+    if (mode === 'generate' && !insights) return;
     setPending(true);
     setError('');
     try {
@@ -112,7 +144,7 @@ export function PresentationHub({ survey }: { survey: Survey }) {
             <Plus size={14} />
             Presentasi kosong
           </Button>
-          <Button onClick={() => setMode('generate')}>
+          <Button onClick={beginGeneration}>
             <WandSparkles size={14} />
             Buat dari analisis
           </Button>
@@ -250,6 +282,7 @@ export function PresentationHub({ survey }: { survey: Survey }) {
                     <input
                       type="checkbox"
                       checked={selected.includes(id)}
+                      disabled={id === 'ikm' && survey.kind !== 'skm'}
                       onChange={(e) =>
                         setSelected((items) =>
                           e.target.checked ? [...items, id] : items.filter((item) => item !== id),
@@ -264,6 +297,41 @@ export function PresentationHub({ survey }: { survey: Survey }) {
                 ))}
               </fieldset>
             )}
+            {mode === 'generate' && (
+              <section className="generation-preflight" aria-live="polite">
+                <h3>Tinjau sumber data</h3>
+                {preflightError ? (
+                  <div role="alert">
+                    <p>{preflightError}</p>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setPreflightError('');
+                        setPreflightEpoch((value) => value + 1);
+                      }}
+                    >
+                      Coba lagi
+                    </Button>
+                  </div>
+                ) : !insights ? (
+                  <p role="status">Memeriksa jawaban tersimpan…</p>
+                ) : (
+                  <dl>
+                    {preflight.map((item) => (
+                      <div key={item.section}>
+                        <dt>
+                          {item.title}{' '}
+                          <Badge tone={item.status === 'ready' ? 'green' : 'amber'}>
+                            {item.status === 'ready' ? 'Siap' : 'Perlu ditinjau'}
+                          </Badge>
+                        </dt>
+                        <dd>{item.detail}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </section>
+            )}
             <div className="banner">
               Grafik memakai respons tersimpan. Bagian yang belum memiliki data akan diberi keterangan.{' '}
               {survey.demo ? 'Sumber ini berisi data simulasi.' : ''}
@@ -277,7 +345,10 @@ export function PresentationHub({ survey }: { survey: Survey }) {
               <Button variant="secondary" onClick={() => setMode(null)}>
                 Batal
               </Button>
-              <Button type="submit" disabled={pending || (mode === 'generate' && !selected.length)}>
+              <Button
+                type="submit"
+                disabled={pending || (mode === 'generate' && (!selected.length || !insights))}
+              >
                 {pending ? <Loader2 size={14} className="animate-spin" /> : <WandSparkles size={14} />}Buat
                 presentasi
               </Button>

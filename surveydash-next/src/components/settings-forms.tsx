@@ -1,19 +1,22 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, Loader2 } from 'lucide-react';
+import { Save, Loader2, Upload } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import { Button } from './ui';
+import { UserAvatar } from './user-avatar';
 export function SettingsForm({
   type,
   initialName,
   initialDescription = '',
   email,
+  initialImage,
 }: {
   type: 'account' | 'workspace';
   initialName: string;
   initialDescription?: string;
   email?: string;
+  initialImage?: string | null;
 }) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
@@ -21,6 +24,27 @@ export function SettingsForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [image, setImage] = useState(initialImage);
+  const [uploading, setUploading] = useState(false);
+  async function uploadAvatar(file: File) {
+    setUploading(true);
+    setError('');
+    try {
+      if (file.size > 2500000) throw new Error('Foto profil maksimal 2,5 MB.');
+      const body = new FormData();
+      body.set('image', file);
+      const response = await fetch('/api/account/avatar', { method: 'POST', body });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setImage(data.image);
+      setSaved(true);
+      router.refresh();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Foto profil gagal disimpan.');
+    } finally {
+      setUploading(false);
+    }
+  }
   async function save(event: React.FormEvent) {
     event.preventDefault();
     setPending(true);
@@ -49,13 +73,34 @@ export function SettingsForm({
   }
   return (
     <form className="card account-form" onSubmit={save}>
+      {type === 'account' && (
+        <div className="profile-avatar-field">
+          <UserAvatar name={name} image={image} />
+          <label className="profile-avatar-upload">
+            <span>
+              {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}Foto profil
+            </span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              disabled={uploading || pending}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void uploadAvatar(file);
+                event.target.value = '';
+              }}
+            />
+            <small>PNG, JPG, atau WebP · Maksimal 2,5 MB</small>
+          </label>
+        </div>
+      )}
       <div className="field">
         <label htmlFor="profile-name">{type === 'account' ? 'Nama tampilan' : 'Nama workspace'}</label>
         <input
           id="profile-name"
           className="input"
           required
-          minLength={3}
+          minLength={type === 'account' ? 2 : 3}
           maxLength={100}
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -96,7 +141,7 @@ export function SettingsForm({
         </p>
       )}
       <div className="modal-footer">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || uploading}>
           {pending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Simpan pengaturan
         </Button>
       </div>

@@ -28,6 +28,7 @@ const order = [
   'public_rate_limits',
   'workspace_settings',
   'platform_admins',
+  'google_form_connections',
   'presentations',
   'presentation_assets',
   'presentation_shares',

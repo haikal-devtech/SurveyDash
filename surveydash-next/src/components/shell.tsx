@@ -19,10 +19,12 @@ import { authClient } from '@/lib/auth-client';
 import type { PlanUsage } from '@/lib/plans';
 import { Brand } from './brand';
 import { Button } from './ui';
+import { UserAvatar } from './user-avatar';
 import { ReturnWorkspace } from './admin-workspaces';
 export function Shell({
   children,
   name,
+  image,
   workspace,
   usage,
   isAdmin = false,
@@ -31,6 +33,7 @@ export function Shell({
 }: {
   children: React.ReactNode;
   name: string;
+  image?: string | null;
   workspace: { name: string; description: string };
   usage: PlanUsage;
   isAdmin?: boolean;
@@ -105,7 +108,7 @@ export function Shell({
             </Link>
           </section>
           <div className="profile">
-            <span className="avatar">{name.slice(0, 1).toUpperCase()}</span>
+            <UserAvatar name={name} image={image} />
             <Link href="/studio/settings/account">
               <strong>{name}</strong>
               <small>{isAdmin ? 'Admin platform' : 'Akses penuh workspace'}</small>
@@ -160,7 +163,7 @@ export function Shell({
               />
             </form>
             <Link className="topbar-account" href="/studio/settings/account">
-              <span className="avatar">{name.slice(0, 1).toUpperCase()}</span>
+              <UserAvatar name={name} image={image} />
               <strong>{name.split(' ')[0]}</strong>
             </Link>
           </header>

@@ -51,6 +51,8 @@ export async function createPresentation(
 ) {
   const survey = await getSurvey(surveyId, ownerId);
   if (survey.deletedAt) throw new AppError('Pulihkan survei sebelum membuat presentasi.');
+  if (sections.includes('ikm') && survey.kind !== 'skm')
+    throw new AppError('Slide IKM hanya tersedia untuk survei SKM.');
   const rows = await listSubmissions(surveyId);
   const now = new Date().toISOString();
   const document: PresentationDocument = {

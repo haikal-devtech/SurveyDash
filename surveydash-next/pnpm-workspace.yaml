@@ -2,3 +2,6 @@ allowBuilds:
   core-js: false
   esbuild: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - nodemailer@10.1.1
+  - smtp-server@3.19.22

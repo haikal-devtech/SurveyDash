@@ -20,7 +20,7 @@ export default function TermsPage() {
         ],
         [
           'Versi pengujian',
-          'Fitur dan antarmuka dapat berubah. Simpan ekspor dan cadangan yang diperlukan. Pembayaran, undangan tim, pemulihan akun melalui email, dan koneksi Google OAuth belum diaktifkan.',
+          'Fitur dan antarmuka dapat berubah. Simpan ekspor dan cadangan yang diperlukan. Pembayaran dan undangan tim belum diaktifkan. Pemulihan lewat email dan sambungan Google Forms hanya tersedia setelah layanan tersebut dikonfigurasi dan diaktifkan pengelola.',
         ],
         [
           'Biaya',

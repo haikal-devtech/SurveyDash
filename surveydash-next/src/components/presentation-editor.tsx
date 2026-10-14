@@ -22,6 +22,7 @@ import {
   Bookmark,
   Share2,
   X,
+  PanelRight,
 } from 'lucide-react';
 import type { Survey } from '@/lib/types';
 import {
@@ -60,6 +61,7 @@ export function PresentationEditor({
   const current = useRef(initialDocument);
   const [slideId, setSlideId] = useState(initialDocument.slides[0].id);
   const [selection, setSelection] = useState<string | null>(null);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const busy = useRef(false);
@@ -86,6 +88,10 @@ export function PresentationEditor({
   const exportNodes = useRef(new Map<string, HTMLDivElement>());
   const slide = document.slides.find((item) => item.id === slideId) ?? document.slides[0];
   const selected = slide.elements.find((item) => item.id === selection);
+  function selectElement(id: string | null) {
+    setSelection(id);
+    setInspectorOpen(id !== null);
+  }
   useEffect(() => {
     const host = canvasHost.current;
     if (!host) return;
@@ -126,13 +132,13 @@ export function PresentationEditor({
     const palette = themes[current.current.theme];
     const element = makeElement(uid(), type, { color: palette.ink, fill: palette.accent, ...extra });
     editSlide({ ...slide, elements: [...slide.elements, element] });
-    setSelection(element.id);
+    selectElement(element.id);
     setPanel('properties');
   }
   function deleteElement() {
     if (!selected) return;
     editSlide({ ...slide, elements: slide.elements.filter((item) => item.id !== selected.id) });
-    setSelection(null);
+    selectElement(null);
   }
   function duplicateElement() {
     if (!selected) return;
@@ -171,7 +177,7 @@ export function PresentationEditor({
     }
     commit({ ...current.current, slides: [...current.current.slides, next] });
     setSlideId(next.id);
-    setSelection(null);
+    selectElement(null);
   }
   function removeSlide() {
     if (document.slides.length === 1) {
@@ -181,7 +187,7 @@ export function PresentationEditor({
     const remaining = document.slides.filter((item) => item.id !== slide.id);
     commit({ ...current.current, slides: remaining });
     setSlideId(remaining[0].id);
-    setSelection(null);
+    selectElement(null);
   }
   function reorderSlide(direction: number) {
     const items = [...document.slides];
@@ -204,7 +210,7 @@ export function PresentationEditor({
     }
     commit(next, false);
     if (!next.slides.some((item) => item.id === slideId)) setSlideId(next.slides[0].id);
-    setSelection(null);
+    selectElement(null);
   }
   async function save() {
     if (busy.current) return false;
@@ -310,6 +316,7 @@ export function PresentationEditor({
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
+    // Keep the viewport stable while the pointer gesture is in progress.
     setSelection(element.id);
     event.currentTarget.setPointerCapture(event.pointerId);
     gesture.current = {
@@ -362,6 +369,8 @@ export function PresentationEditor({
     const action = gesture.current;
     if (!action) return;
     gesture.current = null;
+    setInspectorOpen(true);
+    setPanel('properties');
     if (current.current !== action.document) {
       setUndoStack((items) => [...items.slice(-39), action.document]);
       setRedoStack([]);
@@ -626,7 +635,13 @@ export function PresentationEditor({
         <button aria-pressed={panel === 'slides'} onClick={() => setPanel('slides')}>
           Slide
         </button>
-        <button aria-pressed={panel === 'properties'} onClick={() => setPanel('properties')}>
+        <button
+          aria-pressed={panel === 'properties' && inspectorOpen}
+          onClick={() => {
+            setPanel('properties');
+            setInspectorOpen(true);
+          }}
+        >
           Properti & lapisan
         </button>
       </div>
@@ -645,7 +660,7 @@ export function PresentationEditor({
                 key={item.id}
                 onClick={() => {
                   setSlideId(item.id);
-                  setSelection(null);
+                  selectElement(null);
                 }}
               >
                 <SlideThumbnail slide={item} />
@@ -714,8 +729,20 @@ export function PresentationEditor({
                 <option value={1.5}>150%</option>
               </select>
             </label>
+            <Button
+              variant="ghost"
+              aria-expanded={inspectorOpen}
+              aria-controls="canvas-properties"
+              onClick={() => {
+                setInspectorOpen((value) => !value);
+                setPanel('properties');
+              }}
+            >
+              <PanelRight size={16} />
+              {inspectorOpen ? 'Tutup panel' : selected ? 'Properti' : 'Pengaturan slide'}
+            </Button>
           </div>
-          <div className="canvas-workspace" ref={canvasHost} onPointerDown={() => setSelection(null)}>
+          <div className="canvas-workspace" ref={canvasHost} onPointerDown={() => selectElement(null)}>
             <div
               className="canvas-scaled"
               style={{ width: SLIDE_WIDTH * scale * zoom, height: SLIDE_HEIGHT * scale * zoom }}
@@ -747,10 +774,10 @@ export function PresentationEditor({
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelection(element.id);
+                      selectElement(element.id);
                       setPanel('properties');
                     }}
-                    onFocus={() => setSelection(element.id)}
+                    onFocus={() => selectElement(element.id)}
                     onPointerDown={(e) => startGesture(e, element, 'move')}
                     onPointerMove={moveGesture}
                     onPointerUp={endGesture}
@@ -783,324 +810,339 @@ export function PresentationEditor({
             <span>Seret untuk mengatur · Alt: tanpa snap · Shift + panah: 10 px</span>
           </footer>
         </main>
-        <aside className={`canvas-inspector ${panel === 'properties' ? 'mobile-visible' : ''}`}>
-          <h3>{selected ? 'Properti komponen' : 'Pengaturan slide'}</h3>
-          {selected ? (
-            <>
-              <div className="inspector-actions">
-                <Button variant="ghost" onClick={duplicateElement}>
-                  <Copy size={14} />
-                  Duplikat
-                </Button>
-                <Button variant="ghost" onClick={deleteElement} aria-label="Hapus komponen">
-                  <Trash2 size={14} />
-                </Button>
-              </div>
-              {selected.type === 'text' && (
-                <>
-                  <label>
-                    {selected.binding ? 'Label dari data' : 'Teks'}
-                    <textarea
-                      value={selected.text}
-                      disabled={!!selected.binding}
-                      onChange={(e) => patchElement({ text: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    Sumber teks
-                    <select
-                      value={selected.binding?.key ?? ''}
-                      onChange={(e) =>
-                        patchElement({
-                          binding: e.target.value
-                            ? {
-                                kind: 'metric',
-                                key: e.target.value as NonNullable<SlideElement['binding']>['key'],
-                              }
-                            : undefined,
-                        })
-                      }
-                    >
-                      <option value="">Teks manual</option>
-                      <option value="total">Total responden</option>
-                      <option value="completion">Capaian target</option>
-                      <option value="ikm">Nilai IKM</option>
-                      <option value="grade">Mutu pelayanan</option>
-                      <option value="category">Kategori IKM</option>
-                      <option value="target">Target responden</option>
-                      <option value="summaryText">Ringkasan respons</option>
-                    </select>
-                  </label>
-                  <div className="inspector-grid">
+        {inspectorOpen && (
+          <aside
+            id="canvas-properties"
+            className={`canvas-inspector ${panel === 'properties' ? 'mobile-visible' : ''}`}
+          >
+            <div className="inspector-heading">
+              <h3>{selected ? 'Properti komponen' : 'Pengaturan slide'}</h3>
+              <Button
+                variant="ghost"
+                aria-label="Tutup panel properti"
+                onClick={() => setInspectorOpen(false)}
+              >
+                <X size={16} />
+              </Button>
+            </div>
+            {selected ? (
+              <>
+                <div className="inspector-actions">
+                  <Button variant="ghost" onClick={duplicateElement}>
+                    <Copy size={14} />
+                    Duplikat
+                  </Button>
+                  <Button variant="ghost" onClick={deleteElement} aria-label="Hapus komponen">
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+                {selected.type === 'text' && (
+                  <>
                     <label>
-                      Ukuran font
-                      <input
-                        type="number"
-                        min={8}
-                        max={160}
-                        value={selected.fontSize}
-                        onChange={(e) =>
-                          patchElement({ fontSize: Math.max(8, Math.min(160, Number(e.target.value))) })
-                        }
+                      {selected.binding ? 'Label dari data' : 'Teks'}
+                      <textarea
+                        value={selected.text}
+                        disabled={!!selected.binding}
+                        onChange={(e) => patchElement({ text: e.target.value })}
                       />
                     </label>
                     <label>
-                      Ketebalan
+                      Sumber teks
                       <select
-                        value={selected.fontWeight}
-                        onChange={(e) => patchElement({ fontWeight: Number(e.target.value) })}
+                        value={selected.binding?.key ?? ''}
+                        onChange={(e) =>
+                          patchElement({
+                            binding: e.target.value
+                              ? {
+                                  kind: 'metric',
+                                  key: e.target.value as NonNullable<SlideElement['binding']>['key'],
+                                }
+                              : undefined,
+                          })
+                        }
                       >
-                        <option value={400}>Normal</option>
-                        <option value={500}>Sedang</option>
-                        <option value={600}>Semi bold</option>
-                        <option value={650}>Tebal</option>
-                        <option value={700}>Bold</option>
+                        <option value="">Teks manual</option>
+                        <option value="total">Total responden</option>
+                        <option value="completion">Capaian target</option>
+                        <option value="ikm">Nilai IKM</option>
+                        <option value="grade">Mutu pelayanan</option>
+                        <option value="category">Kategori IKM</option>
+                        <option value="target">Target responden</option>
+                        <option value="summaryText">Ringkasan respons</option>
                       </select>
                     </label>
-                  </div>
-                  <label>
-                    Font
-                    <select
-                      value={selected.fontFamily}
-                      onChange={(e) => patchElement({ fontFamily: e.target.value })}
-                    >
-                      {['Inter Variable', 'Arial', 'Georgia', 'monospace'].map((font) => (
-                        <option key={font}>{font}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Rata teks
-                    <select
-                      value={selected.align}
-                      onChange={(e) => patchElement({ align: e.target.value as SlideElement['align'] })}
-                    >
-                      {['left', 'center', 'right'].map((align) => (
-                        <option key={align} value={align}>
-                          {align === 'left' ? 'Kiri' : align === 'center' ? 'Tengah' : 'Kanan'}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </>
-              )}
-              {selected.type === 'chart' && (
-                <>
-                  <label>
-                    Judul grafik
-                    <textarea
-                      value={selected.text}
-                      onChange={(e) => patchElement({ text: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    Pertanyaan
-                    <select
-                      value={selected.binding?.questionId}
-                      onChange={(e) =>
-                        patchElement({
-                          text: survey.questions.find((q) => q.id === e.target.value)?.label ?? selected.text,
-                          binding: {
-                            kind: 'chart',
-                            questionId: e.target.value,
-                            chartType: selected.binding?.chartType ?? 'bar',
-                          },
-                          data: [],
-                          missing: true,
-                        })
-                      }
-                    >
-                      {survey.questions
-                        .filter((q) => q.options.length)
-                        .map((q) => (
-                          <option value={q.id} key={q.id}>
-                            {q.label}
+                    <div className="inspector-grid">
+                      <label>
+                        Ukuran font
+                        <input
+                          type="number"
+                          min={8}
+                          max={160}
+                          value={selected.fontSize}
+                          onChange={(e) =>
+                            patchElement({ fontSize: Math.max(8, Math.min(160, Number(e.target.value))) })
+                          }
+                        />
+                      </label>
+                      <label>
+                        Ketebalan
+                        <select
+                          value={selected.fontWeight}
+                          onChange={(e) => patchElement({ fontWeight: Number(e.target.value) })}
+                        >
+                          <option value={400}>Normal</option>
+                          <option value={500}>Sedang</option>
+                          <option value={600}>Semi bold</option>
+                          <option value={650}>Tebal</option>
+                          <option value={700}>Bold</option>
+                        </select>
+                      </label>
+                    </div>
+                    <label>
+                      Font
+                      <select
+                        value={selected.fontFamily}
+                        onChange={(e) => patchElement({ fontFamily: e.target.value })}
+                      >
+                        {['Inter Variable', 'Arial', 'Georgia', 'monospace'].map((font) => (
+                          <option key={font}>{font}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Rata teks
+                      <select
+                        value={selected.align}
+                        onChange={(e) => patchElement({ align: e.target.value as SlideElement['align'] })}
+                      >
+                        {['left', 'center', 'right'].map((align) => (
+                          <option key={align} value={align}>
+                            {align === 'left' ? 'Kiri' : align === 'center' ? 'Tengah' : 'Kanan'}
                           </option>
                         ))}
-                    </select>
-                  </label>
+                      </select>
+                    </label>
+                  </>
+                )}
+                {selected.type === 'chart' && (
+                  <>
+                    <label>
+                      Judul grafik
+                      <textarea
+                        value={selected.text}
+                        onChange={(e) => patchElement({ text: e.target.value })}
+                      />
+                    </label>
+                    <label>
+                      Pertanyaan
+                      <select
+                        value={selected.binding?.questionId}
+                        onChange={(e) =>
+                          patchElement({
+                            text:
+                              survey.questions.find((q) => q.id === e.target.value)?.label ?? selected.text,
+                            binding: {
+                              kind: 'chart',
+                              questionId: e.target.value,
+                              chartType: selected.binding?.chartType ?? 'bar',
+                            },
+                            data: [],
+                            missing: true,
+                          })
+                        }
+                      >
+                        {survey.questions
+                          .filter((q) => q.options.length)
+                          .map((q) => (
+                            <option value={q.id} key={q.id}>
+                              {q.label}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    <label>
+                      Jenis grafik
+                      <select
+                        value={selected.binding?.chartType}
+                        onChange={(e) =>
+                          patchElement({
+                            binding: {
+                              ...selected.binding!,
+                              chartType: e.target.value as 'bar' | 'pie' | 'table',
+                            },
+                          })
+                        }
+                      >
+                        <option value="bar">Batang</option>
+                        <option value="pie">Pie</option>
+                        <option value="table">Tabel</option>
+                      </select>
+                    </label>
+                    <small className="inspector-note">
+                      Grafik mengikuti jawaban yang tersimpan. Perbarui data setelah ada respons baru.
+                    </small>
+                  </>
+                )}
+                {selected.type === 'shape' && (
                   <label>
-                    Jenis grafik
+                    Bentuk
                     <select
-                      value={selected.binding?.chartType}
-                      onChange={(e) =>
-                        patchElement({
-                          binding: {
-                            ...selected.binding!,
-                            chartType: e.target.value as 'bar' | 'pie' | 'table',
-                          },
-                        })
-                      }
+                      value={selected.shape}
+                      onChange={(e) => patchElement({ shape: e.target.value as SlideElement['shape'] })}
                     >
-                      <option value="bar">Batang</option>
-                      <option value="pie">Pie</option>
-                      <option value="table">Tabel</option>
+                      <option value="rect">Kotak</option>
+                      <option value="rounded">Kotak melengkung</option>
+                      <option value="circle">Lingkaran</option>
+                      <option value="line">Garis</option>
                     </select>
                   </label>
-                  <small className="inspector-note">
-                    Grafik mengikuti jawaban yang tersimpan. Perbarui data setelah ada respons baru.
-                  </small>
-                </>
-              )}
-              {selected.type === 'shape' && (
-                <label>
-                  Bentuk
-                  <select
-                    value={selected.shape}
-                    onChange={(e) => patchElement({ shape: e.target.value as SlideElement['shape'] })}
-                  >
-                    <option value="rect">Kotak</option>
-                    <option value="rounded">Kotak melengkung</option>
-                    <option value="circle">Lingkaran</option>
-                    <option value="line">Garis</option>
-                  </select>
-                </label>
-              )}
-              {selected.type === 'image' && (
-                <>
+                )}
+                {selected.type === 'image' && (
+                  <>
+                    <label>
+                      Deskripsi gambar
+                      <input value={selected.text} onChange={(e) => patchElement({ text: e.target.value })} />
+                    </label>
+                    <label>
+                      Tampilan
+                      <select
+                        value={selected.fit}
+                        onChange={(e) => patchElement({ fit: e.target.value as 'contain' | 'cover' })}
+                      >
+                        <option value="contain">Utuh</option>
+                        <option value="cover">Penuhi kotak</option>
+                      </select>
+                    </label>
+                  </>
+                )}
+                <div className="inspector-grid">
+                  {(['x', 'y', 'w', 'h'] as const).map((key) => (
+                    <label key={key}>
+                      {{ x: 'Posisi X', y: 'Posisi Y', w: 'Lebar', h: 'Tinggi' }[key]}
+                      <input
+                        type="number"
+                        min={key === 'w' ? 10 : key === 'h' ? 4 : 0}
+                        max={key === 'y' || key === 'h' ? 720 : 1280}
+                        value={Math.round(selected[key])}
+                        onChange={(e) =>
+                          patchElement({
+                            [key]: Math.max(key === 'w' ? 10 : key === 'h' ? 4 : 0, Number(e.target.value)),
+                          })
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+                <div className="inspector-grid">
                   <label>
-                    Deskripsi gambar
-                    <input value={selected.text} onChange={(e) => patchElement({ text: e.target.value })} />
+                    Warna teks
+                    <input
+                      type="color"
+                      value={selected.color}
+                      onChange={(e) => patchElement({ color: e.target.value })}
+                    />
                   </label>
                   <label>
-                    Tampilan
-                    <select
-                      value={selected.fit}
-                      onChange={(e) => patchElement({ fit: e.target.value as 'contain' | 'cover' })}
-                    >
-                      <option value="contain">Utuh</option>
-                      <option value="cover">Penuhi kotak</option>
-                    </select>
+                    Warna isi
+                    <input
+                      type="color"
+                      value={selected.fill}
+                      onChange={(e) => patchElement({ fill: e.target.value })}
+                    />
                   </label>
-                </>
-              )}
-              <div className="inspector-grid">
-                {(['x', 'y', 'w', 'h'] as const).map((key) => (
-                  <label key={key}>
-                    {{ x: 'Posisi X', y: 'Posisi Y', w: 'Lebar', h: 'Tinggi' }[key]}
+                  <label>
+                    Rotasi
                     <input
                       type="number"
-                      min={key === 'w' ? 10 : key === 'h' ? 4 : 0}
-                      max={key === 'y' || key === 'h' ? 720 : 1280}
-                      value={Math.round(selected[key])}
+                      min={-180}
+                      max={180}
+                      value={selected.rotation}
                       onChange={(e) =>
-                        patchElement({
-                          [key]: Math.max(key === 'w' ? 10 : key === 'h' ? 4 : 0, Number(e.target.value)),
-                        })
+                        patchElement({ rotation: Math.max(-180, Math.min(180, Number(e.target.value))) })
                       }
                     />
                   </label>
-                ))}
-              </div>
-              <div className="inspector-grid">
+                  <label>
+                    Opacity
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={Math.round(selected.opacity * 100)}
+                      onChange={(e) =>
+                        patchElement({ opacity: Math.max(0, Math.min(1, Number(e.target.value) / 100)) })
+                      }
+                    />
+                  </label>
+                </div>
+                <div className="actions">
+                  <Button variant="secondary" onClick={() => moveLayer(-1)}>
+                    <ArrowDown size={13} />
+                    Ke belakang
+                  </Button>
+                  <Button variant="secondary" onClick={() => moveLayer(1)}>
+                    <ArrowUp size={13} />
+                    Ke depan
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
                 <label>
-                  Warna teks
+                  Nama slide
+                  <input
+                    value={slide.name}
+                    maxLength={150}
+                    onChange={(e) => editSlide({ ...slide, name: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Latar slide
                   <input
                     type="color"
-                    value={selected.color}
-                    onChange={(e) => patchElement({ color: e.target.value })}
+                    value={slide.background}
+                    onChange={(e) => editSlide({ ...slide, background: e.target.value })}
                   />
                 </label>
                 <label>
-                  Warna isi
-                  <input
-                    type="color"
-                    value={selected.fill}
-                    onChange={(e) => patchElement({ fill: e.target.value })}
-                  />
+                  Tema dokumen
+                  <select
+                    value={document.theme}
+                    onChange={(e) => changeTheme(e.target.value as PresentationTheme)}
+                  >
+                    {Object.entries(themes).map(([id, theme]) => (
+                      <option key={id} value={id}>
+                        {theme.name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-                <label>
-                  Rotasi
-                  <input
-                    type="number"
-                    min={-180}
-                    max={180}
-                    value={selected.rotation}
-                    onChange={(e) =>
-                      patchElement({ rotation: Math.max(-180, Math.min(180, Number(e.target.value))) })
-                    }
-                  />
-                </label>
-                <label>
-                  Opacity
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={Math.round(selected.opacity * 100)}
-                    onChange={(e) =>
-                      patchElement({ opacity: Math.max(0, Math.min(1, Number(e.target.value) / 100)) })
-                    }
-                  />
-                </label>
-              </div>
-              <div className="actions">
-                <Button variant="secondary" onClick={() => moveLayer(-1)}>
-                  <ArrowDown size={13} />
-                  Ke belakang
-                </Button>
-                <Button variant="secondary" onClick={() => moveLayer(1)}>
-                  <ArrowUp size={13} />
-                  Ke depan
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <label>
-                Nama slide
-                <input
-                  value={slide.name}
-                  maxLength={150}
-                  onChange={(e) => editSlide({ ...slide, name: e.target.value })}
-                />
-              </label>
-              <label>
-                Latar slide
-                <input
-                  type="color"
-                  value={slide.background}
-                  onChange={(e) => editSlide({ ...slide, background: e.target.value })}
-                />
-              </label>
-              <label>
-                Tema dokumen
-                <select
-                  value={document.theme}
-                  onChange={(e) => changeTheme(e.target.value as PresentationTheme)}
+                <p className="inspector-note">Pilih komponen pada kanvas untuk mengubah tampilannya.</p>
+              </>
+            )}
+            <h3 className="layers-heading">Lapisan</h3>
+            <div className="canvas-layers">
+              {[...slide.elements].reverse().map((item) => (
+                <button
+                  className={item.id === selection ? 'active' : ''}
+                  key={item.id}
+                  onClick={() => selectElement(item.id)}
                 >
-                  {Object.entries(themes).map(([id, theme]) => (
-                    <option key={id} value={id}>
-                      {theme.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <p className="inspector-note">Pilih komponen pada kanvas untuk mengubah tampilannya.</p>
-            </>
-          )}
-          <h3 className="layers-heading">Lapisan</h3>
-          <div className="canvas-layers">
-            {[...slide.elements].reverse().map((item) => (
-              <button
-                className={item.id === selection ? 'active' : ''}
-                key={item.id}
-                onClick={() => setSelection(item.id)}
-              >
-                {item.type === 'chart' ? (
-                  <BarChart3 size={14} />
-                ) : item.type === 'image' ? (
-                  <ImagePlus size={14} />
-                ) : item.type === 'shape' ? (
-                  <Square size={14} />
-                ) : (
-                  <Type size={14} />
-                )}
-                <span>{item.text || 'Bentuk'}</span>
-              </button>
-            ))}
-          </div>
-        </aside>
+                  {item.type === 'chart' ? (
+                    <BarChart3 size={14} />
+                  ) : item.type === 'image' ? (
+                    <ImagePlus size={14} />
+                  ) : item.type === 'shape' ? (
+                    <Square size={14} />
+                  ) : (
+                    <Type size={14} />
+                  )}
+                  <span>{item.text || 'Bentuk'}</span>
+                </button>
+              ))}
+            </div>
+          </aside>
+        )}
       </div>
       <FullscreenDialog open={preview} onOpenChange={setPreview} title="Pratinjau presentasi">
         <div className="slide-preview">
