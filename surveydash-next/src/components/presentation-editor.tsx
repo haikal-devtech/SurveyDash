@@ -20,6 +20,7 @@ import {
   Save,
   RefreshCw,
   Bookmark,
+  Share2,
   X,
 } from 'lucide-react';
 import type { Survey } from '@/lib/types';
@@ -35,6 +36,7 @@ import {
 } from '@/lib/presentation-model';
 import { ElementContent, SlideRenderer, SlideThumbnail } from './slide-renderer';
 import { Button, Badge, FullscreenDialog, Modal } from './ui';
+import { ShareDialog } from './share-dialog';
 
 const uid = () => crypto.randomUUID();
 type Gesture = {
@@ -68,6 +70,7 @@ export function PresentationEditor({
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [templateName, setTemplateName] = useState(initialDocument.title);
   const [templatePending, setTemplatePending] = useState(false);
   const [undoStack, setUndoStack] = useState<PresentationDocument[]>([]);
@@ -265,7 +268,8 @@ export function PresentationEditor({
       (event.target as HTMLElement)?.closest('input,textarea,select,[contenteditable="true"]') ||
       exportOpen ||
       imageOpen ||
-      templateOpen
+      templateOpen ||
+      sharing
     )
       return;
     const modifier = event.ctrlKey || event.metaKey;
@@ -573,6 +577,17 @@ export function PresentationEditor({
           <Button variant="secondary" onClick={() => setTemplateOpen(true)}>
             <Bookmark size={14} />
             Template
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={saving}
+            onClick={async () => {
+              if (dirty && !(await save())) return;
+              setSharing(true);
+            }}
+          >
+            <Share2 size={14} />
+            Bagikan
           </Button>
           <Button
             variant="secondary"
@@ -1197,6 +1212,9 @@ export function PresentationEditor({
           <p className="template-safe-note">Belum ada gambar. Unggah untuk menambahkannya ke slide.</p>
         )}
       </Modal>
+      {sharing && (
+        <ShareDialog id={document.id} version={document.version} onClose={() => setSharing(false)} />
+      )}
       <div className="slide-export-stage" aria-hidden="true">
         {document.slides.map((item) => (
           <SlideRenderer

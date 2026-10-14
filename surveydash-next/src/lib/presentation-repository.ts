@@ -11,7 +11,7 @@ import {
 } from './presentation-model';
 type Row = Record<string, string | number | null>;
 const decode = (row: Row): PresentationDocument => JSON.parse(String(row.payload));
-export async function listPresentations(surveyId: string, ownerId: string) {
+export async function listPresentations(surveyId: string, ownerId: string, includeArchived = false) {
   await getSurvey(surveyId, ownerId);
   return (
     await getDb()
@@ -21,7 +21,7 @@ export async function listPresentations(surveyId: string, ownerId: string) {
       .all(surveyId, ownerId)
   )
     .map(decode)
-    .filter((d) => !d.archivedAt);
+    .filter((d) => includeArchived || !d.archivedAt);
 }
 export async function getPresentation(id: string, ownerId: string) {
   const row = await getDb()
@@ -116,7 +116,7 @@ export async function refreshPresentation(id: string, ownerId: string, version: 
 export async function managePresentation(
   id: string,
   ownerId: string,
-  action: 'duplicate' | 'archive',
+  action: 'duplicate' | 'archive' | 'unarchive',
   title?: string,
 ) {
   return getDb().transaction(async () => {
@@ -135,7 +135,18 @@ export async function managePresentation(
       await insert(after);
       return after;
     }
-    const after = { ...before, archivedAt: now, version: before.version + 1, updatedAt: now };
+    const after = {
+      ...before,
+      archivedAt: action === 'unarchive' ? null : now,
+      version: before.version + 1,
+      updatedAt: now,
+    };
+    if (action === 'archive')
+      await getDb()
+        .prepare(
+          'UPDATE presentation_shares SET revoked_at = ?, updated_at = ? WHERE presentation_id = ? AND owner_id = ?',
+        )
+        .run(now, now, id, ownerId);
     await getDb()
       .prepare('UPDATE presentations SET payload = ?, updated_at = ? WHERE id = ? AND owner_id = ?')
       .run(JSON.stringify(after), now, id, ownerId);

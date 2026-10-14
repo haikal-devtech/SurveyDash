@@ -385,6 +385,11 @@ export async function manageSurvey(
     if (action === 'trash') {
       next.deletedAt = now;
       next.status = 'closed';
+      await getDb()
+        .prepare(
+          'UPDATE presentation_shares SET revoked_at = ?, updated_at = ? WHERE owner_id = ? AND presentation_id IN (SELECT id FROM presentations WHERE survey_id = ? AND owner_id = ?)',
+        )
+        .run(now, now, ownerId, id, ownerId);
     }
     if (action === 'restore') {
       next.deletedAt = null;

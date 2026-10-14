@@ -14,6 +14,8 @@ Migration: run `node --env-file=.env.cloud.local --import tsx scripts/setup.ts` 
 
 Release gates: strict ESLint, TypeScript, unit/repository tests, production build, local UI and HTTP flows against staging, preview readiness and production smoke tests. Use `scripts/smoke-http.mjs` with the ignored dedicated test-account file. It creates labeled QA fixtures and archives forms/templates when finished. Do not substitute a real user's account. Preview smoke tests also verify the staging database isolation.
 
+Sharing release additionally uses `scripts/smoke-sharing.mjs`: anonymous access, frozen/reviewed publication, version conflicts, private-response exclusion, revoke/token rotation, archive/restore and survey trash/restore. It creates synthetic QA data, revokes all test links and archives its fixtures. `presentation_shares` is an additive migration and is included in the ordered empty-target restore.
+
 Rollback: redeploy the last stable Git commit `93f768181c077fe31d09f4a49465168d00b25887` or restore its Vercel deployment. Keep the additive tables in place; old code ignores them. Do not restore a historical backup over a live production database because that would discard newer responses. Inspect incidents and restore to a new isolated database first.
 
 No paid plan, renewal, checkout or third-party billing agreement was activated. Actual Free beta usage is shown. Quotas are disabled by default until business limits are explicitly configured.

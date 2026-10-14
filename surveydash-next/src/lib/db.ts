@@ -39,7 +39,9 @@ function getSqlite() {
   const path = resolve(/* turbopackIgnore: true */ process.env.STUDIO_DB_PATH ?? '.data/studio.sqlite');
   mkdirSync(dirname(path), { recursive: true });
   const db = new DatabaseSync(path);
-  db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
+  // Apply the lock wait before changing journal mode: parallel build workers can open this file together.
+  db.exec('PRAGMA busy_timeout = 5000;');
+  db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   db.exec(schema);
   globalDb.studioDb = db;
   return db;
@@ -70,6 +72,11 @@ const schema = `
       payload TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS presentations_owner ON presentations(owner_id, survey_id);
+    CREATE TABLE IF NOT EXISTS presentation_shares (
+      presentation_id TEXT PRIMARY KEY REFERENCES presentations(id), owner_id TEXT NOT NULL,
+      token TEXT NOT NULL UNIQUE, payload TEXT NOT NULL, created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL, revoked_at TEXT
+    );
     CREATE TABLE IF NOT EXISTS presentation_assets (
       id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, name TEXT NOT NULL, mime TEXT NOT NULL,
       content TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL, created_at TEXT NOT NULL

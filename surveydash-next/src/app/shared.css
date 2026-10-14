@@ -1,0 +1,115 @@
+.share-ack {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 25px;
+  padding: 17px;
+  background: #f8f5fd;
+  border: 1px solid #e8dff5;
+  border-radius: 7px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.share-ack input {
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.shared-presentation {
+  min-height: 100dvh;
+  background: #f5f3f8;
+  padding-bottom: 25px;
+}
+.shared-presentation > header {
+  background: white;
+  border-bottom: 1px solid #e8e3ee;
+  padding: 20px 35px;
+  display: flex;
+  gap: 35px;
+  align-items: center;
+}
+.shared-presentation > header > div {
+  flex: 1;
+}
+.shared-presentation header strong {
+  font-size: 14px;
+  font-weight: 600;
+  display: block;
+}
+.shared-presentation header span:not(.badge):not(.brand-icon) {
+  font-size: 10px;
+  display: block;
+  color: #877d95;
+  margin-top: 5px;
+}
+.shared-slide {
+  width: min(calc(100% - 64px), 1280px, max(240px, calc((100dvh - 250px) * 16 / 9)));
+  margin: 35px auto 20px;
+  box-shadow: 0 8px 35px #3c285013;
+}
+.shared-slide .slide-thumbnail {
+  border: 0;
+}
+.shared-presentation > nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 25px;
+  font-size: 12px;
+  color: #877d95;
+}
+.shared-presentation > footer {
+  text-align: center;
+  font-size: 11px;
+  color: #8a7e98;
+  margin-top: 22px;
+  line-height: 1.7;
+  padding: 0 22px;
+}
+.shared-unavailable {
+  max-width: 650px;
+  margin: 15vh auto;
+  padding: 25px;
+}
+.shared-unavailable h1 {
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 40px 0 20px;
+}
+.shared-unavailable p {
+  font-size: 14px;
+  color: #82758e;
+  margin-bottom: 25px;
+}
+.shared-presentation header .brand > span:last-child > small {
+  font-size: 8px;
+}
+.shared-presentation header .brand > span:last-child {
+  color: #20203d;
+  font-size: 22px;
+  margin: 0;
+}
+@media (max-width: 760px) {
+  .shared-presentation > header {
+    padding: 17px 20px;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .shared-presentation > header > a {
+    width: 100%;
+  }
+  .shared-presentation header strong {
+    font-size: 13px;
+  }
+  .shared-slide {
+    width: calc(100% - 30px);
+    margin: 30px auto 22px;
+  }
+  .shared-presentation > nav {
+    gap: 15px;
+  }
+  .shared-presentation > nav .btn {
+    font-size: 11px;
+    padding: 10px 13px;
+  }
+}

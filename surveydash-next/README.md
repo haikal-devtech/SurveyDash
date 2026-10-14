@@ -33,6 +33,7 @@ Database dan rahasia sesi lokal ada pada `.data/` dan `.env.local`, keduanya dia
 - Tabel respons dengan pencarian, pengurutan, pilihan kolom, pagination, koreksi sel, dan ekspor CSV. Koreksi menyimpan nilai sebelum/sesudah serta memakai revision untuk mendeteksi konflik.
 - Analisis demografi, distribusi jawaban, capaian target, dan IKM. IKM hanya berlaku pada survei SKM dengan sembilan unsur. Nilai kosong tidak diberi skor 1.
 - Studio slide 16:9 dengan teks, bentuk, gambar, pie/bar/tabel, metrik terikat ke data, drag/resize, lapisan, undo/redo, autosave, tema dan pratinjau. Buat slide otomatis dari analisis dan ekspor PDF/PPTX. File ekspor mempertahankan tampilan sebagai gambar; komponen PowerPoint tidak dapat diedit terpisah.
+- Presentasi dapat diarsipkan dan dipulihkan. Tombol **Bagikan** mengaktifkan link viewer tanpa login untuk versi slide yang sudah ditinjau. Perubahan editor tampil setelah **Perbarui versi berbagi**. Cabut link kapan saja; arsip presentasi dan sampah survei juga mencabutnya.
 - Beranda dengan starter template dan tabel survei; pencarian, duplikat, arsip, sampah dan pemulihan.
 - Pengaturan akun/workspace, penggunaan bulanan aktual dan impor Google Form JSON dengan preview serta catatan item yang tidak didukung.
 - PostgreSQL untuk deployment Vercel; SQLite sebagai pilihan lokal tanpa layanan cloud.
@@ -83,7 +84,7 @@ pnpm build
 
 Versi online memakai PostgreSQL melalui Prisma Postgres di Vercel Marketplace. Produksi memakai `DATABASE_URL`. Preview wajib memakai `STAGING_DATABASE_URL` yang terpisah untuk seluruh data dan autentikasi. Deployment Vercel menolak fallback SQLite agar data tidak ditulis ke filesystem sementara.
 
-Tabel berfokus pada jawaban survei. Formula Excel bebas, copy-paste banyak sel, conditional branching, impor respons Google Sheets, manajemen tim/admin/surveyor dan public shared-deck link belum tersedia. Impor JSON saat ini hanya memindahkan instrumen Google Form. CSV, PDF dan PowerPoint sudah dapat diekspor. Penyegaran respons memakai tombol **Muat ulang**, bukan subscription realtime.
+Tabel berfokus pada jawaban survei. Formula Excel bebas, copy-paste banyak sel, conditional branching, impor respons Google Sheets, manajemen tim/admin/surveyor belum tersedia. Impor JSON saat ini hanya memindahkan instrumen Google Form. CSV, PDF dan PowerPoint sudah dapat diekspor. Penyegaran respons memakai tombol **Muat ulang**, bukan subscription realtime.
 
 Pendaftaran workspace terbuka untuk pengujian. Verifikasi email, pemulihan kata sandi melalui email, kebijakan undangan, dan manajemen tim belum tersedia. `TRUST_PROXY=true` dipakai pada deployment Vercel yang mengelola header alamat IP.
 

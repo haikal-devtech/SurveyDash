@@ -6,7 +6,11 @@ export async function GET(request: Request) {
   return api(async () => {
     const user = await requireUser();
     const surveyId = z.string().min(1).max(100).parse(new URL(request.url).searchParams.get('surveyId'));
-    return listPresentations(surveyId, user.id);
+    return listPresentations(
+      surveyId,
+      user.id,
+      new URL(request.url).searchParams.get('archived') === 'include',
+    );
   });
 }
 export async function POST(request: Request) {

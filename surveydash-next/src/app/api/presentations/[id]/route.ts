@@ -26,7 +26,7 @@ export async function POST(request: Request, context: Context) {
       .discriminatedUnion('action', [
         z.object({ action: z.literal('refresh'), version: z.number().int().min(1) }),
         z.object({
-          action: z.enum(['duplicate', 'archive']),
+          action: z.enum(['duplicate', 'archive', 'unarchive']),
           title: z.string().trim().min(3).max(200).optional(),
         }),
       ])

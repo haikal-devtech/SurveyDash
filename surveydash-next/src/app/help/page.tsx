@@ -24,6 +24,10 @@ export default function HelpPage() {
           'Buka tab Presentasi. Gunakan kanvas grafik atau buat dokumen slide. Pilih komponen, atur teks dan gaya, lalu buka mode presentasi atau ekspor.',
         ],
         [
+          'Membagikan dan memulihkan presentasi',
+          'Di editor slide, klik Bagikan dan tinjau isi sebelum mengaktifkan link viewer tanpa login. Perubahan editor tampil setelah Perbarui versi berbagi. Cabut link kapan saja. Dokumen arsip dapat dipulihkan melalui tab Arsip pada Studio presentasi; pemulihan tidak mengaktifkan link lama.',
+        ],
+        [
           'Memulihkan survei',
           'Buka Semua survei. Pilih Diarsipkan atau Sampah, lalu gunakan tindakan pemulihan. Survei yang dipulihkan kembali sebagai draft.',
         ],

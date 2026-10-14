@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, WandSparkles, Copy, Archive, Loader2, ArrowRight } from 'lucide-react';
+import { Plus, WandSparkles, Copy, Archive, ArchiveRestore, Loader2, ArrowRight } from 'lucide-react';
 import type { Survey } from '@/lib/types';
 import {
   themes,
@@ -38,9 +38,11 @@ export function PresentationHub({ survey }: { survey: Survey }) {
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
   const [archive, setArchive] = useState<PresentationDocument | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const visible = documents.filter((item) => (showArchived ? !!item.archivedAt : !item.archivedAt));
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`/api/presentations?surveyId=${survey.id}`, { signal: controller.signal })
+    fetch(`/api/presentations?surveyId=${survey.id}&archived=include`, { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
@@ -78,7 +80,7 @@ export function PresentationHub({ survey }: { survey: Survey }) {
       setPending(false);
     }
   }
-  async function manage(document: PresentationDocument, action: 'duplicate' | 'archive') {
+  async function manage(document: PresentationDocument, action: 'duplicate' | 'archive' | 'unarchive') {
     setPending(true);
     setError('');
     try {
@@ -90,7 +92,7 @@ export function PresentationHub({ survey }: { survey: Survey }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       if (action === 'duplicate') setDocuments((items) => [data, ...items]);
-      else setDocuments((items) => items.filter((item) => item.id !== document.id));
+      else setDocuments((items) => items.map((item) => (item.id === document.id ? data : item)));
       setArchive(null);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Gagal mengelola presentasi.');
@@ -116,6 +118,22 @@ export function PresentationHub({ survey }: { survey: Survey }) {
           </Button>
         </div>
       </div>
+      <div className="tabs-filter" style={{ marginBottom: 22 }}>
+        <button
+          aria-pressed={!showArchived}
+          className={!showArchived ? 'active' : ''}
+          onClick={() => setShowArchived(false)}
+        >
+          Dokumen aktif
+        </button>
+        <button
+          aria-pressed={showArchived}
+          className={showArchived ? 'active' : ''}
+          onClick={() => setShowArchived(true)}
+        >
+          Arsip ({documents.filter((d) => d.archivedAt).length})
+        </button>
+      </div>
       {error && (
         <div className="banner banner-error" role="alert">
           {error}
@@ -125,23 +143,35 @@ export function PresentationHub({ survey }: { survey: Survey }) {
         <p className="template-safe-note" role="status">
           Memuat presentasi…
         </p>
-      ) : documents.length ? (
+      ) : visible.length ? (
         <div className="presentation-documents">
-          {documents.map((document) => (
+          {visible.map((document) => (
             <article className="card presentation-document" key={document.id}>
-              <Link href={`/studio/${survey.id}/presentations/${document.id}`}>
+              <div>
                 <SlideThumbnail slide={document.slides[0]} />
                 <h3>{document.title}</h3>
-              </Link>
+              </div>
               <div className="actions">
                 <Badge>{document.slides.length} slide</Badge>
                 {document.demo && <Badge>Data simulasi</Badge>}
               </div>
               <div className="presentation-document-actions">
-                <Link className="text-link" href={`/studio/${survey.id}/presentations/${document.id}`}>
-                  Buka editor
-                  <ArrowRight size={13} />
-                </Link>
+                {!document.archivedAt && (
+                  <Link className="text-link" href={`/studio/${survey.id}/presentations/${document.id}`}>
+                    Buka editor
+                    <ArrowRight size={13} />
+                  </Link>
+                )}
+                {document.archivedAt && (
+                  <Button
+                    variant="secondary"
+                    disabled={pending}
+                    onClick={() => void manage(document, 'unarchive')}
+                  >
+                    <ArchiveRestore size={14} />
+                    Pulihkan
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   disabled={pending}
@@ -150,14 +180,16 @@ export function PresentationHub({ survey }: { survey: Survey }) {
                 >
                   <Copy size={14} />
                 </Button>
-                <Button
-                  variant="ghost"
-                  disabled={pending}
-                  aria-label={`Arsipkan presentasi ${document.title}`}
-                  onClick={() => setArchive(document)}
-                >
-                  <Archive size={14} />
-                </Button>
+                {!document.archivedAt && (
+                  <Button
+                    variant="ghost"
+                    disabled={pending}
+                    aria-label={`Arsipkan presentasi ${document.title}`}
+                    onClick={() => setArchive(document)}
+                  >
+                    <Archive size={14} />
+                  </Button>
+                )}
               </div>
             </article>
           ))}
@@ -165,7 +197,7 @@ export function PresentationHub({ survey }: { survey: Survey }) {
       ) : (
         <div className="presentation-start">
           <WandSparkles size={26} />
-          <h3>Dari insight menjadi cerita.</h3>
+          <h3>{showArchived ? 'Arsip masih kosong.' : 'Dari insight menjadi cerita.'}</h3>
           <p>
             Pilih susunan slide, tema, dan grafik. Setiap dokumen dapat diedit tanpa mengubah form atau
             jawaban.
@@ -263,7 +295,8 @@ export function PresentationHub({ survey }: { survey: Survey }) {
           description={archive.title}
         >
           <p className="template-safe-note">
-            Dokumen disimpan sebagai arsip. Form dan jawaban survei tetap tersedia.
+            Dokumen disimpan sebagai arsip dan link berbagi dicabut. Setelah dipulihkan, Anda dapat
+            membagikannya lagi dengan link baru. Form dan jawaban survei tetap tersedia.
           </p>
           <div className="modal-footer">
             <Button variant="secondary" onClick={() => setArchive(null)}>
