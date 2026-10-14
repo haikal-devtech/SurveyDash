@@ -48,3 +48,5 @@ Platform administrators can select and manage workspaces, while account profile 
 Sharing follow-up deployment: commit 240e56e1949d0ca2e071d8ae99751a8973ba255e; preview dpl_7QE9UGncqMxS5ENQCtDKea7rYN24 and production dpl_2R63dmvH2HkubfPmZMsTTy9gG9w8 Ready. Production sharing smoke passed 38 requests and the 17-slide viewer was checked in the browser. All original rows remained unchanged.
 
 ![Production shared viewer with labeled simulation data](production-shared-viewer.png)
+
+Admin/client release: commit bb0e1f79e2c90ceefcd597cdd08b15d2725b499f. Preview dpl_2jpmGYftPdGK5465NMfE3tcUQxAo and production dpl_Gp4WkGGu3rLinWa7jAZc6PKrhKYr reached Ready. Both requested administrator IDs were provisioned; an existing account password was preserved and the previously absent administrator account was created. The isolated production client login and its 26-request survey flow passed. All rows in the pre-access backup remained unchanged. Browser admin switching and return to the original workspace were verified on production. Sidebar overflow is scrollable on short viewports so added admin navigation cannot obscure account controls.

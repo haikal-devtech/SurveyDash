@@ -98,6 +98,8 @@
 .sidebar {
   padding: 27px 20px 14px;
   width: 246px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .main {
   margin-left: 246px;
