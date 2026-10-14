@@ -1,5 +1,6 @@
 import { FormsImport } from '@/components/forms-import';
-export default function ImportPage() {
+export default async function ImportPage({ searchParams }: { searchParams: Promise<{ google?: string }> }) {
+  const parameters = await searchParams;
   return (
     <>
       <div className="page-heading">
@@ -8,7 +9,7 @@ export default function ImportPage() {
           <p>Tinjau pertanyaan sebelum membuat salinan di workspace.</p>
         </div>
       </div>
-      <FormsImport />
+      <FormsImport googleFailed={parameters.google === 'failed'} />
     </>
   );
 }

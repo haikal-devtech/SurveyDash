@@ -59,6 +59,7 @@ const schema = `
       UNIQUE(survey_id, request_key)
     );
     CREATE INDEX IF NOT EXISTS submissions_survey ON submissions(survey_id);
+    CREATE INDEX IF NOT EXISTS submissions_survey_order ON submissions(survey_id, submitted_at, id);
     CREATE TABLE IF NOT EXISTS audit (
       id TEXT PRIMARY KEY, survey_id TEXT NOT NULL REFERENCES surveys(id), submission_id TEXT NOT NULL,
       question_id TEXT NOT NULL, before_value TEXT NOT NULL, after_value TEXT NOT NULL, actor TEXT NOT NULL, at TEXT NOT NULL
@@ -68,6 +69,9 @@ const schema = `
     );
     CREATE TABLE IF NOT EXISTS workspace_settings (owner_id TEXT PRIMARY KEY, payload TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS platform_admins (user_id TEXT PRIMARY KEY, granted_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS google_form_connections (
+      user_id TEXT PRIMARY KEY, ciphertext TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS presentations (
       id TEXT PRIMARY KEY, survey_id TEXT NOT NULL REFERENCES surveys(id), owner_id TEXT NOT NULL,
       payload TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
@@ -99,6 +103,9 @@ async function query(sql: string, parameters: Parameter[]): Promise<Row[]> {
 }
 export function getDb() {
   return {
+    get dialect() {
+      return getAuthDatabase() instanceof DatabaseSync ? 'sqlite' : 'postgres';
+    },
     prepare(sql: string) {
       return {
         all: (...parameters: Parameter[]) => query(sql, parameters),

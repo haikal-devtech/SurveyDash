@@ -1,14 +1,15 @@
 export const metadata = { title: 'Privasi — SurveyDash Studio', alternates: { canonical: '/privacy' } };
 import { PublicArticle } from '@/components/public-article';
+import { SUPPORT_EMAIL } from '@/lib/support';
 export default function PrivacyPage() {
   return (
     <PublicArticle
       title="Bagaimana data digunakan."
-      intro="Informasi privasi versi beta ini menjelaskan perilaku aplikasi saat ini. Pengelola perlu menetapkan kebijakan operasional dan kontak privasi sebelum penggunaan organisasi secara luas."
+      intro="Informasi privasi versi beta ini menjelaskan data yang diproses aplikasi dan cara menghubungi pengelola."
       sections={[
         [
           'Data akun',
-          'Nama tampilan, alamat email, hash kata sandi, dan sesi login disimpan untuk menyediakan akses workspace. Kata sandi tidak disimpan sebagai teks biasa.',
+          'Nama tampilan, alamat email, foto profil yang Anda unggah, hash kata sandi, dan sesi login disimpan untuk menyediakan akses workspace. Kata sandi tidak disimpan sebagai teks biasa. Foto profil disimpan sebagai gambar yang hanya dapat diakses melalui akun yang berwenang.',
         ],
         [
           'Data survei',
@@ -27,12 +28,22 @@ export default function PrivacyPage() {
           'Cookie sesi dipakai untuk login. Alamat jaringan dapat diproses pada pembatasan pengiriman; kunci pembatasan disimpan sebagai hash. Log aplikasi tidak sengaja mencetak jawaban responden atau rahasia sesi.',
         ],
         [
+          'Sambungan Google Forms',
+          'Jika sambungan Google diaktifkan dan Anda memberikan izin, aplikasi membaca pertanyaan dari form yang Anda pilih melalui Google Forms API. Jawaban lama tidak diminta dan form sumber tidak diubah. Token sambungan disimpan terenkripsi, terikat pada akun login, dan tidak dikirim ke browser. Memutuskan sambungan menghapus token yang disimpan di SurveyDash. Izin pada akun Google dapat dikelola melalui pengaturan akun Google Anda.',
+        ],
+        [
+          'Pemulihan akses melalui email',
+          'Jika layanan email diaktifkan, permintaan pemulihan mengirim link ke alamat akun melalui penyedia email yang dikonfigurasi pengelola. Link berlaku 30 menit dan hanya dapat dipakai sekali. Setelah kata sandi diubah melalui link tersebut, sesi lama dicabut.',
+        ],
+        [
           'Retensi',
           'Arsip dan sampah menyimpan data agar dapat dipulihkan. Data tidak dihapus permanen secara otomatis oleh aplikasi. Cadangan yang dibuat pengelola dapat memuat salinan data.',
         ],
         [
           'Kontak',
-          'Untuk informasi bantuan dan ketersediaan kontak pengelola, buka halaman Kontak. Jangan mempublikasikan data pribadi melalui laporan bug umum.',
+          'Hubungi ' +
+            SUPPORT_EMAIL +
+            ' untuk bantuan dan permintaan terkait data, atau buka halaman Kontak. Jangan mempublikasikan data pribadi melalui laporan bug umum.',
         ],
       ]}
     />

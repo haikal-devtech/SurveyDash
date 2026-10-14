@@ -104,3 +104,15 @@ export interface SurveyStats {
   category: string;
   completion: number;
 }
+export interface SurveyInsights {
+  stats: SurveyStats;
+  questions: Record<string, { answered: number; distribution: Distribution[]; samples: string[] }>;
+}
+export interface ResponsePage {
+  rows: Submission[];
+  total: number;
+  filtered: number;
+  page: number;
+  pageSize: number;
+  audit: AuditEntry[];
+}

@@ -2,7 +2,7 @@ import { requireWorkspaceUser } from '@/lib/http';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
-import { getSurvey, listSubmissions, listAudit } from '@/lib/repository';
+import { getSurvey } from '@/lib/repository';
 import { SurveyEditor } from '@/components/survey-editor';
 export default async function SurveyPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -15,12 +15,5 @@ export default async function SurveyPage({ params }: { params: Promise<{ id: str
   } catch {
     notFound();
   }
-  return (
-    <SurveyEditor
-      key={survey.id}
-      initialSurvey={survey}
-      initialSubmissions={await listSubmissions(id)}
-      initialAudit={await listAudit(id)}
-    />
-  );
+  return <SurveyEditor key={survey.id} initialSurvey={survey} />;
 }

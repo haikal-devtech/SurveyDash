@@ -45,7 +45,10 @@ export async function listSurveys(ownerId: string, includeArchived = false): Pro
 }
 export async function getSurvey(id: string, ownerId: string): Promise<Survey> {
   const row = await getDb()
-    .prepare('SELECT * FROM surveys WHERE id = ? AND owner_id = ?' + getDb().lockSuffix)
+    .prepare(
+      'SELECT surveys.*, (SELECT count(*) FROM submissions WHERE survey_id = surveys.id) AS response_count FROM surveys WHERE id = ? AND owner_id = ?' +
+        getDb().lockSuffix,
+    )
     .get(id, ownerId);
   if (!row) throw new AppError('Survei tidak ditemukan.', 404);
   return parseSurvey(row as SqlRow);

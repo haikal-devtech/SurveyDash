@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Brand } from './brand';
+import { PublicNavigation } from './public-navigation';
 export function PublicFrame({ children }: { children: React.ReactNode }) {
   return (
     <div className="marketing-site">
@@ -7,11 +8,7 @@ export function PublicFrame({ children }: { children: React.ReactNode }) {
         <Link href="/">
           <Brand />
         </Link>
-        <nav aria-label="Navigasi website">
-          <Link href="/features">Fitur</Link>
-          <Link href="/pricing">Plan</Link>
-          <Link href="/help">Bantuan</Link>
-        </nav>
+        <PublicNavigation />
         <div className="actions">
           <Link href="/login" className="marketing-signin">
             Masuk

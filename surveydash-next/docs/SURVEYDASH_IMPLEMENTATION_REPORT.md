@@ -1,5 +1,13 @@
 # Implementation report — 14 October 2026
 
+## Master brief revision
+
+The follow-up on `codex/surveydash-revisions` adds sticky public navigation with a mobile dialog, a closable contextual slide inspector, detailed presentation preflight, server response pagination/filtering/sorting and streamed all-result CSV. Survey SSR sends metadata rather than all submissions; lazy server insights preserve the original SKM calculations. Profile photos are validated and privately served under the logged-in identity, including during admin workspace switching.
+
+SMTP password recovery and the official read-only Google Forms OAuth connector are implemented with configuration gates. Recovery has been tested through an actual local SMTP connection and HTTP reset flow. Google PKCE/state/encryption/ID validation is tested; real provider consent remains unverified because OAuth credentials are unavailable. The user approved public contact `help@surveydash.id` and asked to prepare SMTP configuration. See `SURVEYDASH_INTEGRATIONS.md` and `SURVEYDASH_REVISION_VALIDATION.md` for setup, evidence and release blockers.
+
+This follow-up is not a production release. New visual QA is blocked by the browser tool's saved permission/managed policy even after explicit user permission. Historical browser/download evidence in the sections below refers to earlier releases; it does not verify the changed inspector or mobile navigation.
+
 ## Delivered
 
 - Public product pages, local Inter font, SVG identity, app icon, sitemap/robots and real signup/login entry points.
@@ -19,7 +27,7 @@
 
 20 model/repository tests passed, including configured quota enforcement, idempotent replay at the limit and presentation-sharing safeguards. Strict ESLint and TypeScript passed. A production build passed. Local staging HTTP smoke passed 26 requests, including authentication, form creation, public submission/idempotency, audited correction, template reuse, slide refresh/conflict rejection, archive rejection and JSON import. Browser checks exercised drag, resize, undo/redo, autosave, template reuse, downloads and mobile layout. Staging restore preserved all original rows. Production verification before migration found 12 original surveys, 147 submissions, 3 audit records, 1 template, 4 users and 4 accounts present and unchanged.
 
-## Limitations and deferred roadmap
+## Limitations at the earlier product release
 
 Google OAuth requires provider credentials, consent configuration and scopes; direct account connection is not enabled. SMTP password recovery and team invitations require an email service. Paid plans need approved prices, a provider and webhook configuration; this release creates no fake invoices or charges.
 

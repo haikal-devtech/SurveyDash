@@ -2,7 +2,7 @@
 
 Production project: `surveydash-studio`; canonical URL https://surveydash-studio.vercel.app. GitHub repository `haikal-devtech/SurveyDash`, app root `surveydash-next`, production branch `codex/surveydash-studio`. Product development uses `codex/surveydash-product` previews.
 
-Required environment names: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `TRUST_PROXY`. Preview additionally requires `STAGING_DATABASE_URL`. Optional quotas: `ENFORCE_FREE_LIMITS`, `FREE_RESPONSE_LIMIT`, `FREE_ACTIVE_SURVEY_LIMIT`. Optional contact address: `SUPPORT_EMAIL`. Values are private; `.env*`, `.data/`, credentials and test results are ignored by Git.
+Required environment names: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `TRUST_PROXY`. Preview additionally requires `STAGING_DATABASE_URL`. Optional quotas: `ENFORCE_FREE_LIMITS`, `FREE_RESPONSE_LIMIT`, `FREE_ACTIVE_SURVEY_LIMIT`. Public contact: `SUPPORT_EMAIL`, defaulting to the approved `help@surveydash.id`. Optional recovery: `PASSWORD_RECOVERY_ENABLED`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`. Optional Forms OAuth: `GOOGLE_FORMS_CLIENT_ID`, `GOOGLE_FORMS_CLIENT_SECRET`. Configuration procedures and verification gates are in `SURVEYDASH_INTEGRATIONS.md`. Values are private; `.env*`, `.data/`, credentials and test results are ignored by Git.
 
 Provisioned free Prisma Postgres databases: production `surveydash-studio-db`; preview `surveydash-studio-staging`, Singapore. The staging integration injects prefixed credentials only into Preview. Keep deployment protection enabled for previews. Production custom alias remains publicly accessible with application-level admin authentication.
 
@@ -21,3 +21,11 @@ Rollback: redeploy the last stable Git commit `93f768181c077fe31d09f4a49465168d0
 No paid plan, renewal, checkout or third-party billing agreement was activated. Actual Free beta usage is shown. Quotas are disabled by default until business limits are explicitly configured.
 
 Admin provisioning is an explicit operator action: `scripts/provision-access.ts <staging|production> <approved-admin-email> ...`. It grants roles by account ID, preserves existing passwords, and writes generated credentials only to ignored `test-results/client-credentials.json`. It provisions a separate client demo workspace; no production responses are copied. Never run it from a build hook or commit credential files. `scripts/smoke-access.ts` only runs with the staging-only guard and removes its temporary QA role.
+
+## Master brief revision release hold
+
+The current revision branch is `codex/surveydash-revisions`. Run setup against staging before deploying code with the connector enabled: it creates `google_form_connections` and `submissions_survey_order`, without rewriting answers or auth tables. The ordered empty-target restore now includes encrypted Google credentials. Take a fresh private backup before any production migration. Keep the prior production code at `1dad32e76e68b68a1f6f0d5e8ea645b7ddeeb271` available for rollback; additive schema can remain in place.
+
+Local tests use an isolated SQLite database and local SMTP capture, never a customer's account. PostgreSQL query checks use a dedicated temporary schema on staging and remove it afterward without altering public staging tables. Full results are recorded in `SURVEYDASH_REVISION_VALIDATION.md`.
+
+Production release is held because current visual browser QA is denied by a saved permission or managed policy despite human authorization. Complete desktop/mobile layout, inspector drag/resize, menu keyboard/focus, recovery screens, avatar upload and import wizard checks before production. No current Lighthouse or WCAG score is claimed. Provider delivery and real Google consent/token flow need configuration and separate verification before their flags are enabled. Teams and billing remain deferred; no charge or email service purchase was made.

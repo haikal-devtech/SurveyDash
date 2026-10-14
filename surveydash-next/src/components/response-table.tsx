@@ -1,15 +1,13 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   useReactTable,
   type ColumnDef,
   type SortingState,
   type VisibilityState,
+  type PaginationState,
 } from '@tanstack/react-table';
 import {
   Search,
@@ -23,9 +21,10 @@ import {
   Table2,
   Pencil,
   Eye,
+  Loader2,
 } from 'lucide-react';
-import type { Answer, AuditEntry, Question, Submission, Survey } from '@/lib/types';
-import { answerLabel, csvCell } from '@/lib/model';
+import type { Answer, Question, ResponsePage, Submission, Survey } from '@/lib/types';
+import { answerLabel } from '@/lib/model';
 import { Button, Badge, EmptyState, Modal } from './ui';
 import { QuestionInput } from './question-input';
 
@@ -128,25 +127,66 @@ function EditableCell({
 
 export function ResponseTable({
   survey,
-  rows,
-  audit,
   onRefresh,
   onEdited,
   onError,
 }: {
   survey: Survey;
-  rows: Submission[];
-  audit: AuditEntry[];
   onRefresh: () => void;
   onEdited: (s: Submission) => void;
   onError: (message: string) => void;
 }) {
   const [search, setSearch] = useState('');
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [querySearch, setQuerySearch] = useState('');
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'submittedAt', desc: true }]);
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 15 });
+  const [pageData, setPageData] = useState<ResponsePage | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [reload, setReload] = useState(0);
+  const [exporting, setExporting] = useState(false);
   const [visibility, setVisibility] = useState<VisibilityState>({});
   const [history, setHistory] = useState(false);
   const [editing, setEditing] = useState(false);
   const [details, setDetails] = useState<Submission | null>(null);
+  const rows = pageData?.rows ?? [];
+  const audit = pageData?.audit ?? [];
+  const query = new URLSearchParams({
+    page: String(pagination.pageIndex + 1),
+    pageSize: String(pagination.pageSize),
+    search: querySearch,
+    sort: sorting[0]?.id ?? 'submittedAt',
+    direction: sorting[0]?.desc === false ? 'asc' : 'desc',
+  }).toString();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setQuerySearch(search);
+      setPagination((value) => ({ ...value, pageIndex: 0 }));
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search]);
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setLoadError('');
+    fetch('/api/surveys/' + survey.id + '/responses?' + query, { signal: controller.signal })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+        if (controller.signal.aborted) return;
+        setPageData(data);
+        const pageIndex = data.page - 1;
+        setPagination((value) => (value.pageIndex === pageIndex ? value : { ...value, pageIndex }));
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted)
+          setLoadError(error instanceof Error ? error.message : 'Jawaban gagal dimuat.');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [survey.id, query, reload]);
   async function commit(q: Question, row: Submission, value: Answer) {
     try {
       const response = await fetch(`/api/surveys/${survey.id}`, {
@@ -156,6 +196,15 @@ export function ResponseTable({
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
+      setPageData((previous) =>
+        previous
+          ? {
+              ...previous,
+              rows: previous.rows.map((item) => (item.id === data.id ? data : item)),
+            }
+          : previous,
+      );
+      setReload((value) => value + 1);
       onEdited(data);
       return true;
     } catch (error) {
@@ -164,9 +213,15 @@ export function ResponseTable({
     }
   }
   const columns: ColumnDef<Submission>[] = [
-    { id: 'index', header: '#', cell: (info) => info.row.index + 1, enableHiding: false },
     {
-      id: 'date',
+      id: 'index',
+      header: '#',
+      cell: (info) => pagination.pageIndex * pagination.pageSize + info.row.index + 1,
+      enableHiding: false,
+      enableSorting: false,
+    },
+    {
+      id: 'submittedAt',
       header: 'Waktu pengiriman',
       accessorFn: (r) =>
         new Date(r.submittedAt).toLocaleString('id-ID', {
@@ -175,13 +230,13 @@ export function ResponseTable({
           timeStyle: 'short',
         }),
       cell: (info) => (
-        <span style={{ padding: '0 5px', whiteSpace: 'nowrap', color: '#ac9ab8' }}>
+        <span style={{ padding: '0 5px', whiteSpace: 'nowrap', color: '#675b75' }}>
           {String(info.getValue())}
         </span>
       ),
     },
     ...survey.questions.map((q) => ({
-      id: q.id,
+      id: 'question:' + q.id,
       header: q.label,
       accessorFn: (r: Submission) => answerLabel(q, r.answers[q.id]),
       cell: (info: { row: { original: Submission } }) => (
@@ -190,7 +245,7 @@ export function ResponseTable({
           question={q}
           row={info.row.original}
           onCommit={commit}
-          readOnly={!editing}
+          readOnly={!editing || loading}
         />
       ),
     })),
@@ -215,33 +270,36 @@ export function ResponseTable({
   const table = useReactTable({
     data: rows,
     columns,
-    state: { globalFilter: search, sorting, columnVisibility: visibility },
-    onGlobalFilterChange: setSearch,
-    onSortingChange: setSorting,
+    getRowId: (row) => row.id,
+    state: { sorting, columnVisibility: visibility, pagination },
+    onSortingChange: (updater) => {
+      setSorting(updater);
+      setPagination((value) => ({ ...value, pageIndex: 0 }));
+    },
     onColumnVisibilityChange: setVisibility,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 15 } },
+    onPaginationChange: setPagination,
+    manualPagination: true,
+    manualSorting: true,
+    manualFiltering: true,
+    rowCount: pageData?.filtered ?? 0,
   });
-  function exportCsv() {
-    const selected = table.getFilteredRowModel().rows.map((r) => r.original);
-    const headers = ['ID respons', 'Waktu', ...survey.questions.map((q) => q.label)];
-    const csv = [
-      headers.map(csvCell).join(','),
-      ...selected.map((row) =>
-        [row.id, row.submittedAt, ...survey.questions.map((q) => answerLabel(q, row.answers[q.id]))]
-          .map(csvCell)
-          .join(','),
-      ),
-    ].join('\r\n');
-    const url = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${survey.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  async function exportCsv() {
+    setExporting(true);
+    try {
+      const response = await fetch('/api/surveys/' + survey.id + '/responses?' + query + '&format=csv');
+      if (!response.ok) throw new Error((await response.json()).error);
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = (survey.title.replace(/[^a-zA-Z0-9_-]/g, '_') || 'survei') + '.csv';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      onError(error instanceof Error ? error.message : 'CSV gagal dibuat.');
+    } finally {
+      setExporting(false);
+    }
   }
   return (
     <>
@@ -250,7 +308,7 @@ export function ResponseTable({
           <h2>Semua jawaban, satu tempat.</h2>
           <p>Jawaban ditampilkan dalam mode baca. Aktifkan koreksi data untuk mengubah sel dengan riwayat.</p>
         </div>
-        <Badge tone="purple">{rows.length} respons</Badge>
+        <Badge tone="purple">{pageData?.total ?? survey.responseCount ?? 0} respons</Badge>
       </div>
       <section className="card">
         <div className="data-toolbar">
@@ -306,22 +364,46 @@ export function ResponseTable({
               variant="secondary"
               onClick={() => {
                 setHistory(true);
+                setReload((value) => value + 1);
                 onRefresh();
               }}
             >
               <History size={13} />
               Riwayat
             </Button>
-            <Button variant="secondary" onClick={exportCsv} disabled={!rows.length}>
-              <Download size={13} />
-              CSV
+            <Button
+              variant="secondary"
+              onClick={() => void exportCsv()}
+              disabled={exporting || !pageData?.filtered}
+            >
+              {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+              {exporting ? 'Menyiapkan…' : 'CSV'}
             </Button>
-            <Button variant="ghost" onClick={onRefresh} aria-label="Muat ulang respons">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setReload((value) => value + 1);
+                onRefresh();
+              }}
+              aria-label="Muat ulang respons"
+            >
               <RefreshCw size={14} />
             </Button>
           </div>
         </div>
-        {!rows.length ? (
+        {loading && !pageData ? (
+          <div className="empty-state" role="status">
+            <Loader2 size={22} className="animate-spin" />
+            <p>Memuat jawaban…</p>
+          </div>
+        ) : loadError ? (
+          <div className="empty-state" role="alert">
+            <p>{loadError}</p>
+            <Button variant="secondary" onClick={() => setReload((value) => value + 1)}>
+              Coba lagi
+            </Button>
+          </div>
+        ) : !pageData?.total ? (
           <EmptyState
             icon={<Table2 size={24} />}
             title="Jawaban pertama akan muncul di sini."
@@ -329,28 +411,45 @@ export function ResponseTable({
           />
         ) : (
           <>
-            <div className="table-scroll">
+            <div className="table-scroll" aria-busy={loading}>
               <table className="data-table">
                 <thead>
                   {table.getHeaderGroups().map((group) => (
                     <tr key={group.id}>
                       {group.headers.map((header) => (
-                        <th key={header.id}>
-                          <button
-                            style={{
-                              border: 0,
-                              background: 'transparent',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              color: 'inherit',
-                              font: 'inherit',
-                            }}
-                            onClick={header.column.getToggleSortingHandler()}
-                          >
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                            {header.column.getCanSort() && <ArrowUpDown size={10} />}
-                          </button>
+                        <th
+                          key={header.id}
+                          scope="col"
+                          aria-sort={
+                            header.column.getIsSorted() === 'asc'
+                              ? 'ascending'
+                              : header.column.getIsSorted() === 'desc'
+                                ? 'descending'
+                                : header.column.getCanSort()
+                                  ? 'none'
+                                  : undefined
+                          }
+                        >
+                          {header.column.getCanSort() ? (
+                            <button
+                              style={{
+                                border: 0,
+                                background: 'transparent',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                color: 'inherit',
+                                font: 'inherit',
+                              }}
+                              onClick={header.column.getToggleSortingHandler()}
+                              aria-label={'Urutkan ' + String(header.column.columnDef.header)}
+                            >
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                              {header.column.getCanSort() && <ArrowUpDown size={10} />}
+                            </button>
+                          ) : (
+                            flexRender(header.column.columnDef.header, header.getContext())
+                          )}
                         </th>
                       ))}
                     </tr>
@@ -374,13 +473,13 @@ export function ResponseTable({
             </div>
             <div className="table-pagination">
               <span>
-                {table.getFilteredRowModel().rows.length} respons · Halaman{' '}
+                {loading ? 'Memuat…' : String(pageData?.filtered ?? 0) + ' respons'} · Halaman{' '}
                 {table.getState().pagination.pageIndex + 1} dari {Math.max(1, table.getPageCount())}
               </span>
               <div className="actions">
                 <Button
                   variant="ghost"
-                  disabled={!table.getCanPreviousPage()}
+                  disabled={loading || !table.getCanPreviousPage()}
                   onClick={() => table.previousPage()}
                   aria-label="Halaman sebelumnya"
                 >
@@ -388,7 +487,7 @@ export function ResponseTable({
                 </Button>
                 <Button
                   variant="ghost"
-                  disabled={!table.getCanNextPage()}
+                  disabled={loading || !table.getCanNextPage()}
                   onClick={() => table.nextPage()}
                   aria-label="Halaman berikutnya"
                 >
@@ -400,8 +499,8 @@ export function ResponseTable({
         )}
       </section>
       <p className="hint" style={{ marginTop: 13 }}>
-        Skor dihitung dari pilihan jawaban yang tervalidasi. Jawaban kosong ditampilkan sebagai “—”, bukan
-        skor 1.
+        CSV memuat seluruh hasil pencarian, termasuk jawaban pada halaman lain. Skor dihitung dari pilihan
+        jawaban yang tervalidasi. Jawaban kosong ditampilkan sebagai “—”, bukan skor 1.
       </p>
       <Modal
         open={history}

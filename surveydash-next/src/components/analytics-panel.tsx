@@ -1,5 +1,5 @@
 'use client';
-import { Users, Target, Gauge, CircleCheck, RefreshCw, BarChart3 } from 'lucide-react';
+import { Users, Target, Gauge, CircleCheck, RefreshCw, BarChart3, WandSparkles } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -12,24 +12,24 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import type { Submission, Survey, SurveyStats } from '@/lib/types';
-import { distribution } from '@/lib/model';
+import type { Survey, SurveyInsights } from '@/lib/types';
 import { Badge, Button, EmptyState } from './ui';
 const colors = ['#b79bdc', '#8f73b4', '#c9b6e3', '#92bcb0', '#dbc58f', '#b1bbd7', '#d3a5b6'];
 export function AnalyticsPanel({
   survey,
-  rows,
-  stats,
+  insights,
   onRefresh,
+  onGenerate,
 }: {
   survey: Survey;
-  rows: Submission[];
-  stats: SurveyStats;
+  insights: SurveyInsights;
   onRefresh: () => void;
+  onGenerate: () => void;
 }) {
+  const { stats } = insights;
   const profile =
     survey.questions.find((q) => q.id === 'gender') ?? survey.questions.find((q) => q.type === 'choice');
-  const profileData = profile ? distribution(profile, rows) : [];
+  const profileData = profile ? (insights.questions[profile.id]?.distribution ?? []) : [];
   const scored = stats.indicators.length > 0;
   const bars = scored
     ? stats.indicators.map((i, index) => ({
@@ -42,7 +42,7 @@ export function AnalyticsPanel({
         .map((q) => ({
           name: q.label.length > 16 ? q.label.slice(0, 16) + '…' : q.label,
           fullName: q.label,
-          value: rows.filter((r) => r.answers[q.id] !== undefined).length,
+          value: insights.questions[q.id]?.answered ?? 0,
         }));
   const metrics = [
     {
@@ -80,10 +80,16 @@ export function AnalyticsPanel({
             {survey.demo ? 'Survei ini berisi data simulasi.' : ''}
           </p>
         </div>
-        <Button variant="secondary" onClick={onRefresh}>
-          <RefreshCw size={13} />
-          Muat ulang
-        </Button>
+        <div className="actions">
+          <Button variant="secondary" onClick={onRefresh}>
+            <RefreshCw size={13} />
+            Muat ulang
+          </Button>
+          <Button onClick={onGenerate}>
+            <WandSparkles size={14} />
+            Buat presentasi
+          </Button>
+        </div>
       </div>
       <div className="stats-grid">
         {metrics.map((m) => (
@@ -99,7 +105,7 @@ export function AnalyticsPanel({
           </div>
         ))}
       </div>
-      {!rows.length ? (
+      {!stats.total ? (
         <section className="card">
           <EmptyState
             icon={<BarChart3 size={24} />}

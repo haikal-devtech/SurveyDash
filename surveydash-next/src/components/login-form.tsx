@@ -7,7 +7,15 @@ import { authClient } from '@/lib/auth-client';
 import { Brand } from './brand';
 import { Button, Badge } from './ui';
 
-export function LoginForm({ initialRegister = false }: { initialRegister?: boolean }) {
+export function LoginForm({
+  initialRegister = false,
+  recoveryAvailable = false,
+  supportEmail,
+}: {
+  initialRegister?: boolean;
+  recoveryAvailable?: boolean;
+  supportEmail: string;
+}) {
   const router = useRouter();
   const [register, setRegister] = useState(initialRegister);
   const [name, setName] = useState('');
@@ -142,6 +150,16 @@ export function LoginForm({ initialRegister = false }: { initialRegister?: boole
             {register ? 'Sudah punya akun?' : 'Belum punya akun?'}{' '}
             <strong>{register ? 'Masuk' : 'Buat workspace'}</strong>
           </button>
+          {!register &&
+            (recoveryAvailable ? (
+              <Link href="/forgot-password" className="auth-toggle">
+                Lupa kata sandi?
+              </Link>
+            ) : (
+              <a href={'mailto:' + supportEmail} className="auth-toggle">
+                Butuh bantuan akses akun?
+              </a>
+            ))}
           <Link href="/surveys" className="auth-toggle">
             Buka portal responden →
           </Link>

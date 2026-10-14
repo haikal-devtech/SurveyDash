@@ -16,6 +16,72 @@
 .auth-mobile-brand {
   display: none;
 }
+.recovery-page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 60px 20px;
+}
+.avatar {
+  position: relative;
+  overflow: hidden;
+}
+.avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.profile-avatar-field {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 26px;
+}
+.profile-avatar-field .avatar {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  font-size: 24px;
+}
+.profile-avatar-upload {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.profile-avatar-upload input {
+  width: 100%;
+  max-width: 100%;
+}
+.profile-avatar-upload > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.profile-avatar-upload small {
+  color: var(--muted);
+}
+.recovery-card {
+  margin-top: 32px;
+  padding: 28px;
+}
+.recovery-card h1 {
+  font-size: 25px;
+  letter-spacing: -0.6px;
+  margin-bottom: 18px;
+}
+.recovery-card p {
+  font-size: 13px;
+  line-height: 1.8;
+  margin-bottom: 18px;
+}
+.recovery-card > .text-link {
+  display: inline-block;
+  margin-top: 20px;
+}
 .focus-workspace .builder-layout {
   grid-template-columns: 1fr;
   max-width: 960px;
@@ -82,6 +148,11 @@
   overflow-wrap: anywhere;
 }
 @media (max-width: 800px) {
+  .data-toolbar .btn,
+  .table-pagination .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
   .focus-workspace .palette-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -540,8 +611,12 @@
   min-height: 100vh;
 }
 .marketing-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #fff;
   max-width: 1320px;
-  height: 80px;
+  height: 72px;
   margin: auto;
   padding: 0 30px;
   display: flex;
@@ -558,6 +633,21 @@
 }
 .marketing-signin {
   font-size: 13px;
+}
+.marketing-menu {
+  display: none;
+}
+.public-mobile-links {
+  display: grid;
+  gap: 8px;
+}
+.public-mobile-links a {
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.public-mobile-links a:hover {
+  background: var(--purple-soft);
 }
 .marketing-hero {
   max-width: 1250px;
@@ -919,6 +1009,11 @@
   .marketing-header nav {
     display: none;
   }
+  .marketing-menu {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+  }
   .marketing-header .brand {
     width: 180px;
   }
@@ -954,6 +1049,20 @@
   }
 }
 @media (max-width: 520px) {
+  .marketing-header {
+    gap: 8px;
+  }
+  .marketing-header .brand {
+    width: 160px;
+  }
+  .marketing-header > a:first-child {
+    flex: 0 1 160px;
+    min-width: 0;
+  }
+  .marketing-header > .actions {
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+  }
   .page-heading {
     flex-wrap: wrap;
     gap: 18px;

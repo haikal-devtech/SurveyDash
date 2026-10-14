@@ -30,12 +30,14 @@ Database dan rahasia sesi lokal ada pada `.data/` dan `.env.local`, keduanya dia
 - Pembuat pertanyaan: teks, paragraf, pilihan tunggal/jamak, skala penilaian, angka, dan tanggal. Pertanyaan bisa digeser, dinaikkan/diturunkan, dan diduplikasi.
 - Form publik dalam website yang sama, termasuk validasi wajib isi dan pengiriman yang tidak menggandakan respons saat permintaan dicoba ulang.
 - Status **Draft / Buka / Tutup**, terpisah dari visibilitas **Publik / Link saja / Privat**. Publik masuk portal; link saja tersembunyi dari portal; privat tidak bisa diakses melalui link responden.
-- Tabel respons dengan pencarian, pengurutan, pilihan kolom, pagination, koreksi sel, dan ekspor CSV. Koreksi menyimpan nilai sebelum/sesudah serta memakai revision untuk mendeteksi konflik.
+- Tabel respons dengan pencarian, pengurutan dan pagination di server, pilihan kolom, koreksi sel, dan ekspor CSV seluruh hasil pencarian. Koreksi menyimpan nilai sebelum/sesudah serta memakai revision untuk mendeteksi konflik.
 - Analisis demografi, distribusi jawaban, capaian target, dan IKM. IKM hanya berlaku pada survei SKM dengan sembilan unsur. Nilai kosong tidak diberi skor 1.
-- Studio slide 16:9 dengan teks, bentuk, gambar, pie/bar/tabel, metrik terikat ke data, drag/resize, lapisan, undo/redo, autosave, tema dan pratinjau. Buat slide otomatis dari analisis dan ekspor PDF/PPTX. File ekspor mempertahankan tampilan sebagai gambar; komponen PowerPoint tidak dapat diedit terpisah.
+- Studio slide 16:9 dengan teks, bentuk, gambar, pie/bar/tabel, metrik terikat ke data, drag/resize, lapisan, undo/redo, autosave, tema dan pratinjau. Inspector dapat ditutup dan terbuka saat memilih objek. Generator menampilkan kelengkapan sumber data sebelum membuat slide. File PDF/PPTX mempertahankan tampilan sebagai gambar; komponen PowerPoint tidak dapat diedit terpisah.
 - Presentasi dapat diarsipkan dan dipulihkan. Tombol **Bagikan** mengaktifkan link viewer tanpa login untuk versi slide yang sudah ditinjau. Perubahan editor tampil setelah **Perbarui versi berbagi**. Cabut link kapan saja; arsip presentasi dan sampah survei juga mencabutnya.
 - Beranda dengan starter template dan tabel survei; pencarian, duplikat, arsip, sampah dan pemulihan.
-- Pengaturan akun/workspace, penggunaan bulanan aktual dan impor Google Form JSON dengan preview serta catatan item yang tidak didukung.
+- Pengaturan nama dan foto profil privat, identitas workspace, penggunaan bulanan aktual dan impor Google Form JSON dengan preview serta catatan item yang tidak didukung.
+- Pemulihan password melalui SMTP dan sambungan Google Forms API tersedia setelah konfigurasi pengelola. Sambungan Google hanya membaca instrumen, lalu memakai alur preview/import yang sama. Konfigurasi dan prasyarat ada di [panduan integrasi](docs/SURVEYDASH_INTEGRATIONS.md).
+- Navigasi publik sticky dengan menu mobile dan kontak support `help@surveydash.id`.
 - PostgreSQL untuk deployment Vercel; SQLite sebagai pilihan lokal tanpa layanan cloud.
 
 ## Cara mencoba satu alur lengkap
@@ -86,7 +88,7 @@ Versi online memakai PostgreSQL melalui Prisma Postgres di Vercel Marketplace. P
 
 Tabel berfokus pada jawaban survei. Formula Excel bebas, copy-paste banyak sel, conditional branching, impor respons Google Sheets, manajemen tim/admin/surveyor belum tersedia. Impor JSON saat ini hanya memindahkan instrumen Google Form. CSV, PDF dan PowerPoint sudah dapat diekspor. Penyegaran respons memakai tombol **Muat ulang**, bukan subscription realtime.
 
-Pendaftaran workspace terbuka untuk pengujian. Verifikasi email, pemulihan kata sandi melalui email, kebijakan undangan, dan manajemen tim belum tersedia. `TRUST_PROXY=true` dipakai pada deployment Vercel yang mengelola header alamat IP.
+Pendaftaran workspace terbuka untuk pengujian. Verifikasi email, kebijakan undangan, dan manajemen tim belum tersedia. Pemulihan password memerlukan SMTP yang telah diuji; tanpa konfigurasi, UI menampilkan kontak support. Analisis menghitung respons di server saat dibutuhkan, tetapi masih membaca seluruh dataset di server. `TRUST_PROXY=true` dipakai pada deployment Vercel yang mengelola header alamat IP.
 
 ## Deployment cloud
 
@@ -106,7 +108,7 @@ Migrasi membuat skema aplikasi dan tabel Better Auth. Migrasi tidak berjalan pad
 
 ## Sumber open source dan desain
 
-Referensi dipilih dari dokumentasi resmi dan repositori dengan lisensi MIT. Aplikasi disusun untuk kebutuhan SurveyDash; tidak menyalin seluruh template aplikasi pihak ketiga.
+Referensi dipilih dari dokumentasi resmi dan repositori dengan lisensi MIT, MIT-0 dan Apache-2.0. Aplikasi disusun untuk kebutuhan SurveyDash; tidak menyalin seluruh template aplikasi pihak ketiga.
 
 | Sumber                                                                                         | Pemakaian                                                                                     |
 | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
@@ -123,7 +125,7 @@ Lisensi masing-masing dependency tetap menjadi milik pengembangnya. Detail terse
 
 ## Dokumentasi rilis produk
 
-Lihat [laporan implementasi](docs/SURVEYDASH_IMPLEMENTATION_REPORT.md), [route map](docs/SURVEYDASH_ROUTE_MAP.md), [UI system](docs/SURVEYDASH_UI_SYSTEM.md), [arsitektur](docs/SURVEYDASH_ARCHITECTURE.md) dan [rilis/recovery](docs/SURVEYDASH_RELEASE.md). Integrasi OAuth, SMTP dan pembayaran belum diaktifkan; tidak ada checkout atau harga berbayar buatan.
+Lihat [laporan implementasi](docs/SURVEYDASH_IMPLEMENTATION_REPORT.md), [audit master brief](docs/SURVEYDASH_MASTER_SPEC_AUDIT.md), [route map](docs/SURVEYDASH_ROUTE_MAP.md), [UI system](docs/SURVEYDASH_UI_SYSTEM.md), [arsitektur](docs/SURVEYDASH_ARCHITECTURE.md), [integrasi](docs/SURVEYDASH_INTEGRATIONS.md) dan [rilis/recovery](docs/SURVEYDASH_RELEASE.md). Revisi pada branch `codex/surveydash-revisions` belum dirilis ke production. SMTP/OAuth production masih membutuhkan konfigurasi eksternal; pembayaran belum diaktifkan.
 
 ## Admin dan akun client uji
 

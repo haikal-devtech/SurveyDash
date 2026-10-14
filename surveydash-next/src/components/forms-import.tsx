@@ -3,13 +3,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { parseFormsImport } from '@/lib/forms-import';
 import { Button, Badge } from './ui';
-export function FormsImport() {
+import { GoogleFormsConnection } from './google-forms-connection';
+export function FormsImport({ googleFailed = false }: { googleFailed?: boolean }) {
   const router = useRouter();
   const [source, setSource] = useState('');
   const [preview, setPreview] = useState<ReturnType<typeof parseFormsImport> | null>(null);
   const [acknowledge, setAcknowledge] = useState(false);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
+  const [sourceKind, setSourceKind] = useState<'json' | 'google'>('json');
   function inspect() {
     setError('');
     setPreview(null);
@@ -50,47 +52,82 @@ export function FormsImport() {
   }
   return (
     <>
+      <GoogleFormsConnection
+        failed={googleFailed}
+        onSource={(value) => {
+          try {
+            setSource(JSON.stringify(value));
+            setPreview(parseFormsImport(value));
+            setAcknowledge(false);
+            setSourceKind('google');
+            setError('');
+          } catch {
+            setError('Form belum dapat dibaca. Periksa sumber dan coba lagi.');
+          }
+        }}
+      />
       <div className="card membership-card">
-        <Badge>Impor JSON</Badge>
+        <Badge>{sourceKind === 'google' ? 'Form dari Google' : 'Impor JSON'}</Badge>
         <h2 style={{ marginTop: 20 }}>Pindahkan pertanyaan Google Forms.</h2>
         <p>
-          Unggah JSON resource Form yang diperoleh dari Google Forms API. Ini membuat survei draft baru;
-          jawaban lama, lampiran, dan setelan berbagi Google tidak ikut disalin.
+          {sourceKind === 'google'
+            ? 'Tinjau pertanyaan dari form yang Anda pilih.'
+            : 'Unggah JSON resource Form yang diperoleh dari Google Forms API.'}{' '}
+          Ini membuat survei draft baru; jawaban lama, lampiran, dan setelan berbagi Google tidak ikut
+          disalin.
         </p>
-        <a
-          className="text-link"
-          href="https://developers.google.com/workspace/forms/api/reference/rest/v1/forms/get"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Panduan mengambil resource Form
-        </a>
-        <label className="field" style={{ marginTop: 25 }}>
-          File JSON
-          <input
-            type="file"
-            accept="application/json,.json"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) void upload(file);
-            }}
-          />
-        </label>
-        <label className="field">
-          Atau tempel JSON
-          <textarea
-            style={{ height: 180, fontFamily: 'monospace' }}
-            value={source}
-            maxLength={500000}
-            onChange={(event) => {
-              setSource(event.target.value);
+        {sourceKind === 'json' && (
+          <>
+            <a
+              className="text-link"
+              href="https://developers.google.com/workspace/forms/api/reference/rest/v1/forms/get"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Panduan mengambil resource Form
+            </a>
+            <label className="field" style={{ marginTop: 25 }}>
+              File JSON
+              <input
+                type="file"
+                accept="application/json,.json"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void upload(file);
+                }}
+              />
+            </label>
+            <label className="field">
+              Atau tempel JSON
+              <textarea
+                style={{ height: 180, fontFamily: 'monospace' }}
+                value={source}
+                maxLength={500000}
+                onChange={(event) => {
+                  setSource(event.target.value);
+                  setPreview(null);
+                }}
+              />
+            </label>
+            <Button variant="secondary" disabled={!source || pending} onClick={inspect}>
+              Tinjau pertanyaan
+            </Button>
+          </>
+        )}
+        {sourceKind === 'google' && (
+          <Button
+            variant="secondary"
+            disabled={pending}
+            onClick={() => {
+              setSourceKind('json');
+              setSource('');
               setPreview(null);
+              setAcknowledge(false);
             }}
-          />
-        </label>
-        <Button variant="secondary" disabled={!source || pending} onClick={inspect}>
-          Tinjau pertanyaan
-        </Button>
+          >
+            Gunakan file JSON
+          </Button>
+        )}
         {error && (
           <div role="alert" className="banner banner-error">
             {error}
@@ -135,13 +172,6 @@ export function FormsImport() {
             </Button>
           </div>
         )}
-      </div>
-      <div className="card membership-card">
-        <h2>Sambungan langsung ke akun Google</h2>
-        <p>
-          Sambungan OAuth belum tersedia pada rilis ini. Anda tetap dapat membuat form langsung di Studio atau
-          mengimpor instrumen dari JSON. Tidak ada token Google yang diminta atau disimpan.
-        </p>
       </div>
     </>
   );
