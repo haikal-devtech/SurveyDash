@@ -69,6 +69,9 @@ export function LoginForm({ initialRegister = false }: { initialRegister?: boole
       </div>
       <div className="auth-panel">
         <form className="auth-form" onSubmit={submit}>
+          <Link href="/" className="auth-mobile-brand">
+            <Brand />
+          </Link>
           <h2>{register ? 'Mulai ruang kerja Anda.' : 'Selamat datang kembali.'}</h2>
           <p>
             {register

@@ -1,20 +1,20 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: 11px;
-  font-size: 23px;
-  font-weight: 750;
-  color: #161633;
-  letter-spacing: -0.65px;
+  width: 196px;
+  max-width: 100%;
+  padding: 0;
 }
-.brand small {
-  color: #8b80ac;
-  font-size: 9px;
-  letter-spacing: 4px;
-  margin-top: 5px;
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: auto;
 }
-.brand-icon {
-  flex: none;
+.auth-story .brand {
+  width: 246px;
+}
+.auth-mobile-brand {
+  display: none;
 }
 .focus-workspace .builder-layout {
   grid-template-columns: 1fr;
@@ -920,10 +920,13 @@
     display: none;
   }
   .marketing-header .brand {
-    font-size: 20px;
+    width: 180px;
   }
-  .marketing-header .brand-icon {
-    width: 30px;
+  .auth-mobile-brand {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    margin-bottom: 36px;
   }
   .marketing-hero {
     padding: 60px 18px 0;
