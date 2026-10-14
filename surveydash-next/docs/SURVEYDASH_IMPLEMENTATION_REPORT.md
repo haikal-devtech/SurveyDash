@@ -36,3 +36,7 @@ Production HTTP smoke passed 26 requests. Fourteen public pages/assets returned 
 After migration and production smoke, every original survey, submission, audit record, template, user and account remained present and byte-equivalent after normalized serialization. Original 147 submissions were unchanged. Three archived QA surveys, one synthetic response/audit and two archived QA templates were added only under the dedicated test account. Existing accounts were neither replaced nor reset.
 
 ![Live production slide editor using labeled simulation data](production-slide-studio.png)
+
+## Presentation sharing follow-up
+
+Local staging passed 38 HTTP checks for sharing lifecycle and the existing 26-request survey flow. The browser verified explicit activation, slide/keyboard navigation, 375px layout without horizontal overflow, revocation returning 404, and archive recovery. The SQLite connection applies its busy timeout before switching journal mode so parallel build workers can initialize safely. The production build and all 20 tests passed. Private production backup studio-2026-10-14T06-23-01.608Z.json was created before the follow-up migration; all original rows were still present and unchanged.
