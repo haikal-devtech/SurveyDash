@@ -1,0 +1,229 @@
+.cleaning-panel .banner {
+  align-items: flex-start;
+}
+.cleaning-panel .banner p {
+  margin: 0;
+}
+.cleaning-settings {
+  padding: 20px;
+  margin: 20px 0;
+}
+.cleaning-settings summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 650;
+  min-height: 28px;
+}
+.cleaning-settings > p {
+  margin: 14px 0;
+  color: #675b75;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.cleaning-settings fieldset {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+.cleaning-mappings {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.cleaning-mappings select,
+.cleaning-toolbar select,
+.cleaning-review-form select,
+.cleaning-review-form textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #d8cde4;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  color: #392b46;
+  font: inherit;
+}
+.cleaning-settings .hint {
+  margin: 8px 0 18px;
+}
+.cleaning-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 16px;
+  padding: 20px;
+  border-bottom: 1px solid #eee7f4;
+}
+.cleaning-toolbar > label {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  color: #675b75;
+}
+.cleaning-toolbar > label:first-child {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  gap: 8px;
+}
+.cleaning-toolbar input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: #7955a3;
+}
+.cleaning-result-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #675b75;
+  padding: 14px 20px;
+}
+.cleaning-table-scroll,
+.cleaning-comparison-scroll {
+  overflow: auto;
+  max-width: 100%;
+}
+.cleaning-results table,
+.cleaning-comparison table {
+  border-collapse: collapse;
+  width: 100%;
+  text-align: left;
+  font-size: 12px;
+}
+.cleaning-results th,
+.cleaning-results td,
+.cleaning-comparison th,
+.cleaning-comparison td {
+  border-bottom: 1px solid #eee7f4;
+  padding: 14px 16px;
+  vertical-align: top;
+}
+.cleaning-results thead th,
+.cleaning-comparison thead th {
+  background: #f9f6fc;
+  color: #675b75;
+  font-weight: 600;
+}
+.cleaning-results td {
+  min-width: 130px;
+  max-width: 360px;
+  overflow-wrap: anywhere;
+}
+.cleaning-results small,
+.cleaning-comparison small {
+  display: block;
+  margin-top: 6px;
+  color: #675b75;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.cleaning-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cleaning-flags .badge {
+  white-space: nowrap;
+}
+.cleaning-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  font-size: 12px;
+  color: #675b75;
+}
+.cleaning-pagination > span {
+  margin-right: auto;
+}
+.cleaning-panel .btn,
+.cleaning-comparison .btn {
+  min-height: 44px;
+}
+.cleaning-comparison-scroll {
+  max-height: 420px;
+  margin-top: 18px;
+  border: 1px solid #eee7f4;
+  border-radius: 8px;
+}
+.cleaning-comparison caption {
+  padding: 12px;
+  text-align: left;
+  font-weight: 650;
+}
+.cleaning-comparison th {
+  min-width: 180px;
+}
+.cleaning-comparison td {
+  min-width: 210px;
+  max-width: 340px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.cleaning-comparison .banner {
+  margin: 18px 0;
+}
+.cleaning-comparison .banner p {
+  margin: 0;
+}
+.cleaning-review-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+.cleaning-review-form .field {
+  margin: 0;
+}
+.cleaning-review-form textarea {
+  min-height: 100px;
+}
+.cleaning-review-form small {
+  color: #675b75;
+  font-size: 12px;
+}
+.cleaning-review-form > .btn {
+  justify-self: start;
+}
+.cleaning-history {
+  display: grid;
+  gap: 12px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.cleaning-history article {
+  padding: 14px;
+  border: 1px solid #eee7f4;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.cleaning-history p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 8px 0;
+}
+.cleaning-history small {
+  color: #675b75;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+  .cleaning-mappings {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .cleaning-toolbar {
+    gap: 12px;
+    padding: 16px;
+  }
+  .cleaning-toolbar > label {
+    flex: 1 1 160px;
+  }
+  .cleaning-toolbar > label:first-child {
+    flex-basis: 100%;
+  }
+  .cleaning-results th,
+  .cleaning-results td {
+    padding: 12px;
+  }
+}

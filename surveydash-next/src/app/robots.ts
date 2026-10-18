@@ -4,7 +4,18 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/studio', '/api/', '/f/', '/p/', '/admin', '/login', '/forgot-password', '/reset-password'],
+      disallow: [
+        '/studio',
+        '/surveyor',
+        '/api/',
+        '/f/',
+        '/r/',
+        '/p/',
+        '/admin',
+        '/login',
+        '/forgot-password',
+        '/reset-password',
+      ],
     },
     sitemap: 'https://surveydash-studio.vercel.app/sitemap.xml',
   };

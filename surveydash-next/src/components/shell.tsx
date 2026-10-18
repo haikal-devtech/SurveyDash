@@ -14,6 +14,7 @@ import {
   Search,
   ArrowUpRight,
   ShieldCheck,
+  ListChecks,
 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import type { PlanUsage } from '@/lib/plans';
@@ -47,11 +48,14 @@ export function Shell({
   const section = pathname.split('/')[2];
   const focused =
     !!section &&
-    !['templates', 'surveys', 'settings', 'search', 'import', 'onboarding', 'admin'].includes(section);
+    !['templates', 'surveys', 'settings', 'search', 'import', 'onboarding', 'admin', 'cleaning'].includes(
+      section,
+    );
   const canvas = pathname.includes('/presentations/');
   const links = [
     { href: '/studio', label: 'Beranda', icon: LayoutDashboard },
     { href: '/studio/surveys', label: 'Semua survei', icon: Files },
+    { href: '/studio/cleaning', label: 'Cleaning data', icon: ListChecks },
     { href: '/studio/templates', label: 'Template', icon: PanelsTopLeft },
     { href: '/surveys', label: 'Portal responden', icon: Globe },
     { href: '/studio/settings', label: 'Pengaturan', icon: Settings2 },

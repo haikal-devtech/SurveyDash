@@ -1,6 +1,16 @@
-# Implementation report — 14 October 2026
+# Implementation report
 
-## Master brief revision
+## Surveyor and cleaning follow-up — 19 October 2026
+
+Branch `codex/surveyor-workflow` adds distinct Pengelola Survei and Surveyor entry points, server-enforced roles, unique normalized surveyor usernames, and consented profile registration with encrypted bank details and masked account-number responses. Existing accounts remain Pengelola. Surveyors receive only assigned surveys, read questions without editing or respondent-row access, and share personal referral links. Responses retain immutable source snapshots; direct form links remain compatible without attribution, and reactivating a revoked assignment rotates its token.
+
+Pengelola can manage assignments inside an owned survey and review possible duplicates through `/studio/cleaning` and `/studio/[id]/cleaning`. Explicit field mapping, same-survey matching, masked account values, paginated comparison, review reasons, actual-actor audit, and stale-review detection support human decisions. Flags do not automatically delete or exclude responses, change IKM, verify identities or bank ownership, or process incentives.
+
+Validation for this follow-up: **42 tests and 150 local HTTP checks passed** (69 feature, 15 page, 26 core survey and 38 presentation-sharing and 2 admin-role boundary), along with the production build. **34 PostgreSQL checks passed**, using a separate staging QA schema that was subsequently removed and verified absent. Staging was privately backed up before adding six tables; every row in its 16 pre-existing tables was verified unchanged, and no synthetic fixtures were inserted into the public schema.
+
+This branch is held from production release while visual QA remains blocked by the browser tool's saved permission or managed policy despite the user's preview authorization. Production requires its own documented backup, additive migration and preservation checks, stable encryption-key handling, and privacy operations review. No production release or new visual/WCAG/Lighthouse verification is claimed. See [Surveyor workflow](SURVEYDASH_SURVEYOR_WORKFLOW.md), [privacy operations](SURVEYDASH_SURVEYOR_PRIVACY.md), and [route map](SURVEYDASH_ROUTE_MAP.md) for current behavior and operational limits. The evidence below is historical and does not validate this follow-up.
+
+## Master brief revision — 14 October 2026
 
 The follow-up on `codex/surveydash-revisions` adds sticky public navigation with a mobile dialog, a closable contextual slide inspector, detailed presentation preflight, server response pagination/filtering/sorting and streamed all-result CSV. Survey SSR sends metadata rather than all submissions; lazy server insights preserve the original SKM calculations. Profile photos are validated and privately served under the logged-in identity, including during admin workspace switching.
 

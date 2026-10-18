@@ -9,8 +9,10 @@ import { QuestionInput } from './question-input';
 export function PublicForm({
   token,
   survey,
+  surveyor,
 }: {
   token: string;
+  surveyor?: { username: string; fullName: string };
   survey: {
     title: string;
     description: string;
@@ -32,7 +34,7 @@ export function PublicForm({
     setError('');
     if (!requestKey.current) requestKey.current = crypto.randomUUID();
     try {
-      const response = await fetch(`/api/forms/${token}`, {
+      const response = await fetch(surveyor ? `/api/referrals/${token}` : `/api/forms/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers, requestKey: requestKey.current }),
@@ -58,6 +60,14 @@ export function PublicForm({
           <Brand />
         </Link>
       </div>
+      {surveyor && (
+        <div className="banner" role="note" style={{ maxWidth: 720, margin: '0 auto 18px' }}>
+          Surveyor: <strong>{surveyor.fullName}</strong> · @{surveyor.username}
+          <p>
+            Link ini mencatat sumber pengiriman jawaban secara otomatis. Nama surveyor tidak perlu Anda isi.
+          </p>
+        </div>
+      )}
       <div className="form-preview">
         {done ? (
           <section className="card">
@@ -129,6 +139,15 @@ export function PublicForm({
                 <ArrowRight size={14} />
               </Button>
             </div>
+            <p className="hint" style={{ marginTop: 18, lineHeight: 1.8 }}>
+              Jawaban digunakan oleh Pengelola Survei sesuai tujuan form ini. Rekening responden hanya
+              dikumpulkan jika ada pertanyaannya.{' '}
+              {surveyor ? 'Sumber link Surveyor disimpan bersama jawaban. ' : ''}
+              <Link href="/privacy" target="_blank" rel="noreferrer">
+                Baca Kebijakan Privasi
+              </Link>
+              .
+            </p>
           </form>
         )}
         <p className="public-footer">Dikelola melalui SurveyDash Studio</p>

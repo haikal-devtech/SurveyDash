@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { z } from 'zod';
-import { api, checkOrigin, readJson, requireUser } from '@/lib/http';
+import { api, checkOrigin, readJson, requireManagerUser } from '@/lib/http';
 import { authBaseUrl } from '@/lib/origins';
 import {
   beginGoogleConnection,
@@ -12,12 +12,12 @@ import {
 } from '@/lib/google-forms';
 export const runtime = 'nodejs';
 export async function GET() {
-  return api(async () => googleConnectionStatus((await requireUser()).id));
+  return api(async () => googleConnectionStatus((await requireManagerUser()).id));
 }
 export async function POST(request: Request) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireUser();
+    const user = await requireManagerUser();
     const body = z
       .discriminatedUnion('action', [
         z.object({ action: z.literal('connect') }),
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   return api(async () => {
     checkOrigin(request);
-    await disconnectGoogleConnection((await requireUser()).id);
+    await disconnectGoogleConnection((await requireManagerUser()).id);
     return { disconnected: true };
   });
 }

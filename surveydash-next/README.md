@@ -26,6 +26,7 @@ Database dan rahasia sesi lokal ada pada `.data/` dan `.env.local`, keduanya dia
 ## Fitur yang sudah bekerja
 
 - Autentikasi email/kata sandi dengan Better Auth. Pemilik workspace hanya dapat membaca dan mengubah surveinya sendiri.
+- Portal Surveyor terpisah dengan username unik, profil rekening privat, tugas baca saja, dan link atribusi pribadi. Pengelola menugaskan surveyor; Data/CSV mencatat sumber setiap respons. Cleaning data menyediakan pemeriksaan kemiripan dan tinjauan manual. Detail penggunaan, batas, dan status rilis: [alur Surveyor](docs/SURVEYDASH_SURVEYOR_WORKFLOW.md).
 - Template SKM, evaluasi layanan, kepuasan pelanggan dan form kosong. Form, layout, paket survei dan dokumen slide dapat disimpan, dipratinjau, dipakai ulang, diduplikasi, diubah namanya, diarsipkan dan dipulihkan.
 - Pembuat pertanyaan: teks, paragraf, pilihan tunggal/jamak, skala penilaian, angka, dan tanggal. Pertanyaan bisa digeser, dinaikkan/diturunkan, dan diduplikasi.
 - Form publik dalam website yang sama, termasuk validasi wajib isi dan pengiriman yang tidak menggandakan respons saat permintaan dicoba ulang.

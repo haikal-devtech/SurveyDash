@@ -1,5 +1,7 @@
 # Architecture
 
+Surveyor follow-up on `codex/surveyor-workflow`: assigned read-only collection is a separate role and portal, with encrypted payout profiles, immutable referral attribution and owner-scoped manual cleaning review. Existing accounts remain managers; shared team editing is still deferred. See `SURVEYDASH_SURVEYOR_WORKFLOW.md` for schema, routes, key management, testing and release gates.
+
 Next.js 16 App Router, React 19, TypeScript, Tailwind CSS, Radix dialogs, TanStack Table and Recharts. Better Auth handles email/password sessions; the attached brief's Auth.js assumption did not match the existing implementation, so authentication was preserved.
 
 Production uses Prisma Postgres through `pg` in Singapore. SQLite is the development/test fallback. Preview deployments must use `STAGING_DATABASE_URL`; missing staging configuration fails closed. They never fall back to the production database. Local staging uses an ignored `.env.staging.local` with the same cloud staging database.

@@ -5,6 +5,7 @@ import { AppError } from './repository';
 import { ZodError } from 'zod';
 import { trustedOrigins } from './origins';
 import { ModelError } from './model';
+import { assertManager, assertSurveyor } from './account-repository';
 
 export async function requireUser() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -12,11 +13,21 @@ export async function requireUser() {
   return session.user;
 }
 export async function requireWorkspaceUser() {
-  const user = await requireUser();
+  const user = await requireManagerUser();
   return { ...user, ...(await resolveAccess(user.id, (await cookies()).get(WORKSPACE_COOKIE)?.value)) };
 }
-export async function requireAdmin() {
+export async function requireManagerUser() {
   const user = await requireUser();
+  await assertManager(user.id);
+  return user;
+}
+export async function requireSurveyorUser() {
+  const user = await requireUser();
+  await assertSurveyor(user.id);
+  return user;
+}
+export async function requireAdmin() {
+  const user = await requireManagerUser();
   if (!(await isPlatformAdmin(user.id))) throw new AppError('Akses admin diperlukan.', 403);
   return user;
 }

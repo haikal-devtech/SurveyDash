@@ -3,6 +3,7 @@ import { getDb } from './db';
 import { AppError, getSurvey, listAudit, listSubmissions } from './repository';
 import { answerLabel, calculateStats, csvCell, distribution } from './model';
 import type { Question, ResponsePage, Submission, Survey, SurveyInsights } from './types';
+import { attributionColumns, attributionJoin, parseAttribution } from './surveyor-repository';
 
 export const responseQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(100000).default(1),
@@ -13,7 +14,7 @@ export const responseQuerySchema = z.object({
 });
 type Query = z.infer<typeof responseQuerySchema>;
 type SqlPart = { sql: string; values: (string | number)[] };
-const from = ' FROM submissions s JOIN surveys v ON v.id = s.survey_id ';
+const from = ' FROM submissions s JOIN surveys v ON v.id = s.survey_id ' + attributionJoin;
 
 function answerExpression(q: Question): SqlPart {
   if (getDb().dialect === 'postgres') return { sql: '(s.answers::jsonb ->> ?)', values: [q.id] };
@@ -46,6 +47,8 @@ function buildQuery(survey: Survey, ownerId: string, query: Query) {
     const parts: SqlPart[] = [
       { sql: 's.id', values: [] },
       { sql: 's.submitted_at', values: [] },
+      { sql: 'x.name_snapshot', values: [] },
+      { sql: 'x.username_snapshot', values: [] },
       ...survey.questions.map(labelExpression),
     ];
     const text = parts.map((part) => 'COALESCE(' + part.sql + ", '')").join(" || ' ' || ");
@@ -54,7 +57,9 @@ function buildQuery(survey: Survey, ownerId: string, query: Query) {
     where.values.push(...parts.flatMap((part) => part.values), query.search);
   }
   let sort: SqlPart = { sql: 's.submitted_at', values: [] };
-  if (query.sort !== 'submittedAt') {
+  if (query.sort === 'surveyor') {
+    sort = { sql: "COALESCE(x.name_snapshot, '')", values: [] };
+  } else if (query.sort !== 'submittedAt') {
     const question = survey.questions.find((q) => 'question:' + q.id === query.sort);
     if (!question) throw new AppError('Kolom urutan tidak ditemukan.');
     sort =
@@ -84,6 +89,7 @@ function parseRow(row: Record<string, string | number | null>): Submission {
     answers: JSON.parse(String(row.answers)),
     questionSnapshot: JSON.parse(String(row.snapshot)),
     revision: Number(row.revision),
+    surveyor: parseAttribution(row),
   };
 }
 export async function getResponsePage(id: string, ownerId: string, input: unknown): Promise<ResponsePage> {
@@ -96,7 +102,16 @@ export async function getResponsePage(id: string, ownerId: string, input: unknow
   const filtered = Number(count.total);
   const page = Math.min(query.page, Math.max(1, Math.ceil(filtered / query.pageSize)));
   const result = await getDb()
-    .prepare('SELECT s.*' + from + 'WHERE ' + where.sql + ' ORDER BY ' + order + ' LIMIT ? OFFSET ?')
+    .prepare(
+      'SELECT s.*' +
+        attributionColumns +
+        from +
+        'WHERE ' +
+        where.sql +
+        ' ORDER BY ' +
+        order +
+        ' LIMIT ? OFFSET ?',
+    )
     .all(...where.values, ...sortValues, query.pageSize, (page - 1) * query.pageSize);
   return {
     rows: result.map(parseRow),
@@ -151,7 +166,16 @@ export async function exportResponseCsv(id: string, ownerId: string, input: unkn
       controller.enqueue(
         encoder.encode(
           '\uFEFF' +
-            ['ID respons', 'Waktu', ...survey.questions.map((q) => q.label)].map(csvCell).join(',') +
+            [
+              'ID respons',
+              'Waktu',
+              'Surveyor',
+              'Username surveyor',
+              'ID penugasan',
+              ...survey.questions.map((q) => q.label),
+            ]
+              .map(csvCell)
+              .join(',') +
             '\r\n',
         ),
       );
@@ -162,7 +186,16 @@ export async function exportResponseCsv(id: string, ownerId: string, input: unkn
         return;
       }
       const result = await getDb()
-        .prepare('SELECT s.*' + from + 'WHERE ' + where.sql + ' ORDER BY ' + order + ' LIMIT 100 OFFSET ?')
+        .prepare(
+          'SELECT s.*' +
+            attributionColumns +
+            from +
+            'WHERE ' +
+            where.sql +
+            ' ORDER BY ' +
+            order +
+            ' LIMIT 100 OFFSET ?',
+        )
         .all(...where.values, ...sortValues, offset);
       if (!result.length) {
         controller.close();
@@ -172,7 +205,14 @@ export async function exportResponseCsv(id: string, ownerId: string, input: unkn
         result
           .map(parseRow)
           .map((row) =>
-            [row.id, row.submittedAt, ...survey.questions.map((q) => answerLabel(q, row.answers[q.id]))]
+            [
+              row.id,
+              row.submittedAt,
+              row.surveyor?.fullName ?? '',
+              row.surveyor?.username ?? '',
+              row.surveyor?.assignmentId ?? '',
+              ...survey.questions.map((q) => answerLabel(q, row.answers[q.id])),
+            ]
               .map(csvCell)
               .join(','),
           )

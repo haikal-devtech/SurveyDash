@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { getDb } from './db';
+import {
+  attributionColumns,
+  attributionJoin,
+  parseAttribution,
+  resolveReferral,
+} from './surveyor-repository';
 import type { Answer, AuditEntry, SavedTemplate, Submission, Survey, TemplateCategory } from './types';
 import {
   assertAcceptingResponses,
@@ -30,6 +36,7 @@ const parseSubmission = (row: SqlRow): Submission => ({
   answers: JSON.parse(String(row.answers)),
   questionSnapshot: JSON.parse(String(row.snapshot)),
   revision: Number(row.revision),
+  surveyor: parseAttribution(row),
 });
 
 export async function listSurveys(ownerId: string, includeArchived = false): Promise<Survey[]> {
@@ -227,18 +234,37 @@ export async function applyTemplate(
 export async function listSubmissions(surveyId: string): Promise<Submission[]> {
   return (
     await getDb()
-      .prepare('SELECT * FROM submissions WHERE survey_id = ? ORDER BY submitted_at DESC')
+      .prepare(
+        'SELECT s.*' +
+          attributionColumns +
+          ' FROM submissions s' +
+          attributionJoin +
+          'WHERE s.survey_id = ? ORDER BY s.submitted_at DESC',
+      )
       .all(surveyId)
   ).map((row) => parseSubmission(row as SqlRow));
 }
-export async function submitResponse(token: string, input: unknown, requestKey: string) {
+export async function submitResponse(
+  token: string,
+  input: unknown,
+  requestKey: string,
+  referralToken?: string,
+) {
   const db = getDb();
   return db.transaction(async () => {
     const survey = await getSurveyByToken(token);
+    const source = referralToken ? (await resolveReferral(referralToken, survey.id)).attribution : undefined;
     const existing = await db
       .prepare('SELECT id FROM submissions WHERE survey_id = ? AND request_key = ?')
       .get(survey.id, requestKey);
     if (existing) {
+      if (source) {
+        const original = await db
+          .prepare('SELECT assignment_id FROM submission_attribution WHERE submission_id = ?')
+          .get(existing.id);
+        if (!original || original.assignment_id !== source.assignmentId)
+          throw new AppError('Pengiriman ini sudah tersimpan melalui sumber link lain.', 409);
+      }
       return { id: String(existing.id), duplicate: true };
     }
     assertAcceptingResponses(survey);
@@ -263,6 +289,10 @@ export async function submitResponse(token: string, input: unknown, requestKey: 
         new Date().toISOString(),
         requestKey,
       );
+    if (source)
+      await db
+        .prepare('INSERT INTO submission_attribution VALUES (?, ?, ?, ?, ?)')
+        .run(id, source.assignmentId, source.surveyorId, source.username, source.fullName);
     return { id, duplicate: false };
   });
 }
@@ -279,7 +309,13 @@ export async function editAnswer(
   return db.transaction(async () => {
     const survey = await getSurvey(surveyId, ownerId);
     const row = await db
-      .prepare('SELECT * FROM submissions WHERE id = ? AND survey_id = ?')
+      .prepare(
+        'SELECT s.*' +
+          attributionColumns +
+          ' FROM submissions s' +
+          attributionJoin +
+          'WHERE s.id = ? AND s.survey_id = ?',
+      )
       .get(submissionId, surveyId);
     if (!row) throw new AppError('Respons tidak ditemukan.', 404);
     const submission = parseSubmission(row as SqlRow);

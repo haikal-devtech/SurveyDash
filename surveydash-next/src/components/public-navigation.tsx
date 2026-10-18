@@ -6,9 +6,10 @@ import { Menu } from 'lucide-react';
 import { Button, Modal } from './ui';
 
 const links = [
+  { href: '/login?role=surveyor', label: 'Surveyor' },
   { href: '/features', label: 'Fitur' },
-  { href: '/pricing', label: 'Plan' },
   { href: '/help', label: 'Bantuan' },
+  { href: '/pricing', label: 'Plan' },
   { href: '/contact', label: 'Kontak' },
 ];
 
@@ -36,7 +37,7 @@ export function PublicNavigation() {
         open={open}
         onOpenChange={setOpen}
         title="Menu SurveyDash Studio"
-        description="Pilih halaman yang ingin Anda buka."
+        description="Pilih peran Anda atau buka bantuan."
       >
         <nav className="public-mobile-links" aria-label="Navigasi website mobile">
           {links.map((link) => (
@@ -47,11 +48,15 @@ export function PublicNavigation() {
           <Link href="/surveys" onClick={() => setOpen(false)}>
             Portal responden
           </Link>
-          <Link href="/login" onClick={() => setOpen(false)}>
-            Masuk
+          <Link href="/login?role=manager" onClick={() => setOpen(false)}>
+            Masuk sebagai Pengelola Survei
           </Link>
-          <Link href="/login?mode=signup" className="btn btn-primary" onClick={() => setOpen(false)}>
-            Mulai gratis
+          <Link
+            href="/login?role=surveyor&mode=signup"
+            className="btn btn-primary"
+            onClick={() => setOpen(false)}
+          >
+            Daftar sebagai Surveyor
           </Link>
         </nav>
       </Modal>

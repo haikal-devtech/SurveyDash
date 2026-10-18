@@ -72,6 +72,33 @@ const schema = `
     CREATE TABLE IF NOT EXISTS google_form_connections (
       user_id TEXT PRIMARY KEY, ciphertext TEXT NOT NULL, updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS surveyor_profiles (
+      user_id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE, full_name TEXT NOT NULL,
+      payout_ciphertext TEXT NOT NULL, consent_version TEXT NOT NULL, consent_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS surveyor_assignments (
+      id TEXT PRIMARY KEY, survey_id TEXT NOT NULL REFERENCES surveys(id), owner_id TEXT NOT NULL,
+      surveyor_id TEXT NOT NULL REFERENCES surveyor_profiles(user_id), token TEXT NOT NULL UNIQUE,
+      active INTEGER NOT NULL DEFAULT 1, assigned_by TEXT NOT NULL, created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL, UNIQUE(survey_id, surveyor_id)
+    );
+    CREATE INDEX IF NOT EXISTS surveyor_assignments_user ON surveyor_assignments(surveyor_id, active);
+    CREATE TABLE IF NOT EXISTS submission_attribution (
+      submission_id TEXT PRIMARY KEY REFERENCES submissions(id), assignment_id TEXT NOT NULL REFERENCES surveyor_assignments(id),
+      surveyor_id TEXT NOT NULL, username_snapshot TEXT NOT NULL, name_snapshot TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS attribution_assignment ON submission_attribution(assignment_id);
+    CREATE TABLE IF NOT EXISTS cleaning_settings (
+      survey_id TEXT PRIMARY KEY REFERENCES surveys(id), payload TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS cleaning_reviews (
+      submission_id TEXT PRIMARY KEY REFERENCES submissions(id), survey_id TEXT NOT NULL REFERENCES surveys(id),
+      status TEXT NOT NULL, reason TEXT NOT NULL, revision INTEGER NOT NULL, actor TEXT NOT NULL, reviewed_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS cleaning_review_audit (
+      id TEXT PRIMARY KEY, survey_id TEXT NOT NULL REFERENCES surveys(id), submission_id TEXT NOT NULL REFERENCES submissions(id),
+      status TEXT NOT NULL, reason TEXT NOT NULL, revision INTEGER NOT NULL, actor TEXT NOT NULL, at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS presentations (
       id TEXT PRIMARY KEY, survey_id TEXT NOT NULL REFERENCES surveys(id), owner_id TEXT NOT NULL,
       payload TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
