@@ -7,6 +7,7 @@ export default function robots(): MetadataRoute.Robots {
       disallow: [
         '/studio',
         '/surveyor',
+        '/invite/',
         '/api/',
         '/f/',
         '/r/',

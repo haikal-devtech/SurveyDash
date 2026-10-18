@@ -283,6 +283,16 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
           <div className="actions">
             <Button
               variant="secondary"
+              onClick={() => {
+                setGenerateFromAnalysis(false);
+                setTab('surveyors');
+              }}
+            >
+              <UsersRound size={15} />
+              Surveyor
+            </Button>
+            <Button
+              variant="secondary"
               disabled={pending}
               onClick={() =>
                 setTemplateCategory(

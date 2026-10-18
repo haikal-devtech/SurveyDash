@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { getDb } from './db';
-import { AppError, getSurvey } from './repository';
+import { AppError, getSurvey, listSurveys } from './repository';
 import { assertSurveyor } from './account-repository';
 import { authBaseUrl } from './origins';
 import { canAccessForm } from './model';
@@ -32,6 +32,24 @@ export async function listManagedSurveyors(surveyId: string, ownerId: string) {
       .prepare(assignmentSelect + 'WHERE a.survey_id = ? AND a.owner_id = ? ORDER BY a.created_at DESC')
       .all(surveyId, ownerId)
   ).map(managed);
+}
+export async function listWorkspaceSurveyors(ownerId: string) {
+  const surveys = await listSurveys(ownerId);
+  const rows = await getDb()
+    .prepare(assignmentSelect + 'WHERE a.owner_id = ? ORDER BY a.created_at DESC')
+    .all(ownerId);
+  const bySurvey = new Map<string, ManagedSurveyorAssignment[]>();
+  for (const row of rows) {
+    const id = String(row.survey_id);
+    const assignments = bySurvey.get(id) ?? [];
+    assignments.push(managed(row));
+    bySurvey.set(id, assignments);
+  }
+  return surveys.map((survey) => ({
+    surveyId: survey.id,
+    title: survey.title,
+    assignments: bySurvey.get(survey.id) ?? [],
+  }));
 }
 export async function assignSurveyor(surveyId: string, ownerId: string, username: string, actor: string) {
   const name = z

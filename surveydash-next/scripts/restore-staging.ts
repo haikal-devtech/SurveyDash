@@ -31,6 +31,7 @@ const order = [
   'google_form_connections',
   'surveyor_profiles',
   'surveyor_assignments',
+  'surveyor_invitations',
   'submission_attribution',
   'cleaning_settings',
   'cleaning_reviews',

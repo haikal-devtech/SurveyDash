@@ -1,12 +1,22 @@
 'use client';
 import Link from 'next/link';
 import { useState } from 'react';
-import { Plus, FileText, ClipboardCheck, Users, Grid2X2, ArrowRight, Loader2 } from 'lucide-react';
+import {
+  Plus,
+  FileText,
+  ClipboardCheck,
+  Users,
+  UsersRound,
+  Grid2X2,
+  ArrowRight,
+  Loader2,
+} from 'lucide-react';
 import type { SavedTemplate, Survey } from '@/lib/types';
 import { CreateSurvey } from './create-survey';
 import { SurveyExplorer } from './survey-explorer';
 import { Button } from './ui';
 import { useRouter } from 'next/navigation';
+import '@/app/manager-surveyors.css';
 const starters = [
   { id: 'blank', title: 'Survei kosong', description: 'Mulai dari awal', icon: Plus },
   {
@@ -66,6 +76,19 @@ export function Overview({
           Buat survei baru
         </Button>
       </div>
+      {!listOnly && (
+        <section className="card manager-home-surveyors">
+          <UsersRound size={24} />
+          <div>
+            <h2>Surveyor</h2>
+            <p>Undang orang untuk membantu menyebarkan survei.</p>
+          </div>
+          <Link href="/studio/surveyors" className="btn btn-secondary">
+            Kelola Surveyor
+            <ArrowRight size={16} />
+          </Link>
+        </section>
+      )}
       {!listOnly && (
         <section className="starter-section">
           <div className="explorer-heading">

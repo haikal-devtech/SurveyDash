@@ -83,6 +83,11 @@ const schema = `
       updated_at TEXT NOT NULL, UNIQUE(survey_id, surveyor_id)
     );
     CREATE INDEX IF NOT EXISTS surveyor_assignments_user ON surveyor_assignments(surveyor_id, active);
+    CREATE TABLE IF NOT EXISTS surveyor_invitations (
+      survey_id TEXT PRIMARY KEY REFERENCES surveys(id), owner_id TEXT NOT NULL,
+      token TEXT NOT NULL UNIQUE, active INTEGER NOT NULL DEFAULT 1,
+      created_by TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS submission_attribution (
       submission_id TEXT PRIMARY KEY REFERENCES submissions(id), assignment_id TEXT NOT NULL REFERENCES surveyor_assignments(id),
       surveyor_id TEXT NOT NULL, username_snapshot TEXT NOT NULL, name_snapshot TEXT NOT NULL
