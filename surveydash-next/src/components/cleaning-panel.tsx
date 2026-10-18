@@ -45,6 +45,7 @@ function CleaningComparison({
   onSaved: () => void;
 }) {
   const [comparison, setComparison] = useState<CleaningPage | null>(null);
+  const [source, setSource] = useState(row);
   const [page, setPage] = useState(1);
   const [loadedPage, setLoadedPage] = useState(0);
   const [retry, setRetry] = useState(0);
@@ -53,7 +54,6 @@ function CleaningComparison({
   const [reason, setReason] = useState(row.review?.reason ?? '');
   const [pending, setPending] = useState(false);
   const initialized = useRef(false);
-  const source = comparison?.rows.find((item) => item.id === row.id) ?? row;
   useEffect(() => {
     const controller = new AbortController();
     fetch(`/api/surveys/${survey.id}/cleaning?focus=${encodeURIComponent(row.id)}&page=${page}&pageSize=10`, {
@@ -63,6 +63,7 @@ function CleaningComparison({
       .then((result: CleaningPage) => {
         if (!controller.signal.aborted) {
           const current = result.rows.find((item) => item.id === row.id);
+          if (current) setSource(current);
           if (!initialized.current && current) {
             initialized.current = true;
             setStatus(current.review?.status ?? 'unreviewed');
@@ -117,6 +118,7 @@ function CleaningComparison({
             onClick={() => {
               setError('');
               setLoadedPage(0);
+              setPage(1);
               setRetry((value) => value + 1);
             }}
             disabled={pending}
