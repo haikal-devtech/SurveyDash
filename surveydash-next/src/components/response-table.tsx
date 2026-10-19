@@ -235,6 +235,13 @@ export function ResponseTable({
         </span>
       ),
     },
+    {
+      id: 'surveyor',
+      header: 'Surveyor',
+      accessorFn: (row) =>
+        row.surveyor ? row.surveyor.fullName + ' · @' + row.surveyor.username : 'Link langsung',
+      cell: (info) => <span className="cell-readonly">{String(info.getValue())}</span>,
+    },
     ...survey.questions.map((q) => ({
       id: 'question:' + q.id,
       header: q.label,
@@ -550,6 +557,14 @@ export function ResponseTable({
           wide
         >
           <div className="response-details">
+            <div>
+              <strong>Sumber link</strong>
+              <p>
+                {details.surveyor
+                  ? details.surveyor.fullName + ' · @' + details.surveyor.username
+                  : 'Link langsung / tanpa atribusi surveyor'}
+              </p>
+            </div>
             {details.questionSnapshot.map((q) => (
               <div key={q.id}>
                 <strong>{q.label}</strong>

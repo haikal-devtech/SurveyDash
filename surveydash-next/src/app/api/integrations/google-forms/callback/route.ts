@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { requireUser } from '@/lib/http';
+import { requireManagerUser } from '@/lib/http';
 import { authBaseUrl } from '@/lib/origins';
 import {
   completeGoogleConnection,
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   });
   const target = new URL('/studio/import', authBaseUrl());
   try {
-    const user = await requireUser();
+    const user = await requireManagerUser();
     const state = parameters.get('state');
     const code = parameters.get('code');
     if (parameters.has('error') || !saved || !state || !code || state.length > 256 || code.length > 4000)

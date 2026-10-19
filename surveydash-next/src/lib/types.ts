@@ -55,6 +55,7 @@ export interface Submission {
   answers: Record<string, Answer>;
   questionSnapshot: Question[];
   revision: number;
+  surveyor?: import('./surveyor-types').SurveyorAttribution;
 }
 export type TemplateCategory = 'form' | 'presentation' | 'survey';
 export interface SavedTemplate {

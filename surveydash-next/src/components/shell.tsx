@@ -14,9 +14,10 @@ import {
   Search,
   ArrowUpRight,
   ShieldCheck,
+  ListChecks,
+  UsersRound,
 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
-import type { PlanUsage } from '@/lib/plans';
 import { Brand } from './brand';
 import { Button } from './ui';
 import { UserAvatar } from './user-avatar';
@@ -26,7 +27,6 @@ export function Shell({
   name,
   image,
   workspace,
-  usage,
   isAdmin = false,
   managingOther = false,
   userId,
@@ -35,7 +35,6 @@ export function Shell({
   name: string;
   image?: string | null;
   workspace: { name: string; description: string };
-  usage: PlanUsage;
   isAdmin?: boolean;
   managingOther?: boolean;
   userId: string;
@@ -47,11 +46,23 @@ export function Shell({
   const section = pathname.split('/')[2];
   const focused =
     !!section &&
-    !['templates', 'surveys', 'settings', 'search', 'import', 'onboarding', 'admin'].includes(section);
+    ![
+      'templates',
+      'surveys',
+      'surveyors',
+      'settings',
+      'search',
+      'import',
+      'onboarding',
+      'admin',
+      'cleaning',
+    ].includes(section);
   const canvas = pathname.includes('/presentations/');
   const links = [
     { href: '/studio', label: 'Beranda', icon: LayoutDashboard },
     { href: '/studio/surveys', label: 'Semua survei', icon: Files },
+    { href: '/studio/surveyors', label: 'Surveyor', icon: UsersRound },
+    { href: '/studio/cleaning', label: 'Cleaning data', icon: ListChecks },
     { href: '/studio/templates', label: 'Template', icon: PanelsTopLeft },
     { href: '/surveys', label: 'Portal responden', icon: Globe },
     { href: '/studio/settings', label: 'Pengaturan', icon: Settings2 },
@@ -86,27 +97,6 @@ export function Shell({
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <section className="plan-card">
-            <strong>Free Plan</strong>
-            {usage.responseLimit !== null && (
-              <div className="plan-progress">
-                <span style={{ width: `${Math.min(100, (usage.responses / usage.responseLimit) * 100)}%` }} />
-              </div>
-            )}
-            <p>
-              {usage.responses.toLocaleString('id-ID')}
-              {usage.responseLimit !== null ? ` / ${usage.responseLimit.toLocaleString('id-ID')}` : ''}{' '}
-              respons bulan ini
-            </p>
-            <p>
-              {usage.activeSurveys}
-              {usage.activeLimit !== null ? ` / ${usage.activeLimit}` : ''} survei aktif
-            </p>
-            {usage.simulatedResponses > 0 && <small>Termasuk data simulasi</small>}
-            <Link href="/studio/settings/membership" className="btn btn-secondary">
-              Kelola plan
-            </Link>
-          </section>
           <div className="profile">
             <UserAvatar name={name} image={image} />
             <Link href="/studio/settings/account">

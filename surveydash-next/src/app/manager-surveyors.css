@@ -1,0 +1,162 @@
+.manager-surveyor-picker {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+  padding: 22px;
+  margin-bottom: 28px;
+}
+.manager-surveyor-picker .field {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.manager-surveyor-picker select {
+  width: 100%;
+  min-height: 44px;
+}
+.manager-surveyor-selected > h2 {
+  font-size: 22px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.manager-surveyor-selected .surveyor-manager-panel {
+  margin-top: 16px;
+}
+.manager-invitation {
+  padding: 24px;
+  display: flex;
+  gap: 16px;
+  background: #fcfaff;
+  border-color: #e4d9f0;
+}
+.manager-invitation-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  color: #7953a8;
+  background: #eee5f7;
+}
+.manager-invitation-content {
+  flex: 1;
+  min-width: 0;
+}
+.manager-invitation h3 {
+  font-size: 18px;
+  font-weight: 650;
+}
+.manager-invitation-content > p {
+  font-size: 12px;
+  color: #655773;
+  line-height: 1.8;
+  margin-top: 7px;
+}
+.manager-invitation-content > .input {
+  width: 100%;
+  margin-top: 16px;
+  background: #fff;
+  font-size: 12px;
+}
+.manager-invitation-content > .btn {
+  margin-top: 17px;
+}
+.manager-invitation-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.manager-invitation-content > small {
+  display: block;
+  margin-top: 10px;
+  font-size: 11px;
+  color: #6e607c;
+}
+.manager-invitation-content > .manager-invitation-copied {
+  color: #326d48;
+}
+.manager-username-details {
+  margin: 16px 0 22px;
+  border: 1px solid #e9e3f0;
+  border-radius: 12px;
+  background: #fff;
+}
+.manager-username-details > summary {
+  padding: 16px 20px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #655773;
+  min-height: 44px;
+}
+.manager-username-details .surveyor-assign-form {
+  padding-top: 4px;
+}
+.manager-respondent-link-label {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: #655773;
+  font-size: 12px;
+  margin: 16px 0 9px;
+}
+.manager-home-surveyors {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 21px 24px;
+  margin: 0 0 30px;
+  background: #fcfaff;
+}
+.manager-home-surveyors > svg {
+  color: #805baa;
+  flex: 0 0 auto;
+}
+.manager-home-surveyors > div {
+  flex: 1;
+}
+.manager-home-surveyors h2 {
+  font-size: 16px;
+  font-weight: 650;
+}
+.manager-home-surveyors p {
+  font-size: 12px;
+  color: #6e607c;
+  margin-top: 5px;
+}
+.manager-home-surveyors .btn {
+  min-height: 44px;
+}
+@media (max-width: 640px) {
+  .manager-surveyor-picker {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 18px;
+    gap: 12px;
+  }
+  .manager-invitation {
+    padding: 20px 18px;
+    gap: 12px;
+  }
+  .manager-invitation-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+  .manager-invitation h3 {
+    font-size: 16px;
+  }
+  .manager-invitation-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .manager-home-surveyors {
+    flex-wrap: wrap;
+    padding: 20px;
+  }
+  .manager-home-surveyors > .btn {
+    width: 100%;
+  }
+}

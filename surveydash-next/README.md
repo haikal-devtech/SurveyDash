@@ -26,6 +26,7 @@ Database dan rahasia sesi lokal ada pada `.data/` dan `.env.local`, keduanya dia
 ## Fitur yang sudah bekerja
 
 - Autentikasi email/kata sandi dengan Better Auth. Pemilik workspace hanya dapat membaca dan mengubah surveinya sendiri.
+- Portal Surveyor terpisah dengan username, profil rekening privat, tugas baca saja, dan link atribusi pribadi. Pengelola membuka menu **Surveyor** → memilih survei → **Undang Surveyor**, lalu mengirim link; penerima daftar/masuk dan memilih **Bergabung**. Login ringkas dan pendaftaran Surveyor dibagi dua langkah. Data/CSV mencatat sumber setiap respons; Cleaning data menyediakan pemeriksaan kemiripan dan tinjauan manual. Detail penggunaan, batas, dan status rilis: [alur Surveyor](docs/SURVEYDASH_SURVEYOR_WORKFLOW.md).
 - Template SKM, evaluasi layanan, kepuasan pelanggan dan form kosong. Form, layout, paket survei dan dokumen slide dapat disimpan, dipratinjau, dipakai ulang, diduplikasi, diubah namanya, diarsipkan dan dipulihkan.
 - Pembuat pertanyaan: teks, paragraf, pilihan tunggal/jamak, skala penilaian, angka, dan tanggal. Pertanyaan bisa digeser, dinaikkan/diturunkan, dan diduplikasi.
 - Form publik dalam website yang sama, termasuk validasi wajib isi dan pengiriman yang tidak menggandakan respons saat permintaan dicoba ulang.
@@ -35,7 +36,7 @@ Database dan rahasia sesi lokal ada pada `.data/` dan `.env.local`, keduanya dia
 - Studio slide 16:9 dengan teks, bentuk, gambar, pie/bar/tabel, metrik terikat ke data, drag/resize, lapisan, undo/redo, autosave, tema dan pratinjau. Inspector dapat ditutup dan terbuka saat memilih objek. Generator menampilkan kelengkapan sumber data sebelum membuat slide. File PDF/PPTX mempertahankan tampilan sebagai gambar; komponen PowerPoint tidak dapat diedit terpisah.
 - Presentasi dapat diarsipkan dan dipulihkan. Tombol **Bagikan** mengaktifkan link viewer tanpa login untuk versi slide yang sudah ditinjau. Perubahan editor tampil setelah **Perbarui versi berbagi**. Cabut link kapan saja; arsip presentasi dan sampah survei juga mencabutnya.
 - Beranda dengan starter template dan tabel survei; pencarian, duplikat, arsip, sampah dan pemulihan.
-- Pengaturan nama dan foto profil privat, identitas workspace, penggunaan bulanan aktual dan impor Google Form JSON dengan preview serta catatan item yang tidak didukung.
+- Pengaturan nama dan foto profil privat, identitas workspace, dan impor Google Form JSON dengan preview serta catatan item yang tidak didukung. Menu langganan, plan, dan tagihan disembunyikan sementara.
 - Pemulihan password melalui SMTP dan sambungan Google Forms API tersedia setelah konfigurasi pengelola. Sambungan Google hanya membaca instrumen, lalu memakai alur preview/import yang sama. Konfigurasi dan prasyarat ada di [panduan integrasi](docs/SURVEYDASH_INTEGRATIONS.md).
 - Navigasi publik sticky dengan menu mobile dan kontak support `help@surveydash.id`.
 - PostgreSQL untuk deployment Vercel; SQLite sebagai pilihan lokal tanpa layanan cloud.

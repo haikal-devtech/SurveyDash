@@ -1,6 +1,34 @@
-# Implementation report — 14 October 2026
+# Implementation report
 
-## Master brief revision
+## Production approval and data preservation — 20 October 2026
+
+The user explicitly authorized production release with visual QA to follow. The previous visual release hold below is historical and is superseded only for this approved rollout; no browser/Lighthouse/WCAG verification is claimed. Before release, production was privately backed up and migrated additively. Every row across all 15 existing tables stayed identical, including 23 surveys, 199 responses and all 7 users/accounts. Eight new feature tables and the response-order index were verified ready. Existing passwords/sessions and survey data were preserved. Final deployment/HTTP verification is recorded on PR #2 and ignored release reports; SMTP and Google provider features remain gated.
+
+## Compact home and hidden subscriptions — 20 October 2026
+
+Public home is reduced to two role cards, each with Masuk/Daftar, and a respondent link. Plan navigation, the sidebar plan/upgrade card, subscription/billing settings tiles and pricing sitemap entry are removed. Pricing and old subscription/billing URLs temporarily redirect to home/settings. The Studio layout no longer loads usage solely for the removed plan card. Internal capacity checks and data remain unchanged. The production deployment is still `1dad32e`; preview pushes do not replace the canonical production URL.
+
+Strict source ESLint, an isolated production build with TypeScript and ten local HTTP checks passed, including both role choices, missing plan/upgrade links in authenticated Studio/settings, sitemap omission, and temporary redirects on old URLs. These are server-output checks, with the existing visual browser gate still outstanding. No new unit tests were added for these reversible display changes. A fresh private read-only production backup was taken; no production schema or data was changed.
+
+## Simple login and Surveyor invitations — 20 October 2026
+
+Login now uses one short form; Surveyor registration separates Account and Bank details into two steps. Labels and actions use plain Indonesian (Username, Email, Masuk, Daftar). Active privacy consent and private payout handling remain enforced. A Surveyor directory is visible in the manager sidebar, overview and editor, scoped to the owned workspace.
+
+Managers select a survey and create/copy a seven-day invitation for manual sharing. Recipients register or sign in, then choose Bergabung; the server assigns the survey and their name appears in the manager list. Invitation capabilities are distinct from respondent links, can be revoked/rotated, and cannot restore a surveyor's disabled assignment. Public invitation metadata is limited to title/institution. No invitation email or message is sent automatically.
+
+Validation: **50 tests, 41 local HTTP checks and 9 isolated PostgreSQL checks passed**, along with strict source lint and an isolated production build including TypeScript. The staging migration added one table after a private backup and verified every row in the 22 pre-existing tables unchanged. Fixtures stayed in local databases or an isolated QA schema, which was removed. Production and visual QA remain held as described below; no browser interaction or layout result is claimed.
+
+## Surveyor and cleaning follow-up — 19 October 2026
+
+Branch `codex/surveyor-workflow` adds distinct Pengelola Survei and Surveyor entry points, server-enforced roles, unique normalized surveyor usernames, and consented profile registration with encrypted bank details and masked account-number responses. Existing accounts remain Pengelola. Surveyors receive only assigned surveys, read questions without editing or respondent-row access, and share personal referral links. Responses retain immutable source snapshots; direct form links remain compatible without attribution, and reactivating a revoked assignment rotates its token.
+
+Pengelola can manage assignments inside an owned survey and review possible duplicates through `/studio/cleaning` and `/studio/[id]/cleaning`. Explicit field mapping, same-survey matching, masked account values, paginated comparison, review reasons, actual-actor audit, and stale-review detection support human decisions. Flags do not automatically delete or exclude responses, change IKM, verify identities or bank ownership, or process incentives.
+
+Validation for this follow-up: **42 tests and 150 local HTTP checks passed** (69 feature, 15 page, 26 core survey and 38 presentation-sharing and 2 admin-role boundary), along with the production build. **34 PostgreSQL checks passed**, using a separate staging QA schema that was subsequently removed and verified absent. Staging was privately backed up before adding six tables; every row in its 16 pre-existing tables was verified unchanged, and no synthetic fixtures were inserted into the public schema.
+
+This branch is held from production release while visual QA remains blocked by the browser tool's saved permission or managed policy despite the user's preview authorization. Production requires its own documented backup, additive migration and preservation checks, stable encryption-key handling, and privacy operations review. No production release or new visual/WCAG/Lighthouse verification is claimed. See [Surveyor workflow](SURVEYDASH_SURVEYOR_WORKFLOW.md), [privacy operations](SURVEYDASH_SURVEYOR_PRIVACY.md), and [route map](SURVEYDASH_ROUTE_MAP.md) for current behavior and operational limits. The evidence below is historical and does not validate this follow-up.
+
+## Master brief revision — 14 October 2026
 
 The follow-up on `codex/surveydash-revisions` adds sticky public navigation with a mobile dialog, a closable contextual slide inspector, detailed presentation preflight, server response pagination/filtering/sorting and streamed all-result CSV. Survey SSR sends metadata rather than all submissions; lazy server insights preserve the original SKM calculations. Profile photos are validated and privately served under the logged-in identity, including during admin workspace switching.
 

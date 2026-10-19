@@ -3,6 +3,7 @@ import './globals.css';
 import './product.css';
 import './presentation.css';
 import './shared.css';
+import './surveyor.css';
 import '@fontsource-variable/inter';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';

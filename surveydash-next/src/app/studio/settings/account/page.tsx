@@ -5,7 +5,9 @@ import { SettingsForm } from '@/components/settings-forms';
 import Link from 'next/link';
 import { passwordRecoveryAvailable } from '@/lib/email';
 import { SUPPORT_EMAIL } from '@/lib/support';
+import { requireWorkspaceUser } from '@/lib/http';
 export default async function AccountPage() {
+  await requireWorkspaceUser();
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect('/login');
   return (

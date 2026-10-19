@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { UserRound, Building2, Gauge, Receipt, FileInput, ArrowRight } from 'lucide-react';
+import { UserRound, Building2, FileInput, ArrowRight } from 'lucide-react';
 const pages = [
   { path: 'account', title: 'Akun', description: 'Nama tampilan dan alamat email akun.', icon: UserRound },
   {
@@ -7,18 +7,6 @@ const pages = [
     title: 'Workspace',
     description: 'Identitas ruang kerja pribadi Anda.',
     icon: Building2,
-  },
-  {
-    path: 'membership',
-    title: 'Plan dan penggunaan',
-    description: 'Jumlah survei aktif dan respons bulan ini.',
-    icon: Gauge,
-  },
-  {
-    path: 'billing',
-    title: 'Tagihan',
-    description: 'Status pembayaran dan ketersediaan invoice.',
-    icon: Receipt,
   },
   {
     path: 'import',
@@ -33,7 +21,7 @@ export default function SettingsPage() {
       <div className="page-heading">
         <div>
           <h1>Pengaturan workspace.</h1>
-          <p>Kelola akun, identitas, dan penggunaan dari satu tempat.</p>
+          <p>Kelola akun, workspace, dan impor survei.</p>
         </div>
       </div>
       <div className="settings-links">

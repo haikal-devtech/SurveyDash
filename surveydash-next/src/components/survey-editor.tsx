@@ -19,6 +19,8 @@ import {
   Bookmark,
   X,
   Info,
+  UsersRound,
+  ListChecks,
 } from 'lucide-react';
 import type { Survey, SurveyInsights, TemplateCategory } from '@/lib/types';
 import { Button, Badge, FullscreenDialog } from './ui';
@@ -30,6 +32,8 @@ import { PresentationTemplatePicker } from './presentation-template-picker';
 import { SettingsPanel } from './settings-panel';
 import { AnalyticsPanel } from './analytics-panel';
 import { PresentationHub } from './presentation-hub';
+import { SurveyorAssignments } from './surveyor-assignments';
+import { CleaningPanel } from './cleaning-panel';
 const DashboardCanvas = dynamic(() => import('./dashboard-canvas').then((m) => m.DashboardCanvas), {
   ssr: false,
   loading: () => (
@@ -44,6 +48,8 @@ const tabs = [
   { id: 'questions', label: 'Pertanyaan', icon: FileText },
   { id: 'form', label: 'Form', icon: ExternalLink },
   { id: 'data', label: 'Data', icon: Table2 },
+  { id: 'surveyors', label: 'Surveyor', icon: UsersRound },
+  { id: 'cleaning', label: 'Cleaning data', icon: ListChecks },
   { id: 'analytics', label: 'Analisis', icon: BarChart3 },
   { id: 'presentation', label: 'Presentasi', icon: PanelsTopLeft },
   { id: 'settings', label: 'Pengaturan', icon: Settings2 },
@@ -277,6 +283,16 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
           <div className="actions">
             <Button
               variant="secondary"
+              onClick={() => {
+                setGenerateFromAnalysis(false);
+                setTab('surveyors');
+              }}
+            >
+              <UsersRound size={15} />
+              Surveyor
+            </Button>
+            <Button
+              variant="secondary"
               disabled={pending}
               onClick={() =>
                 setTemplateCategory(
@@ -384,6 +400,8 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
           onError={setError}
         />
       )}
+      {tab === 'surveyors' && <SurveyorAssignments surveyId={survey.id} />}
+      {tab === 'cleaning' && <CleaningPanel survey={survey} />}
       {tab === 'analytics' &&
         (insightsLoading || !insights || insightsError ? (
           insightsStatus
