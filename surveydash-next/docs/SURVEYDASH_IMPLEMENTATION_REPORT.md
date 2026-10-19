@@ -1,5 +1,11 @@
 # Implementation report
 
+## Compact home and hidden subscriptions — 20 October 2026
+
+Public home is reduced to two role cards, each with Masuk/Daftar, and a respondent link. Plan navigation, the sidebar plan/upgrade card, subscription/billing settings tiles and pricing sitemap entry are removed. Pricing and old subscription/billing URLs temporarily redirect to home/settings. The Studio layout no longer loads usage solely for the removed plan card. Internal capacity checks and data remain unchanged. The production deployment is still `1dad32e`; preview pushes do not replace the canonical production URL.
+
+Strict source ESLint, an isolated production build with TypeScript and ten local HTTP checks passed, including both role choices, missing plan/upgrade links in authenticated Studio/settings, sitemap omission, and temporary redirects on old URLs. These are server-output checks, with the existing visual browser gate still outstanding. No new unit tests were added for these reversible display changes. A fresh private read-only production backup was taken; no production schema or data was changed.
+
 ## Simple login and Surveyor invitations — 20 October 2026
 
 Login now uses one short form; Surveyor registration separates Account and Bank details into two steps. Labels and actions use plain Indonesian (Username, Email, Masuk, Daftar). Active privacy consent and private payout handling remain enforced. A Surveyor directory is visible in the manager sidebar, overview and editor, scoped to the owned workspace.

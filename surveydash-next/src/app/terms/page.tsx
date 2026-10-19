@@ -5,7 +5,7 @@ export default function TermsPage() {
   return (
     <PublicArticle
       title="Gunakan SurveyDash dengan bertanggung jawab."
-      intro="Ketentuan penggunaan beta ini berlaku untuk Pengelola Survei, surveyor, dan responden. Pembayaran dan paket berbayar belum dibuka."
+      intro="Ketentuan ini berlaku untuk Pengelola Survei, surveyor, dan responden."
       sections={[
         [
           'Akun dan identitas tampilan',
@@ -33,11 +33,11 @@ export default function TermsPage() {
         ],
         [
           'Versi pengujian dan layanan tambahan',
-          'Fitur dan antarmuka dapat berubah. Simpan ekspor dan cadangan yang diperlukan dengan akses terbatas. Kolaborasi editor tim, pembayaran, dan paket berbayar belum diaktifkan. Penugasan surveyor tersedia sebagai akses terpisah. Pemulihan lewat email dan sambungan Google Forms hanya tersedia setelah layanan tersebut dikonfigurasi dan diaktifkan pengelola aplikasi.',
+          'Fitur dan antarmuka dapat berubah. Simpan ekspor dan cadangan yang diperlukan dengan akses terbatas. Kolaborasi editor tim belum diaktifkan. Penugasan surveyor tersedia sebagai akses terpisah. Pemulihan lewat email dan sambungan Google Forms hanya tersedia setelah layanan tersebut dikonfigurasi dan diaktifkan pengelola aplikasi.',
         ],
         [
           'Biaya dan privasi',
-          'Free Plan tersedia untuk pengujian. Tidak ada checkout atau transaksi berbayar yang diproses aplikasi. Harga atau paket berbayar memerlukan pemberitahuan dan konfigurasi terpisah. Penggunaan data akun, profil surveyor, dan jawaban dijelaskan pada Kebijakan Privasi; baca pemberitahuan tersebut sebelum melengkapi profil atau mengirim jawaban.',
+          'SurveyDash saat ini dapat digunakan tanpa langganan. Tidak ada transaksi berbayar yang diproses aplikasi. Penggunaan data akun, profil surveyor, dan jawaban dijelaskan pada Kebijakan Privasi; baca pemberitahuan tersebut sebelum melengkapi profil atau mengirim jawaban.',
         ],
       ]}
     />

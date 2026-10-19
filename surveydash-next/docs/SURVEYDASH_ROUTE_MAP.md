@@ -1,5 +1,7 @@
 # Route map
 
+20 October update: home is a compact Pengelola Survei/Surveyor choice. Subscription navigation, the workspace plan card, membership and billing tiles are removed. `/pricing` temporarily redirects to `/`; `/studio/settings/membership` and `/studio/settings/billing` temporarily redirect to `/studio/settings`. Pricing is omitted from the sitemap. These old routes are compatibility redirects, not active plan/billing pages. Internal usage accounting and optional server quotas are retained; no payment agreement or customer data is changed. Older route descriptions below are historical where they mention membership or billing.
+
 Public routes: `/`, `/features`, `/pricing`, `/help`, `/contact`, `/privacy`, `/terms`, `/login`, `/forgot-password`, `/reset-password`, `/surveys`, `/f/[token]`, surveyor referral form `/r/[token]`, opt-in presentation viewer `/p/[token]`, `/robots.txt`, `/sitemap.xml`. Home distinguishes Pengelola Survei and Surveyor through `/login?role=manager` and `/login?role=surveyor`; the server determines the account's role after login. Recovery pages are excluded from indexing; reset pages use no-referrer/no-store headers and require a valid Better Auth token.
 
 Owned workspace routes: `/studio`, `/studio/surveys`, `/studio/templates`, `/studio/search`, `/studio/import`, `/studio/[id]`, `/studio/[id]/presentations/[presentationId]`, `/studio/cleaning`, `/studio/[id]/cleaning`, `/studio/settings`, and settings subpages `account`, `workspace`, `membership`, `billing`.

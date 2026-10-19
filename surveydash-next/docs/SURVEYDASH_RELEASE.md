@@ -1,5 +1,13 @@
 # Release and recovery
 
+## Home and subscription update — 20 October 2026
+
+The requested public home has two short role cards. Plan navigation, the sidebar plan/upgrade card, settings membership/billing links and the pricing sitemap entry are removed; old pricing/membership/billing URLs receive temporary redirects. Usage accounting and optional server capacity checks remain internal and unchanged. No schema migration is needed for this UI update.
+
+The canonical production deployment was verified as `dpl_5HZifQkV6Upu7oq4sR4Vpr5cUHZF`, commit `1dad32e76e68b68a1f6f0d5e8ea645b7ddeeb271` on `codex/surveydash-studio`. It still serves the previous public home. The `codex/surveyor-workflow` preview branch includes the revision and Surveyor changes; pushing it does not update the production alias. A full production rollout therefore also needs the previously documented additive schemas, a fresh private production backup/preservation check, and the outstanding visual release gate. Production has not been migrated or released by this update. The current main URL is not a client-cache diagnosis.
+
+## Existing release runbook
+
 Production project: `surveydash-studio`; canonical URL https://surveydash-studio.vercel.app. GitHub repository `haikal-devtech/SurveyDash`, app root `surveydash-next`, production branch `codex/surveydash-studio`. Product development uses `codex/surveydash-product` previews.
 
 Required environment names: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `TRUST_PROXY`. Preview additionally requires `STAGING_DATABASE_URL`. Optional quotas: `ENFORCE_FREE_LIMITS`, `FREE_RESPONSE_LIMIT`, `FREE_ACTIVE_SURVEY_LIMIT`. Public contact: `SUPPORT_EMAIL`, defaulting to the approved `help@surveydash.id`. Optional recovery: `PASSWORD_RECOVERY_ENABLED`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`. Optional Forms OAuth: `GOOGLE_FORMS_CLIENT_ID`, `GOOGLE_FORMS_CLIENT_SECRET`. Configuration procedures and verification gates are in `SURVEYDASH_INTEGRATIONS.md`. Values are private; `.env*`, `.data/`, credentials and test results are ignored by Git.
@@ -18,7 +26,7 @@ Sharing release additionally uses `scripts/smoke-sharing.mjs`: anonymous access,
 
 Rollback: redeploy the last stable Git commit `93f768181c077fe31d09f4a49465168d00b25887` or restore its Vercel deployment. Keep the additive tables in place; old code ignores them. Do not restore a historical backup over a live production database because that would discard newer responses. Inspect incidents and restore to a new isolated database first.
 
-No paid plan, renewal, checkout or third-party billing agreement was activated. Actual Free beta usage is shown. Quotas are disabled by default until business limits are explicitly configured.
+No paid plan, renewal, checkout or third-party billing agreement was activated. Subscription and usage promotion UI is now hidden. Internal optional quotas are disabled by default until operational limits are explicitly configured.
 
 Admin provisioning is an explicit operator action: `scripts/provision-access.ts <staging|production> <approved-admin-email> ...`. It grants roles by account ID, preserves existing passwords, and writes generated credentials only to ignored `test-results/client-credentials.json`. It provisions a separate client demo workspace; no production responses are copied. Never run it from a build hook or commit credential files. `scripts/smoke-access.ts` only runs with the staging-only guard and removes its temporary QA role.
 

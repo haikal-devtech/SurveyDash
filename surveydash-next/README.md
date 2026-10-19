@@ -36,7 +36,7 @@ Database dan rahasia sesi lokal ada pada `.data/` dan `.env.local`, keduanya dia
 - Studio slide 16:9 dengan teks, bentuk, gambar, pie/bar/tabel, metrik terikat ke data, drag/resize, lapisan, undo/redo, autosave, tema dan pratinjau. Inspector dapat ditutup dan terbuka saat memilih objek. Generator menampilkan kelengkapan sumber data sebelum membuat slide. File PDF/PPTX mempertahankan tampilan sebagai gambar; komponen PowerPoint tidak dapat diedit terpisah.
 - Presentasi dapat diarsipkan dan dipulihkan. Tombol **Bagikan** mengaktifkan link viewer tanpa login untuk versi slide yang sudah ditinjau. Perubahan editor tampil setelah **Perbarui versi berbagi**. Cabut link kapan saja; arsip presentasi dan sampah survei juga mencabutnya.
 - Beranda dengan starter template dan tabel survei; pencarian, duplikat, arsip, sampah dan pemulihan.
-- Pengaturan nama dan foto profil privat, identitas workspace, penggunaan bulanan aktual dan impor Google Form JSON dengan preview serta catatan item yang tidak didukung.
+- Pengaturan nama dan foto profil privat, identitas workspace, dan impor Google Form JSON dengan preview serta catatan item yang tidak didukung. Menu langganan, plan, dan tagihan disembunyikan sementara.
 - Pemulihan password melalui SMTP dan sambungan Google Forms API tersedia setelah konfigurasi pengelola. Sambungan Google hanya membaca instrumen, lalu memakai alur preview/import yang sama. Konfigurasi dan prasyarat ada di [panduan integrasi](docs/SURVEYDASH_INTEGRATIONS.md).
 - Navigasi publik sticky dengan menu mobile dan kontak support `help@surveydash.id`.
 - PostgreSQL untuk deployment Vercel; SQLite sebagai pilihan lokal tanpa layanan cloud.

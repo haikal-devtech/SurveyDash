@@ -9,7 +9,6 @@ const links = [
   { href: '/login?role=surveyor', label: 'Surveyor' },
   { href: '/features', label: 'Fitur' },
   { href: '/help', label: 'Bantuan' },
-  { href: '/pricing', label: 'Plan' },
   { href: '/contact', label: 'Kontak' },
 ];
 

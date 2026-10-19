@@ -14,7 +14,7 @@ export function PublicFrame({ children }: { children: React.ReactNode }) {
             Masuk
           </Link>
           <Link href="/login?mode=signup" className="btn btn-primary">
-            Mulai gratis
+            Daftar
           </Link>
         </div>
       </header>
