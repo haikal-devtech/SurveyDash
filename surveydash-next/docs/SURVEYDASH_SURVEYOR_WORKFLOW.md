@@ -6,7 +6,7 @@ Branch fitur: `codex/surveyor-workflow`, berdasarkan revisi `61afb8b`. Akun lama
 
 1. Di home pilih **Pengelola Survei** untuk membuat pertanyaan, atau **Surveyor** untuk menerima tugas. Responden memiliki jalur portal tersendiri dan tidak perlu login untuk mengisi form yang tersedia.
 2. Surveyor mendaftar dengan nama lengkap, username unik, email/password, bank/penyedia, nama pemilik dan nomor rekening, serta persetujuan aktif. Login menerima email atau username. Username tidak dapat diganti; nama lengkap boleh diperbarui dan boleh sama dengan orang lain.
-3. Pengelola membuka survei → tab **Surveyor**, lalu menugaskan username yang sudah terdaftar. Tidak ada daftar seluruh rekening atau akses ke profil pembayaran orang lain.
+3. Pengelola membuka menu **Surveyor** (juga tersedia di beranda dan editor survei), memilih survei, lalu **Undang Surveyor** → **Salin link undangan**. Kirim link melalui pesan pribadi. Penerima daftar atau masuk, lalu memilih **Bergabung**; namanya muncul pada daftar Surveyor pengelola. Akun yang sudah terdaftar juga dapat ditambahkan melalui **Tambahkan dengan username**. Tidak ada daftar seluruh rekening atau akses ke profil pembayaran orang lain.
 4. Surveyor masuk portal `/surveyor`, melihat tugas dan pertanyaannya dalam mode baca, lalu menyalin link pribadi. Link hanya dapat menerima jawaban saat survei terbuka dan tersedia bagi responden.
 5. Penerima membuka `/r/[token]`. Form menampilkan nama dan username surveyor; penerima tidak mengetik nama surveyor. Token acak menjadi identitas penugasan di server, bukan nama dalam query yang dapat diganti bebas.
 6. Setiap jawaban menyimpan snapshot identitas sumber. Pengelola melihat kolom Surveyor, mencari berdasarkan nama/username, dan mengekspor atribusi melalui CSV. Link langsung lama tetap berfungsi tanpa atribusi.
@@ -15,6 +15,14 @@ Branch fitur: `codex/surveyor-workflow`, berdasarkan revisi `61afb8b`. Akun lama
 9. Periksa kelompok nama, bank+rekening atau jawaban substantif yang sama. Bandingkan respons, beri status **Wajar**, **Perlu verifikasi** atau **Belum ditinjau**, serta alasan. Riwayat mencatat akun peninjau sebenarnya. Koreksi respons membuat tinjauan sebelumnya ditandai usang.
 
 Cleaning memberi indikasi, bukan bukti kecurangan. Nama umum, rekening bersama dan pertanyaan dengan pilihan terbatas dapat menghasilkan kemiripan yang wajar. Tidak ada penghapusan, pengecualian analisis, perubahan IKM, pembayaran atau verifikasi rekening otomatis.
+
+## Penyederhanaan dan undangan — 20 Oktober 2026
+
+Login memakai satu kartu dengan judul **Masuk** atau **Daftar**, label **Username** dan **Email**, serta pilihan peran yang ringkas. Pendaftaran Surveyor dibagi dua langkah: **Akun** → **Rekening**; tombol Kembali mempertahankan isian. Persetujuan tetap aktif dan tidak dicentang sebelumnya. Tujuan undangan dibawa melalui proses login/daftar, tanpa menerima URL redirect bebas.
+
+Link undangan berlaku tujuh hari. Link ini dapat dibagikan kepada beberapa calon Surveyor dan siapa pun yang menerimanya dapat bergabung menggunakan akun Surveyor lengkap. Karena itu, bagikan melalui pesan pribadi. Ini berbeda dari **Link responden** `/r/[token]`, yang digunakan untuk mengisi jawaban. Mematikan undangan mencegah pendaftar baru, tanpa mengeluarkan Surveyor yang sudah bergabung. Menonaktifkan Surveyor tetap mematikan link respondennya; undangan lama maupun baru tidak dapat mengaktifkan penugasan tersebut kembali.
+
+Tabel tambahan `surveyor_invitations` menyimpan token acak, pemilik survei, akun pembuat, status serta waktu berlaku. Endpoint pengelola `/api/surveys/[id]/surveyor-invitation` memeriksa workspace dan origin untuk perubahan. `/invite/surveyor/[token]` hanya menampilkan judul/instansi sampai akun bergabung. Penerimaan melalui `/api/surveyor/invitations/[token]/accept` memeriksa role dan profil akun, token aktif serta survei yang belum diarsipkan/dibuang pada transaksi yang mengunci survei. Join berulang tidak menggandakan penugasan, dan link yang diaktifkan kembali mendapat token baru. Login/undangan memakai no-referrer, no-store dan noindex. Urutan restore telah diperbarui.
 
 ## Batas akses dan penyimpanan
 
@@ -41,7 +49,13 @@ Skema tambahan: `surveyor_profiles`, `surveyor_assignments`, `submission_attribu
 | Cleaning pengelola   | `/studio/cleaning`, `/studio/[id]/cleaning`, `/api/surveys/[id]/cleaning`  |
 | Konteks login aktual | `/api/account/context`                                                     |
 
-## Validasi dan rilis
+## Validasi pembaruan — 20 Oktober 2026
+
+**50 tes otomatis**, **41 pemeriksaan HTTP lokal** (37 alur undangan dan 4 halaman/redirect), serta **9 pemeriksaan PostgreSQL** lolos. Alur mencakup undangan → pendaftaran → Bergabung → daftar Pengelola, origin/role/owner salah, identitas palsu pada body, join berulang, penugasan dicabut, undangan dimatikan/kedaluwarsa, dan penanganan join bersamaan. Tes PostgreSQL memakai schema QA khusus tanpa `public`; schema dihapus dan ketidakhadirannya diverifikasi. Strict ESLint seluruh `src` serta pemeriksaan ulang komponen yang berubah lolos. Build produksi lokal lolos, termasuk TypeScript dan 30 halaman statis, menggunakan database build terpisah. Pemeriksaan HTTP menguji keluaran server, bukan interaksi browser pada langkah formulir atau tombol salin.
+
+Staging dicadangkan pada 20 Oktober WIB sebelum menambah `surveyor_invitations`; seluruh isi 22 tabel lama tetap identik dengan backup dan tabel baru tidak berisi fixture. Production tidak dimigrasikan atau dirilis. Peringatan Better Auth tentang tipe `rateLimit.lastRequest` tetap sama. QA visual masih tertahan oleh kebijakan izin browser tersimpan seperti dicatat di bawah.
+
+## Validasi sebelumnya — 19 Oktober 2026
 
 Unit/repository: **42 tes lolos**. HTTP lokal: **69 pemeriksaan lolos** pada database terpisah; termasuk registrasi nyata Better Auth, consent/username, enkripsi/masking, login username, pembatasan role, dua sumber link, pemalsuan payload, retry, revoke/rotasi, review/audit/konflik dan koreksi setelah review. Rate limiter tetap aktif; harness menunggu `Retry-After` saat membuat banyak akun sintetis.
 

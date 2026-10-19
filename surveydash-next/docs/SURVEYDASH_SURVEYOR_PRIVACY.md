@@ -26,6 +26,8 @@ Link pribadi menampilkan identitas tampilan surveyor kepada responden. Server me
 
 Link dapat diteruskan oleh penerima. Atribusi adalah asal link, bukan bukti identitas responden, kontak langsung, atau keberhasilan kerja surveyor. Pengelola perlu mempertimbangkan hal ini sebelum mengambil keputusan terkait kualitas atau insentif. Jangan menjadikan nama surveyor pada link sebagai autentikasi atau izin editor.
 
+Undangan untuk bergabung terpisah dari link responden. Pengelola dapat membuat link undangan berlaku tujuh hari, membagikannya melalui pesan pribadi, dan mematikannya. Pemegang link melihat judul/instansi, lalu memakai akun Surveyor lengkap untuk bergabung dan tercatat pada daftar penugasan. Link dapat dipakai beberapa calon surveyor dan dapat diteruskan. Mematikan undangan mencegah orang baru bergabung, tanpa menghapus penugasan yang sudah ada. Penugasan yang dinonaktifkan tidak dapat dipulihkan oleh surveyor melalui undangan lama maupun baru. Token undangan dilindungi sebagai kemampuan akses dan tidak boleh dipublikasikan di laporan atau fixture umum.
+
 Rekening responden hanya diproses jika Pengelola secara khusus menambahkannya sebagai pertanyaan. Tidak ada kewajiban rekening bagi seluruh responden dan tidak ada pencocokan jawaban terhadap rekening profil surveyor. Form perlu menampilkan tujuan survei, siapa yang mengelola, atribusi bila ada, serta tautan privasi sebelum jawaban dikirim. Pengelola perlu menjelaskan kebutuhan pertanyaan rekening dalam konteks surveinya sendiri.
 
 ## Persetujuan dan permintaan data

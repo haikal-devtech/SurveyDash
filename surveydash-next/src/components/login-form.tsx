@@ -92,7 +92,13 @@ export function LoginForm({
           }),
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || data.message || 'Pendaftaran belum berhasil.');
+        if (!response.ok) {
+          if (response.status === 409) {
+            setStep(1);
+            requestAnimationFrame(() => stepTitle.current?.focus());
+          }
+          throw new Error(data.error || data.message || 'Pendaftaran belum berhasil.');
+        }
         result = { error: null };
       } else if (isSurveyor) {
         const response = await fetch('/api/auth/sign-in/email', {

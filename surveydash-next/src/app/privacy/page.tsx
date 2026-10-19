@@ -25,6 +25,10 @@ export default function PrivacyPage() {
           'Link pribadi menghubungkan satu surveyor dengan satu survei yang ditugaskan. Nama dan username surveyor dapat terlihat oleh siapa pun yang menerima link dan ditampilkan pada form agar responden mengetahui asal link. Saat jawaban dikirim, server memeriksa link dan mencatat atribusi surveyor bersama jawaban. Responden tidak perlu mengetik nama surveyor. Link dapat diteruskan oleh penerima; atribusi menunjukkan asal link yang digunakan, bukan bukti identitas responden atau bukti siapa yang mengirim pesan terakhir.',
         ],
         [
+          'Undangan surveyor',
+          'Pengelola dapat membagikan link undangan yang berlaku tujuh hari dan dapat dimatikan lebih awal. Penerima link dapat melihat judul survei dan instansinya, lalu mendaftar atau masuk sebagai Surveyor dan memilih Bergabung. Akun yang bergabung tercatat pada penugasan milik Pengelola. Link dapat diteruskan, sehingga Pengelola perlu membagikannya melalui pesan pribadi kepada orang yang dituju. Mematikan undangan menghentikan orang baru bergabung; penugasan yang sudah ada diatur secara terpisah.',
+        ],
+        [
           'Akses surveyor dan Pengelola Survei',
           'Surveyor hanya dapat membuka penugasan miliknya, membaca pertanyaan, dan membagikan link pribadinya. Penugasan tidak memberikan akses mengubah pertanyaan, melihat tabel jawaban responden, atau mengoreksi jawaban. Pengelola mengatur penugasan serta melihat jawaban dan atribusi di survei miliknya. Admin platform dapat mengakses workspace sesuai kewenangan dukungan; koreksi data mencatat akun pelakunya. Akses pengelolaan workspace tidak otomatis membuka rekening pribadi surveyor.',
         ],

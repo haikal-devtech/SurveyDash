@@ -12,7 +12,11 @@ import '@/app/invitation.css';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Undangan Surveyor', robots: { index: false, follow: false }, referrer: 'no-referrer' };
+export const metadata = {
+  title: 'Undangan Surveyor',
+  robots: { index: false, follow: false },
+  referrer: 'no-referrer',
+};
 export default async function SurveyorInvitationPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   let invitation;
@@ -28,8 +32,12 @@ export default async function SurveyorInvitationPage({ params }: { params: Promi
   return (
     <main className="invite-entry">
       <section className="invite-card">
-        <Link href="/" className="invite-brand" aria-label="Beranda SurveyDash"><Brand /></Link>
-        <div className="invite-icon"><UserPlus size={26} aria-hidden="true" /></div>
+        <Link href="/" className="invite-brand" aria-label="Beranda SurveyDash">
+          <Brand />
+        </Link>
+        <div className="invite-icon">
+          <UserPlus size={26} aria-hidden="true" />
+        </div>
         <h1>Undangan Surveyor</h1>
         <p>Anda diundang untuk membantu menyebarkan survei.</p>
         <div className="invite-survey">
@@ -43,8 +51,12 @@ export default async function SurveyorInvitationPage({ params }: { params: Promi
           </>
         ) : (
           <div className="invite-action">
-            <Link className="btn btn-primary" href={'/login?' + query.toString() + '&mode=signup'}>Daftar</Link>
-            <p>Sudah punya akun? <Link href={'/login?' + query.toString()}>Masuk</Link></p>
+            <Link className="btn btn-primary" href={'/login?' + query.toString() + '&mode=signup'}>
+              Daftar
+            </Link>
+            <p>
+              Sudah punya akun? <Link href={'/login?' + query.toString()}>Masuk</Link>
+            </p>
           </div>
         )}
       </section>

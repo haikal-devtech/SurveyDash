@@ -50,7 +50,9 @@ export async function revokeSurveyorInvitation(surveyId: string, ownerId: string
   return getDb().transaction(async () => {
     await getSurvey(surveyId, ownerId);
     await getDb()
-      .prepare('UPDATE surveyor_invitations SET active = 0, updated_at = ? WHERE survey_id = ? AND owner_id = ?')
+      .prepare(
+        'UPDATE surveyor_invitations SET active = 0, updated_at = ? WHERE survey_id = ? AND owner_id = ?',
+      )
       .run(new Date().toISOString(), surveyId, ownerId);
   });
 }
@@ -74,7 +76,9 @@ export async function acceptSurveyorInvitation(token: string, userId: string) {
     await assertSurveyor(userId);
     const { row, survey } = await resolveInvitationRow(token);
     const profile = await getDb()
-      .prepare('SELECT p.username FROM surveyor_profiles p JOIN "user" u ON u.id = p.user_id WHERE p.user_id = ?')
+      .prepare(
+        'SELECT p.username FROM surveyor_profiles p JOIN "user" u ON u.id = p.user_id WHERE p.user_id = ?',
+      )
       .get(userId);
     if (!profile) throw new AppError('Selesaikan pendaftaran Surveyor terlebih dahulu.', 403);
     const current = await getDb()

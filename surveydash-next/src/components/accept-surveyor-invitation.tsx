@@ -5,7 +5,13 @@ import { Loader2 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import { Button } from './ui';
 
-export function AcceptSurveyorInvitation({ token, switchAccount = false }: { token: string; switchAccount?: boolean }) {
+export function AcceptSurveyorInvitation({
+  token,
+  switchAccount = false,
+}: {
+  token: string;
+  switchAccount?: boolean;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
@@ -18,7 +24,9 @@ export function AcceptSurveyorInvitation({ token, switchAccount = false }: { tok
         if (result.error) throw new Error('Belum bisa mengganti akun. Coba lagi.');
         router.replace('/login?role=surveyor&invite=' + encodeURIComponent(token));
       } else {
-        const response = await fetch('/api/surveyor/invitations/' + encodeURIComponent(token) + '/accept', { method: 'POST' });
+        const response = await fetch('/api/surveyor/invitations/' + encodeURIComponent(token) + '/accept', {
+          method: 'POST',
+        });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Belum bisa bergabung. Coba lagi.');
         router.replace('/surveyor');
@@ -32,7 +40,11 @@ export function AcceptSurveyorInvitation({ token, switchAccount = false }: { tok
   }
   return (
     <div className="invite-action">
-      {error && <p className="banner banner-error" role="alert">{error}</p>}
+      {error && (
+        <p className="banner banner-error" role="alert">
+          {error}
+        </p>
+      )}
       <Button disabled={pending} onClick={() => void proceed()}>
         {pending && <Loader2 className="animate-spin" size={17} />}
         {switchAccount ? 'Ganti akun' : 'Bergabung'}

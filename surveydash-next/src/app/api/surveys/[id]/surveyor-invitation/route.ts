@@ -1,10 +1,16 @@
 import { api, checkOrigin, requireWorkspaceUser } from '@/lib/http';
-import { createSurveyorInvitation, getManagedInvitation, revokeSurveyorInvitation } from '@/lib/surveyor-invitations';
+import {
+  createSurveyorInvitation,
+  getManagedInvitation,
+  revokeSurveyorInvitation,
+} from '@/lib/surveyor-invitations';
 
 type Context = { params: Promise<{ id: string }> };
 export const runtime = 'nodejs';
 export async function GET(_request: Request, { params }: Context) {
-  return api(async () => ({ invitation: await getManagedInvitation((await params).id, (await requireWorkspaceUser()).ownerId) }));
+  return api(async () => ({
+    invitation: await getManagedInvitation((await params).id, (await requireWorkspaceUser()).ownerId),
+  }));
 }
 export async function POST(request: Request, { params }: Context) {
   return api(async () => {

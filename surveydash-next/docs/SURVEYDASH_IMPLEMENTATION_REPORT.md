@@ -1,5 +1,13 @@
 # Implementation report
 
+## Simple login and Surveyor invitations — 20 October 2026
+
+Login now uses one short form; Surveyor registration separates Account and Bank details into two steps. Labels and actions use plain Indonesian (Username, Email, Masuk, Daftar). Active privacy consent and private payout handling remain enforced. A Surveyor directory is visible in the manager sidebar, overview and editor, scoped to the owned workspace.
+
+Managers select a survey and create/copy a seven-day invitation for manual sharing. Recipients register or sign in, then choose Bergabung; the server assigns the survey and their name appears in the manager list. Invitation capabilities are distinct from respondent links, can be revoked/rotated, and cannot restore a surveyor's disabled assignment. Public invitation metadata is limited to title/institution. No invitation email or message is sent automatically.
+
+Validation: **50 tests, 41 local HTTP checks and 9 isolated PostgreSQL checks passed**, along with strict source lint and an isolated production build including TypeScript. The staging migration added one table after a private backup and verified every row in the 22 pre-existing tables unchanged. Fixtures stayed in local databases or an isolated QA schema, which was removed. Production and visual QA remain held as described below; no browser interaction or layout result is claimed.
+
 ## Surveyor and cleaning follow-up — 19 October 2026
 
 Branch `codex/surveyor-workflow` adds distinct Pengelola Survei and Surveyor entry points, server-enforced roles, unique normalized surveyor usernames, and consented profile registration with encrypted bank details and masked account-number responses. Existing accounts remain Pengelola. Surveyors receive only assigned surveys, read questions without editing or respondent-row access, and share personal referral links. Responses retain immutable source snapshots; direct form links remain compatible without attribution, and reactivating a revoked assignment rotates its token.

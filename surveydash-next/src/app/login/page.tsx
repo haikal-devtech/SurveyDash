@@ -7,7 +7,8 @@ export default async function LoginPage({
   searchParams: Promise<{ mode?: string; role?: string; invite?: string }>;
 }) {
   const parameters = await searchParams;
-  const invitationToken = parameters.invite && /^[a-zA-Z0-9_-]{32}$/.test(parameters.invite) ? parameters.invite : undefined;
+  const invitationToken =
+    parameters.invite && /^[a-zA-Z0-9_-]{32}$/.test(parameters.invite) ? parameters.invite : undefined;
   return (
     <LoginForm
       key={`${parameters.role}:${parameters.mode}:${invitationToken ?? ''}`}
