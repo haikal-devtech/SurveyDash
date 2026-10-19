@@ -64,10 +64,10 @@ export default function HelpPage() {
             </nav>
           </div>
           <Image
-            src="/brand/photos/help.webp"
+            src="/brand/clay/results.webp"
             alt=""
-            width={1200}
-            height={800}
+            width={720}
+            height={720}
             sizes="(max-width: 700px) 100vw, 400px"
           />
         </section>
@@ -87,10 +87,10 @@ export default function HelpPage() {
               {guideSteps[role].map((step, index) => (
                 <article key={step.title}>
                   <Image
-                    src={`/brand/photos/${step.image}.webp`}
+                    src={`/brand/clay/${step.image}.webp`}
                     alt=""
-                    width={1200}
-                    height={800}
+                    width={720}
+                    height={720}
                     sizes="(max-width: 700px) 100vw, 350px"
                   />
                   <div>

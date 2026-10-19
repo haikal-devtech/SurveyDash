@@ -148,10 +148,10 @@ export function LoginForm({
       <div className="auth-entry-layout">
         <aside className="auth-entry-visual" aria-label="Tentang peran Anda">
           <Image
-            src={`/brand/photos/${isSurveyor ? 'surveyor' : 'manager'}.webp`}
+            src={`/brand/clay/${isSurveyor ? 'share' : 'create'}.webp`}
             alt=""
-            width={1200}
-            height={800}
+            width={720}
+            height={720}
             sizes="(max-width: 860px) 1px, 470px"
           />
           <div>

@@ -133,10 +133,10 @@ export function RoleGuide({ role }: { role: GuideRole }) {
     >
       <div className="role-guide" data-role-guide={role}>
         <Image
-          src={`/brand/photos/${current.image}.webp`}
+          src={`/brand/clay/${current.image}.webp`}
           alt=""
-          width={1200}
-          height={800}
+          width={720}
+          height={720}
           sizes="(max-width: 640px) 100vw, 390px"
           className="role-guide-photo"
         />

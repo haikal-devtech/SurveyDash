@@ -10,14 +10,14 @@ const roles = [
     title: 'Pengelola Survei',
     description: 'Buat survei atau SKM, kelola Surveyor, dan lihat hasilnya.',
     icon: ClipboardList,
-    image: 'manager',
+    image: 'create',
   },
   {
     id: 'surveyor',
     title: 'Surveyor',
     description: 'Terima tugas dan bagikan link survei kepada responden.',
     icon: UsersRound,
-    image: 'surveyor',
+    image: 'share',
   },
 ];
 export default function Page() {
@@ -27,7 +27,7 @@ export default function Page() {
         <section className="entry-hero" aria-labelledby="entry-title">
           <div className="entry-hero-copy">
             <p className="entry-eyebrow">
-              <span /> RUANG UNTUK SETIAP SUARA
+              <span /> FORM · DATA · INSIGHT
             </p>
             <h1 id="entry-title">
               Survei lebih mudah.
@@ -41,8 +41,8 @@ export default function Page() {
           </div>
           <div className="entry-hero-visual">
             <Image
-              src="/brand/photos/hero.webp"
-              alt="Ilustrasi dua peneliti berdiskusi menggunakan laptop"
+              src="/brand/clay/hero.webp"
+              alt="Ilustrasi clay kartu survei, token jawaban, dan grafik ungu"
               width={1200}
               height={800}
               sizes="(max-width: 700px) 100vw, 48vw"
@@ -66,10 +66,10 @@ export default function Page() {
                 aria-labelledby={`${role.id}-role-title`}
               >
                 <Image
-                  src={`/brand/photos/${role.image}.webp`}
+                  src={`/brand/clay/${role.image}.webp`}
                   alt=""
-                  width={1200}
-                  height={800}
+                  width={720}
+                  height={720}
                   sizes="(max-width: 700px) 90px, 150px"
                   className="entry-role-photo"
                 />

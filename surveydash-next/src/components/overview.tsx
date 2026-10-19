@@ -85,7 +85,7 @@ export function Overview({
         </div>
         {!listOnly && (
           <Image
-            src="/brand/photos/hero.webp"
+            src="/brand/clay/hero.webp"
             alt=""
             width={1200}
             height={800}

@@ -1,0 +1,534 @@
+/* Static material tokens: no animation runtime, backdrop filters, or WebGL. */
+.clay-ui {
+  --bg: #f6f3fb;
+  --card: #fefcff;
+  --ink: #2c2341;
+  --muted: #766685;
+  --border: #e4dcee;
+  --purple: #7242d5;
+  --purple-soft: #eee5fc;
+  --clay-surface: linear-gradient(145deg, #fffefd, #f1ebfa);
+  --clay-violet: linear-gradient(145deg, #8958d9, #7445d5 65%, #6838c5);
+  --clay-shadow: 6px 8px 20px #4d2c7c10, inset 2px 2px 4px #fff, inset -2px -2px 4px #b8a4d126;
+  --clay-inset: inset 2px 3px 6px #9e83bc17, inset -2px -2px 4px #fff;
+}
+.clay-ui .btn {
+  border-radius: 12px;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+.clay-ui .btn-primary,
+.clay-ui .surveyor-share > .btn {
+  background: var(--clay-violet);
+  border-color: #7444ce;
+  color: white;
+  box-shadow:
+    inset 0 2px 2px #ffffff50,
+    inset 0 -3px 4px #43228535,
+    0 5px 10px #7444cb20;
+}
+.clay-ui .btn-primary:hover,
+.clay-ui .surveyor-share > .btn:hover {
+  background: linear-gradient(145deg, #8050d0, #6b3bc9);
+}
+.clay-ui .btn-primary:active,
+.clay-ui .surveyor-share > .btn:active {
+  box-shadow: inset 0 2px 5px #48227760;
+}
+.clay-ui .btn-secondary {
+  background: var(--clay-surface);
+  border-color: #e4d8f0;
+  color: #645079;
+  box-shadow:
+    inset 1px 1px 2px #fff,
+    inset -1px -2px 3px #b5a1cb20,
+    0 3px 7px #57367908;
+}
+.clay-ui .btn-secondary:hover {
+  border-color: #c2a8e2;
+  background: #f6efff;
+}
+.clay-ui .btn-ghost {
+  border-radius: 10px;
+}
+.clay-ui .input {
+  border-radius: 11px;
+  background: #fcfaff;
+  border-color: #dcd0eb;
+  box-shadow: var(--clay-inset);
+}
+.clay-ui .input:focus {
+  background: #fff;
+}
+.clay-ui .badge {
+  border-radius: 7px;
+}
+.clay-ui .modal {
+  border: 1px solid #fff;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #fffdff, #f8f3fd);
+}
+.clay-ui .marketing-site {
+  background: linear-gradient(160deg, #fcfaff, #f3edfb 65%, #faf7ff);
+}
+.clay-ui .marketing-header {
+  background: #fbf8ff;
+  border-bottom-color: #eae0f3;
+}
+.clay-ui .marketing-footer {
+  border-top-color: #e8def1;
+}
+.clay-ui .entry-hero h1 em {
+  background: linear-gradient(110deg, #7143bd, #b06cbd);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+.clay-ui .entry-hero-visual {
+  border-radius: 36px;
+  background:
+    radial-gradient(ellipse at 70% 20%, #fff6eb, transparent 65%), linear-gradient(135deg, #f1e8ff, #e1d3f6);
+  border: 1px solid #fff;
+  box-shadow: var(--clay-shadow);
+  padding: 16px 12px 42px;
+}
+.clay-ui .entry-hero-visual > img {
+  height: 300px;
+  object-fit: contain;
+  object-position: center;
+}
+.clay-ui .entry-photo-label {
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  bottom: 18px;
+  background: var(--clay-surface);
+  box-shadow: var(--clay-shadow);
+  color: #6c4f8c;
+}
+.clay-ui .entry-start {
+  padding: 4px 18px;
+  border: 1px solid #e2d4f1;
+  border-radius: 13px;
+  background: var(--clay-surface);
+  box-shadow: var(--clay-shadow);
+}
+.clay-ui .role-entry-card {
+  background: var(--clay-surface);
+  border-color: #fff;
+  border-radius: 24px;
+  box-shadow: var(--clay-shadow);
+  padding: 18px;
+  grid-template-columns: 128px minmax(0, 1fr);
+}
+.clay-ui .role-entry-card-surveyor {
+  background: linear-gradient(145deg, #fefcff, #eae0fa);
+}
+.clay-ui .role-entry-card:hover {
+  border-color: #ccb5e8;
+}
+.clay-ui .entry-role-photo {
+  min-height: 160px;
+  max-height: 210px;
+  padding: 5px;
+  object-fit: contain;
+  align-self: center;
+}
+.clay-ui .role-entry-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #ede2fd, #d7c1f5);
+  color: #7950ac;
+  box-shadow:
+    inset 1px 1px 2px #fff,
+    inset -2px -2px 3px #9f7ac122;
+}
+.clay-ui .entry-role-body {
+  padding-left: 18px;
+}
+.clay-ui .entry-role-body > p {
+  font-size: 13px;
+  color: #756184;
+}
+.clay-ui .entry-respondent {
+  background: linear-gradient(115deg, #f3e9ff, #f8f3ff);
+  border: 1px solid #fff;
+  border-radius: 18px;
+  box-shadow: var(--clay-shadow);
+}
+.clay-ui .entry-respondent-icon {
+  border-radius: 13px;
+  box-shadow: var(--clay-shadow);
+  background: var(--clay-surface);
+}
+.clay-ui .auth-entry {
+  background: radial-gradient(ellipse at top left, #eadff9, transparent 65%), #f7f3fc;
+}
+.clay-ui .auth-entry-visual {
+  min-height: 560px;
+  border: 1px solid #fff;
+  background:
+    radial-gradient(ellipse at top right, #fff1e6, transparent 65%), linear-gradient(150deg, #f5edff, #ddcaf7);
+  box-shadow: var(--clay-shadow);
+  border-radius: 32px;
+}
+.clay-ui .auth-entry-visual > img {
+  height: 330px;
+  inset: 25px 0 auto;
+  object-fit: contain;
+  padding: 20px 48px;
+}
+.clay-ui .auth-entry-visual > div {
+  background: none;
+  color: #3a2755;
+  padding: 24px 32px 34px;
+}
+.clay-ui .auth-entry-visual h2 {
+  font-size: 29px;
+}
+.clay-ui .auth-entry-visual p {
+  color: #775d8e;
+}
+.clay-ui .auth-entry-card {
+  background: var(--clay-surface);
+  border-color: #fff;
+  border-radius: 24px;
+  box-shadow: var(--clay-shadow);
+}
+.clay-ui .auth-entry-role-tabs {
+  background: #ece3f8;
+  box-shadow: var(--clay-inset);
+  border-radius: 13px;
+  padding: 5px;
+}
+.clay-ui .auth-entry-role-tabs [aria-current] {
+  background: var(--clay-surface);
+  border-radius: 10px;
+  box-shadow: var(--clay-shadow);
+}
+.clay-ui .workspace {
+  background: #f6f3fb;
+}
+.clay-ui .sidebar {
+  background: linear-gradient(160deg, #fcfaff, #f1eaf9);
+  border-color: #e4d9f0;
+}
+.clay-ui .workspace-select {
+  background: #f4eefb;
+  box-shadow: var(--clay-inset);
+  border-radius: 14px;
+  border-color: #e7ddf1;
+}
+.clay-ui .avatar-square {
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ebe0fd, #d7c2f5);
+  box-shadow:
+    inset 1px 1px 2px #fff,
+    inset -1px -2px 3px #b79aca55;
+}
+.clay-ui .workspace .nav-item {
+  border-radius: 12px;
+  font-size: 13px;
+  color: #796789;
+}
+.clay-ui .workspace .nav-item.active {
+  background: var(--clay-surface);
+  color: #7047a0;
+  box-shadow: var(--clay-shadow);
+}
+.clay-ui .workspace .topbar {
+  background: #fbf9fe;
+  border-color: #e8dff1;
+}
+.clay-ui .global-search {
+  background: #f0eaf8;
+  box-shadow: var(--clay-inset);
+  border-radius: 12px;
+}
+.clay-ui .workspace-welcome {
+  border: 1px solid #fff;
+  border-radius: 26px;
+  background: linear-gradient(120deg, #faf6ff, #e6d7fb);
+  box-shadow: var(--clay-shadow);
+}
+.clay-ui .workspace-welcome-photo {
+  object-fit: contain;
+  object-position: center;
+  padding: 12px 22px 12px 0;
+  max-height: 270px;
+}
+.clay-ui .workspace-metrics > a {
+  background: var(--clay-surface);
+  border-color: #fff;
+  border-radius: 20px;
+  box-shadow: var(--clay-shadow);
+}
+.clay-ui .workspace-metrics > a:nth-child(2) {
+  background: linear-gradient(140deg, #fcfaff, #e9dff8);
+}
+.clay-ui .workspace-metrics > a:nth-child(3) {
+  background: linear-gradient(140deg, #fffefd, #f7ede9);
+}
+.clay-ui .workspace-shortcuts > a {
+  background: var(--clay-surface);
+  border-color: #eee5f5;
+  border-radius: 18px;
+}
+.clay-ui .shortcut-icon,
+.clay-ui .manager-invitation-icon {
+  background: linear-gradient(135deg, #f2e9ff, #d9c5f3);
+  border-radius: 14px;
+  box-shadow:
+    inset 1px 1px 2px #fff,
+    inset -2px -2px 3px #ac8bc633;
+}
+.clay-ui .workspace .starter-tile {
+  background: var(--clay-surface);
+  border: 1px solid #fff;
+  border-radius: 18px;
+  box-shadow: var(--clay-shadow);
+}
+.clay-ui .workspace .starter-tile > span {
+  background: #ede1fc;
+  box-shadow: var(--clay-inset);
+  border-radius: 12px;
+}
+.clay-ui .workspace .starter-first {
+  border-color: #c4a8e7;
+  background: linear-gradient(140deg, #f8f1ff, #eadcfc);
+}
+.clay-ui .workspace .card {
+  border-radius: 15px;
+  border-color: #e4d9ee;
+}
+.clay-ui .workspace .manager-invitation {
+  background: linear-gradient(120deg, #fcf9ff, #efe5fc);
+  border-color: #e4d5f3;
+}
+.clay-ui .surveyor-shell {
+  background: linear-gradient(165deg, #faf7ff, #f1eaf9);
+}
+.clay-ui .surveyor-header {
+  background: #fcf9ff;
+  border-color: #e7dcf1;
+}
+.clay-ui .surveyor-nav a,
+.clay-ui .surveyor-nav > .btn {
+  border-radius: 12px;
+}
+.clay-ui .surveyor-nav a[aria-current='page'] {
+  background: var(--clay-surface);
+  box-shadow: var(--clay-shadow);
+}
+.clay-ui .surveyor-summary .card {
+  background: var(--clay-surface);
+  border: 1px solid #fff;
+  border-radius: 20px;
+  box-shadow: var(--clay-shadow);
+}
+.clay-ui .surveyor-summary .card:nth-child(2) {
+  background: linear-gradient(140deg, #faf7ff, #eaddf9);
+}
+.clay-ui .surveyor-task {
+  border-radius: 20px;
+  border-color: #e2d6ef;
+  background: #fefcff;
+}
+.clay-ui .surveyor-welcome-card {
+  border: 1px solid #fff;
+  border-radius: 24px;
+  background: var(--clay-surface);
+  box-shadow: var(--clay-shadow);
+}
+.clay-ui .surveyor-welcome-card > img {
+  object-fit: contain;
+  padding: 24px;
+}
+.clay-ui .role-guide-modal {
+  border: 1px solid white;
+  border-radius: 26px;
+  background: linear-gradient(135deg, #fffdff, #f7f1fd);
+}
+.clay-ui .role-guide-photo {
+  background:
+    radial-gradient(ellipse at top right, #fff0e5, transparent 65%), linear-gradient(145deg, #f2e8ff, #e4d6f6);
+  object-fit: contain;
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: var(--clay-inset);
+}
+.clay-ui .role-guide-progress li > span:first-child {
+  background: #eee4fa;
+  box-shadow: var(--clay-inset);
+}
+.clay-ui .role-guide-progress li[aria-current] > span:first-child {
+  background: var(--clay-violet);
+  color: white;
+  box-shadow:
+    inset 0 1px 2px #ffffff66,
+    0 3px 6px #6731b622;
+}
+.clay-ui .role-guide-tip {
+  background: #f0e7fb;
+  border-radius: 14px;
+}
+.clay-ui .help-hero {
+  background: linear-gradient(120deg, #faf6ff, #e7d8f9);
+  border: 1px solid #fff;
+  border-radius: 28px;
+  box-shadow: var(--clay-shadow);
+}
+.clay-ui .help-hero > img {
+  object-fit: contain;
+  padding: 24px 48px;
+  max-height: 320px;
+}
+.clay-ui .help-hero nav a {
+  background: var(--clay-surface);
+  box-shadow: var(--clay-shadow);
+  border-color: #fff;
+  border-radius: 12px;
+}
+.clay-ui .help-step-grid article {
+  background: var(--clay-surface);
+  border-color: #fff;
+  border-radius: 20px;
+  box-shadow: var(--clay-shadow);
+}
+.clay-ui .help-step-grid article > img {
+  object-fit: contain;
+  height: 180px;
+  padding: 18px;
+  background: linear-gradient(145deg, #eee3fc, #f5effc);
+}
+.clay-ui .help-contact {
+  background: linear-gradient(120deg, #f3e9fc, #faf5fe);
+  border: 1px solid #fff;
+  border-radius: 22px;
+  box-shadow: var(--clay-shadow);
+}
+.clay-ui .public-shell {
+  background: linear-gradient(165deg, #fbf8ff, #f0e9f9);
+}
+.clay-ui .public-shell .form-cover {
+  background: linear-gradient(125deg, #fff, #f0e5fc);
+  border-radius: 22px;
+  border-top-color: #a17ad7;
+  box-shadow: var(--clay-shadow);
+}
+/* Data tables, question inputs, slide canvases, and task lists keep flat reading surfaces. */
+@media (max-width: 1000px) {
+  .clay-ui .role-entry-card {
+    grid-template-columns: 100px minmax(0, 1fr);
+    padding: 16px;
+  }
+  .clay-ui .entry-role-body {
+    padding-left: 12px;
+  }
+}
+@media (max-width: 700px) {
+  .clay-ui .entry-hero {
+    grid-template-columns: minmax(0, 1fr) 125px;
+    gap: 12px;
+    padding-bottom: 28px;
+  }
+  .clay-ui .entry-hero h1 {
+    font-size: clamp(26px, 5.8vw, 36px);
+    letter-spacing: -1px;
+  }
+  .clay-ui .entry-hero-visual {
+    padding: 8px;
+    border-radius: 24px;
+  }
+  .clay-ui .entry-hero-visual > img {
+    height: 150px;
+  }
+  .clay-ui .entry-photo-label {
+    display: none;
+  }
+  .clay-ui .entry-eyebrow {
+    font-size: 8px;
+    letter-spacing: 0.06em;
+  }
+  .clay-ui .entry-hero-copy > p:not(.entry-eyebrow) {
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .clay-ui .entry-start {
+    margin-top: 12px;
+    padding-inline: 12px;
+    font-size: 12px;
+  }
+  .clay-ui .role-entry-card {
+    grid-template-columns: 88px minmax(0, 1fr);
+    padding: 15px;
+    border-radius: 21px;
+  }
+  .clay-ui .entry-role-photo {
+    min-height: 120px;
+    max-height: 150px;
+  }
+  .clay-ui .entry-role-body > p {
+    font-size: 12px;
+  }
+  .clay-ui .workspace-metrics > a {
+    border-radius: 16px;
+  }
+  .clay-ui .workspace-welcome {
+    border-radius: 22px;
+  }
+  .clay-ui .help-hero > img {
+    display: none;
+  }
+  .clay-ui .help-step-grid article > img {
+    height: 100%;
+    padding: 12px;
+  }
+  .clay-ui .role-guide-photo {
+    padding: 14px;
+  }
+  .clay-ui .surveyor-welcome-card {
+    grid-template-columns: 100px minmax(0, 1fr);
+  }
+  .clay-ui .surveyor-welcome-card > img {
+    height: 100%;
+    padding: 12px;
+  }
+  .clay-ui .surveyor-welcome-card > div {
+    padding: 22px 18px 22px 4px;
+  }
+  .clay-ui .surveyor-welcome-card h3 {
+    font-size: 22px;
+  }
+  .clay-ui .surveyor-welcome-card p {
+    font-size: 12px;
+  }
+}
+@media (max-width: 380px) {
+  .clay-ui .entry-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .clay-ui .entry-hero-visual {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clay-ui .btn,
+  .clay-ui .role-entry-card {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  .clay-ui .entry-hero h1 em {
+    background: none;
+    color: CanvasText;
+  }
+  .clay-ui .btn,
+  .clay-ui .role-entry-card {
+    border: 1px solid ButtonText;
+  }
+}

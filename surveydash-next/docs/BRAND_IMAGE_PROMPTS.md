@@ -1,6 +1,6 @@
-# SurveyDash Studio image set
+# Historical SurveyDash photography prompts — superseded
 
-Created on 20 October 2026 using the built-in ImageGen tool. These are AI-generated illustrative scenes, not photographs of customers, employees, or survey respondents. No third-party photography or new image libraries were used. Original generated PNGs are retained in the local workspace at .data/brand-source/; optimized WebP assets are committed in public/brand/photos/.
+This first photography direction was replaced at the user's request by Soft Claymorphism + Gradient Design. The current production assets and prompts are documented in `CLAY_IMAGE_PROMPTS.md`. The obsolete photos are removed from public delivery. Their original PNGs remain in the local workspace at `.data/brand-source/` for reference. The historical prompts below were executed with the built-in ImageGen tool on 20 October 2026 and do not describe real staff, customers or respondents.
 
 Images were inspected for content, brand palette, visible text, and anatomy. File export uses Sharp for resizing and WebP encoding. Layout verification in a browser remains deferred.
 

@@ -29,7 +29,7 @@ export const guideSteps = {
       title: 'Terima tugas survei',
       description:
         'Buka link undangan dari Pengelola, lalu pilih Bergabung. Tugas akan muncul di halaman Tugas survei.',
-      image: 'join',
+      image: 'invite',
       tip: 'Belum ada tugas? Minta link undangan kepada Pengelola.',
     },
     {
@@ -42,7 +42,7 @@ export const guideSteps = {
     {
       title: 'Lihat perkembangannya',
       description: 'Jumlah respons muncul pada setiap tugas. Klik Perbarui untuk melihat jumlah terbaru.',
-      image: 'progress',
+      image: 'results',
       tip: 'Responden langsung mengisi tanpa login. Nama Anda tampil di form.',
     },
   ],

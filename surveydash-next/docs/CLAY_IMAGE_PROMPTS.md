@@ -1,0 +1,33 @@
+# SurveyDash Soft Clay illustration set
+
+Generated with built-in ImageGen on 20 October 2026 for the requested Soft Claymorphism + Gradient Design. Five isolated matte clay still lifes replace the previous people photography. The supplied SurveyDash logo remains unchanged. All WebP exports retain alpha; originals are preserved in the workspace at .data/clay-source/. No external image library, WebGL, animation runtime or new JavaScript dependency was introduced.
+
+## hero
+
+Asset: public/brand/clay/hero.webp (1080 × 720, 48632 bytes).
+
+Use case: stylized-concept. Asset type: bespoke SurveyDash Studio website illustration. Style: premium soft claymorphism, handmade-looking smooth matte polymer clay, generous rounded edges, believable thick forms, restrained isometric 3D still life, subtle ambient occlusion and soft studio lighting. Palette: iris violet #7549df, lavender #c6b4f2, milk white #fbf8ff, small pale peach and mint accents. Forms should feel art-directed and tactile, not shiny plastic, not a generic stock office render. Clean silhouette and breathing room. Transparent background with real alpha, isolated objects, no backdrop, no people, no faces, no readable text, no logos, no watermark, no tiny decorative confetti. No full website screenshot, no flat vector. Single coherent still life, not collage. A small sculptural 'survey workshop': a thick upright lilac rounded survey card with three inset rows and large pill-shaped answers; beside it a sculptural white bridge carries three pastel answer tokens into a violet stepped bar chart on a soft rounded platform. A small mint checkmark token rests in front. The four-tile grid motif is subtly suggested by four sculptural rounded tiles, one tile with a square opening. Dynamic but calm asymmetric arrangement, three-quarter isometric view, landscape composition. Each object must feel substantial, beautifully crafted and useful.
+
+## create
+
+Asset: public/brand/clay/create.webp (640 × 640, 30000 bytes).
+
+Use case: stylized-concept. Asset type: bespoke SurveyDash Studio website illustration. Style: premium soft claymorphism, handmade-looking smooth matte polymer clay, generous rounded edges, believable thick forms, restrained isometric 3D still life, subtle ambient occlusion and soft studio lighting. Palette: iris violet #7549df, lavender #c6b4f2, milk white #fbf8ff, small pale peach and mint accents. Forms should feel art-directed and tactile, not shiny plastic, not a generic stock office render. Clean silhouette and breathing room. Transparent background with real alpha, isolated objects, no backdrop, no people, no faces, no readable text, no logos, no watermark, no tiny decorative confetti. No full website screenshot, no flat vector. Single coherent still life, not collage. A tactile lilac clipboard with a thick white sheet, nine rounded inset answer cells arranged in a neat three-by-three grid, a chunky violet clay pencil leaning beside it, and a single pale peach check token. Three-quarter isometric view. One elegant compact sculptural vignette for creating surveys and SKM. Centered square composition.
+
+## invite
+
+Asset: public/brand/clay/invite.webp (640 × 640, 23002 bytes).
+
+Use case: stylized-concept. Asset type: bespoke SurveyDash Studio website illustration. Style: premium soft claymorphism, handmade-looking smooth matte polymer clay, generous rounded edges, believable thick forms, restrained isometric 3D still life, subtle ambient occlusion and soft studio lighting. Palette: iris violet #7549df, lavender #c6b4f2, milk white #fbf8ff, small pale peach and mint accents. Forms should feel art-directed and tactile, not shiny plastic, not a generic stock office render. Clean silhouette and breathing room. Transparent background with real alpha, isolated objects, no backdrop, no people, no faces, no readable text, no logos, no watermark, no tiny decorative confetti. No full website screenshot, no flat vector. Single coherent still life, not collage. A milk-white clay invitation envelope, an open curved lavender flap, a rounded lilac card peeking out, and two small interconnected violet rounded nodes beside it suggesting assigning a task. Three-quarter isometric view, sculptural and charming, no people or text. Compact centered square composition.
+
+## share
+
+Asset: public/brand/clay/share.webp (640 × 640, 33534 bytes).
+
+Use case: stylized-concept. Asset type: bespoke SurveyDash Studio website illustration. Style: premium soft claymorphism, handmade-looking smooth matte polymer clay, generous rounded edges, believable thick forms, restrained isometric 3D still life, subtle ambient occlusion and soft studio lighting. Palette: iris violet #7549df, lavender #c6b4f2, milk white #fbf8ff, small pale peach and mint accents. Forms should feel art-directed and tactile, not shiny plastic, not a generic stock office render. Clean silhouette and breathing room. Transparent background with real alpha, isolated objects, no backdrop, no people, no faces, no readable text, no logos, no watermark, no tiny decorative confetti. No full website screenshot, no flat vector. Single coherent still life, not collage. Two large interlocking lavender and violet clay chain links, a milk-white rounded speech bubble with a mint checkmark inset, and one pale peach rounded token, arranged as a purposeful small sculpture representing sharing a personal survey link. Three-quarter isometric view, compact centered square composition.
+
+## results
+
+Asset: public/brand/clay/results.webp (640 × 640, 19818 bytes).
+
+Use case: stylized-concept. Asset type: bespoke SurveyDash Studio website illustration. Style: premium soft claymorphism, handmade-looking smooth matte polymer clay, generous rounded edges, believable thick forms, restrained isometric 3D still life, subtle ambient occlusion and soft studio lighting. Palette: iris violet #7549df, lavender #c6b4f2, milk white #fbf8ff, small pale peach and mint accents. Forms should feel art-directed and tactile, not shiny plastic, not a generic stock office render. Clean silhouette and breathing room. Transparent background with real alpha, isolated objects, no backdrop, no people, no faces, no readable text, no logos, no watermark, no tiny decorative confetti. No full website screenshot, no flat vector. Single coherent still life, not collage. An upright milk-white rounded clay chart board with three thick rounded purple bars of ascending height and a pale mint ring-shaped magnifying lens leaning against the board. Small lavender base with four rounded tile indentations. Sculptural object representing reviewing survey results and cleaning data. Three-quarter isometric view, compact centered square composition.
