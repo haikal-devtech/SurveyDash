@@ -1,5 +1,9 @@
 # Implementation report
 
+## Production approval and data preservation — 20 October 2026
+
+The user explicitly authorized production release with visual QA to follow. The previous visual release hold below is historical and is superseded only for this approved rollout; no browser/Lighthouse/WCAG verification is claimed. Before release, production was privately backed up and migrated additively. Every row across all 15 existing tables stayed identical, including 23 surveys, 199 responses and all 7 users/accounts. Eight new feature tables and the response-order index were verified ready. Existing passwords/sessions and survey data were preserved. Final deployment/HTTP verification is recorded on PR #2 and ignored release reports; SMTP and Google provider features remain gated.
+
 ## Compact home and hidden subscriptions — 20 October 2026
 
 Public home is reduced to two role cards, each with Masuk/Daftar, and a respondent link. Plan navigation, the sidebar plan/upgrade card, subscription/billing settings tiles and pricing sitemap entry are removed. Pricing and old subscription/billing URLs temporarily redirect to home/settings. The Studio layout no longer loads usage solely for the removed plan card. Internal capacity checks and data remain unchanged. The production deployment is still `1dad32e`; preview pushes do not replace the canonical production URL.

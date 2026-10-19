@@ -1,10 +1,18 @@
 # Release and recovery
 
+## Approved production rollout — 20 October 2026
+
+The user explicitly chose **“Rilis sekarang, QA visual menyusul”** after reviewing the new preview. This supersedes the visual-only release hold documented below; visual/browser/Lighthouse/WCAG verification remains deferred, not passed. SMTP delivery and real Google consent remain gated by their provider configuration.
+
+A fresh private production backup was taken immediately before additive setup. Every existing row in all 15 old tables compared identical afterward: 23 surveys, 199 submissions, 5 audit rows, 7 templates, 7 users/accounts, 8 presentations and the remaining session/settings/share records. The eight new tables (`google_form_connections`, Surveyor profile/assignments/invitations/attribution and cleaning settings/reviews/audit) exist and were empty before release. The response pagination index was verified. Better Auth's known `rateLimit.lastRequest` int8/number warning did not rewrite rows.
+
+Approved release source: the tested compact-home/subscription-removal commit `666bbfabe094a02cb26ad9b449ffbdbabcde578b`, plus release documentation. Fast-forward `codex/surveydash-studio` only; never force-push. The prior deployment `dpl_5HZifQkV6Upu7oq4sR4Vpr5cUHZF` / commit `1dad32e76e68b68a1f6f0d5e8ea645b7ddeeb271` remains the application rollback target. Keep additive tables if rolling back; do not restore an old backup over new responses. Final deployment/HTTP smoke evidence is recorded on PR #2 and ignored machine-readable release reports.
+
 ## Home and subscription update — 20 October 2026
 
 The requested public home has two short role cards. Plan navigation, the sidebar plan/upgrade card, settings membership/billing links and the pricing sitemap entry are removed; old pricing/membership/billing URLs receive temporary redirects. Usage accounting and optional server capacity checks remain internal and unchanged. No schema migration is needed for this UI update.
 
-The canonical production deployment was verified as `dpl_5HZifQkV6Upu7oq4sR4Vpr5cUHZF`, commit `1dad32e76e68b68a1f6f0d5e8ea645b7ddeeb271` on `codex/surveydash-studio`. It still serves the previous public home. The `codex/surveyor-workflow` preview branch includes the revision and Surveyor changes; pushing it does not update the production alias. A full production rollout therefore also needs the previously documented additive schemas, a fresh private production backup/preservation check, and the outstanding visual release gate. Production has not been migrated or released by this update. The current main URL is not a client-cache diagnosis.
+Before the approved rollout above, the canonical production deployment was `dpl_5HZifQkV6Upu7oq4sR4Vpr5cUHZF`, commit `1dad32e76e68b68a1f6f0d5e8ea645b7ddeeb271` on `codex/surveydash-studio`, serving the previous home. The `codex/surveyor-workflow` preview branch included the revision and Surveyor changes; pushing it alone did not update the production alias. That explained the old home on the main URL, rather than a client-cache issue. The required production backup/migration/preservation work and the user's explicit visual-QA deferral are recorded above.
 
 ## Existing release runbook
 
