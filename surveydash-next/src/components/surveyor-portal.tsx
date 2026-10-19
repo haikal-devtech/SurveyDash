@@ -62,7 +62,11 @@ export function SurveyorShell({ children, name }: { children: React.ReactNode; n
             <ClipboardList size={17} />
             Tugas survei
           </Link>
-          <Link href="/surveyor/profile" aria-current={pathname === '/surveyor/profile' ? 'page' : undefined}>
+          <Link
+            data-tour="surveyor-profile"
+            href="/surveyor/profile"
+            aria-current={pathname === '/surveyor/profile' ? 'page' : undefined}
+          >
             <UserRound size={17} />
             Profil
           </Link>
@@ -110,7 +114,7 @@ export function SurveyorShareLink({ shareUrl, disabled = false }: { shareUrl: st
 
   return (
     <div className="surveyor-share">
-      <Button variant="secondary" onClick={copy} disabled={disabled || !shareUrl}>
+      <Button data-tour="surveyor-copy" variant="secondary" onClick={copy} disabled={disabled || !shareUrl}>
         {copied ? <Check size={15} /> : <Copy size={15} />}
         {copied ? 'Link tersalin' : 'Salin link responden'}
       </Button>
@@ -494,7 +498,7 @@ export function SurveyorPortal({
               <strong>{activeTasks.length}</strong>
               <span>Tugas terbuka</span>
             </div>
-            <div className="card">
+            <div className="card" data-tour="surveyor-progress">
               <Check size={21} />
               <strong>{responseCount.toLocaleString('id-ID')}</strong>
               <span>Respons melalui link Anda</span>
@@ -505,7 +509,7 @@ export function SurveyorPortal({
               <span>Identitas yang terlihat responden</span>
             </div>
           </div>
-          <div className="surveyor-task-heading">
+          <div className="surveyor-task-heading" data-tour="surveyor-tasks">
             <h2>Tugas survei Anda</h2>
             <Button variant="ghost" onClick={() => setAttempt((value) => value + 1)}>
               <RefreshCw size={15} />
@@ -557,6 +561,7 @@ export function SurveyorPortal({
                     </p>
                     <Button
                       variant="ghost"
+                      data-tour="surveyor-preview"
                       className="surveyor-preview-button"
                       onClick={() => setSelected(task)}
                     >
@@ -597,7 +602,8 @@ export function SurveyorPortal({
         description="Tinjau instrumen sebelum membagikan link ke responden. Pertanyaan dikelola oleh pengelola survei."
         wide
       >
-        <p className="surveyor-confidentiality-note">
+        <div data-tour-slot="preview" />
+        <p className="surveyor-confidentiality-note" data-tour="surveyor-questions">
           Pertanyaan tersedia untuk penugasan Anda. Untuk mengundang responden, bagikan link pribadi dari
           kartu tugas.
         </p>

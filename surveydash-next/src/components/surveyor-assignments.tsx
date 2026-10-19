@@ -172,7 +172,7 @@ export function SurveyorAssignments({
                 onFocus={(event) => event.currentTarget.select()}
               />
               <div className="manager-invitation-actions">
-                <Button onClick={copyInvitation} disabled={invitationPending}>
+                <Button data-tour="manager-invitation" onClick={copyInvitation} disabled={invitationPending}>
                   {copiedUrl === invitation.url ? <Check size={16} /> : <Copy size={16} />}
                   {copiedUrl === invitation.url ? 'Link undangan tersalin' : 'Salin link undangan'}
                 </Button>
@@ -196,6 +196,7 @@ export function SurveyorAssignments({
             </>
           ) : (
             <Button
+              data-tour="manager-invitation"
               onClick={() => void updateInvitation('POST')}
               disabled={invitationPending || (!invitationLoaded && !invitationError)}
             >

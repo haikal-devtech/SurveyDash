@@ -320,6 +320,7 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
           {tabs.map((t) => (
             <button
               key={t.id}
+              data-tour={`editor-tab-${t.id}`}
               className={tab === t.id ? 'active' : ''}
               onClick={() => {
                 setGenerateFromAnalysis(false);
@@ -343,7 +344,7 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
       )}
       {tab === 'form' && (
         <>
-          <div className="panel-intro">
+          <div className="panel-intro" data-tour="form-actions">
             <div>
               <h2>Form yang siap menemui responden.</h2>
               <p>Preview interaktif · Jawaban di preview tidak dikirim ke database.</p>

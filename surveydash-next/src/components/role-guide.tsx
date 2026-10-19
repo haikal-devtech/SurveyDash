@@ -1,14 +1,38 @@
 'use client';
 
-import Image from 'next/image';
+import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
-import { ArrowLeft, ArrowRight, BookOpen, Check, Loader2 } from 'lucide-react';
-import { guideSteps, type GuideRole } from '@/lib/guides';
-import { Button, Modal } from './ui';
+import { usePathname, useRouter } from 'next/navigation';
+import { ArrowRight, BookOpen, Check, Loader2, X } from 'lucide-react';
+import type { GuideRole } from '@/lib/guides';
+import {
+  placeTourCard,
+  tourAdvanceIndex,
+  tourPlan,
+  TOUR_CREATED,
+  TOUR_OPEN,
+  type TourRect,
+  type TourStep,
+} from '@/lib/guided-tour';
+import { Button } from './ui';
 import '@/app/role-guide.css';
 
-const openGuideEvent = 'surveydash:open-guide';
+type Snapshot = {
+  target: HTMLElement | null;
+  rect: TourRect | null;
+  slot: HTMLElement | null;
+  width: number;
+  height: number;
+};
+const byName = (name: string) => `[data-tour="${name}"]`;
+function visible(selector: string) {
+  return (
+    [...document.querySelectorAll<HTMLElement>(selector)].find((element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 && getComputedStyle(element).visibility !== 'hidden';
+    }) ?? null
+  );
+}
 
 export function GuideButton({
   role,
@@ -24,7 +48,7 @@ export function GuideButton({
       type="button"
       className={`btn btn-secondary ${className}`}
       data-guide-trigger={role}
-      onClick={() => window.dispatchEvent(new CustomEvent(openGuideEvent, { detail: role }))}
+      onClick={() => window.dispatchEvent(new CustomEvent(TOUR_OPEN, { detail: role }))}
     >
       <BookOpen size={17} aria-hidden="true" />
       {children}
@@ -33,30 +57,49 @@ export function GuideButton({
 }
 
 export function RoleGuide({ role }: { role: GuideRole }) {
+  const router = useRouter();
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
-  const [step, setStep] = useState(0);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState('');
+  const home = role === 'manager' ? '/studio' : '/surveyor';
+  const [requested, setRequested] = useState(false);
+  const [plan, setPlan] = useState<TourStep[]>([]);
+  const [index, setIndex] = useState(0);
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [cardHeight, setCardHeight] = useState(235);
+  const [saveError, setSaveError] = useState('');
+  const [saving, setSaving] = useState(false);
   const visited = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
+  const card = useRef<HTMLDivElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
-  const steps = guideSteps[role];
-  const current = steps[step];
-  const isHome = pathname === (role === 'manager' ? '/studio' : '/surveyor');
+  const lastResult = useRef<'completed' | 'skipped'>('skipped');
+  const pendingSave = useRef(false);
+  const phase = plan[index];
+  const isHome = pathname === home;
+
+  function restart() {
+    setPlan([]);
+    setIndex(0);
+    setSnapshot(null);
+    setRequested(true);
+    setSaveError('');
+    if (pathname !== home) router.push(home);
+  }
 
   useEffect(() => {
     function replay(event: Event) {
       if ((event as CustomEvent).detail !== role) return;
       returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       visited.current = true;
-      setStep(0);
-      setError('');
-      setOpen(true);
+      setPlan([]);
+      setIndex(0);
+      setSnapshot(null);
+      setSaveError('');
+      setRequested(true);
+      if (window.location.pathname !== home) router.push(home);
     }
-    window.addEventListener(openGuideEvent, replay);
-    return () => window.removeEventListener(openGuideEvent, replay);
-  }, [role]);
+    window.addEventListener(TOUR_OPEN, replay);
+    return () => window.removeEventListener(TOUR_OPEN, replay);
+  }, [role, home, router]);
 
   useEffect(() => {
     if (!isHome || visited.current) return;
@@ -68,126 +111,315 @@ export function RoleGuide({ role }: { role: GuideRole }) {
         const state = await response.json();
         if (controller.signal.aborted || visited.current) return;
         visited.current = true;
-        if (state.role === role && state.status === 'new') setOpen(true);
+        if (state.role === role && state.status === 'new') setRequested(true);
       } catch {
-        /* The guide must never prevent access to the workspace. */
+        /* A guide request must never prevent normal work. */
       }
     }
     void load();
     return () => controller.abort();
   }, [isHome, role]);
 
-  async function finish(status: 'completed' | 'skipped') {
-    if (pending) return;
-    setPending(true);
-    setError('');
+  async function saveResult(status: 'completed' | 'skipped') {
+    if (pendingSave.current) return;
+    pendingSave.current = true;
+    lastResult.current = status;
+    setSaving(true);
+    setSaveError('');
     try {
       const response = await fetch('/api/account/guide', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
-      if (!response.ok) throw new Error('Panduan belum tersimpan. Coba lagi atau tutup untuk melanjutkan.');
-      setOpen(false);
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Koneksi gagal. Coba lagi.');
+      if (!response.ok) throw new Error('Status panduan belum tersimpan.');
+    } catch {
+      setSaveError('Status panduan belum tersimpan. Anda tetap bisa melanjutkan pekerjaan.');
     } finally {
-      setPending(false);
+      pendingSave.current = false;
+      setSaving(false);
     }
   }
-
-  function go(next: number) {
-    setStep(next);
-    requestAnimationFrame(() => heading.current?.focus());
+  function finish(status: 'completed' | 'skipped') {
+    setRequested(false);
+    const focus = returnFocus.current?.isConnected ? returnFocus.current : snapshot?.target;
+    requestAnimationFrame(() => focus?.focus({ preventScroll: true }));
+    void saveResult(status);
   }
 
-  return (
-    <Modal
-      open={open}
-      onOpenChange={(next) => {
-        if (pending) return;
-        if (!next) {
-          setOpen(false);
-          void finish('skipped');
-        } else {
-          setOpen(true);
+  useEffect(() => {
+    if (!requested) return;
+    let frame = 0;
+    let observed: HTMLElement | null = null;
+    const resize = new ResizeObserver(schedule);
+    function refresh() {
+      frame = 0;
+      if (!plan.length) {
+        const ready = visible(byName(role === 'manager' ? 'create-survey' : 'surveyor-tasks'));
+        if (ready) {
+          setPlan(
+            tourPlan(
+              role,
+              !!visible(byName('surveyor-preview')),
+              !!visible(`${byName('surveyor-copy')}:not(:disabled)`),
+            ),
+          );
+          setIndex(0);
         }
-      }}
-      title={role === 'manager' ? 'Mulai bersama SurveyDash' : 'Selamat datang, Surveyor'}
-      description="Tiga langkah singkat. Panduan bisa dibuka lagi dari menu Bantuan."
-      wide
-      className="role-guide-modal"
-      onCloseAutoFocus={(event) => {
-        const fallback = [...document.querySelectorAll<HTMLElement>(`[data-guide-trigger="${role}"]`)].find(
-          (button) => button.offsetParent !== null,
-        );
-        const target =
-          returnFocus.current?.isConnected && returnFocus.current !== document.body
-            ? returnFocus.current
-            : fallback;
-        if (target) {
-          event.preventDefault();
-          target.focus();
-        }
-      }}
+        return;
+      }
+      const target = phase ? visible(phase.target) : null;
+      if (observed !== target) {
+        if (observed) resize.unobserve(observed);
+        if (target) resize.observe(target);
+        observed = target;
+      }
+      const bounds = target?.getBoundingClientRect();
+      const rect = bounds
+        ? {
+            left: Math.round(bounds.left),
+            top: Math.round(bounds.top),
+            width: Math.round(bounds.width),
+            height: Math.round(bounds.height),
+          }
+        : null;
+      const dialog = target?.closest<HTMLElement>('[role="dialog"]');
+      const slot =
+        phase?.slot && dialog ? dialog.querySelector<HTMLElement>(`[data-tour-slot="${phase.slot}"]`) : null;
+      const width = window.innerWidth,
+        height = Math.min(window.innerHeight, window.visualViewport?.height ?? window.innerHeight);
+      setSnapshot((previous) =>
+        previous &&
+        previous.target === target &&
+        previous.slot === slot &&
+        previous.width === width &&
+        previous.height === height &&
+        JSON.stringify(previous.rect) === JSON.stringify(rect)
+          ? previous
+          : { target, rect, slot, width, height },
+      );
+    }
+    function schedule() {
+      if (!frame) frame = requestAnimationFrame(refresh);
+    }
+    const changes = new MutationObserver((records) => {
+      if (
+        records.some(
+          (record) => !(record.target instanceof Element && record.target.closest('[data-tour-layer]')),
+        )
+      )
+        schedule();
+    });
+    changes.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('resize', schedule);
+    window.addEventListener('scroll', schedule, true);
+    window.visualViewport?.addEventListener('resize', schedule);
+    schedule();
+    return () => {
+      cancelAnimationFrame(frame);
+      changes.disconnect();
+      resize.disconnect();
+      window.removeEventListener('resize', schedule);
+      window.removeEventListener('scroll', schedule, true);
+      window.visualViewport?.removeEventListener('resize', schedule);
+    };
+  }, [requested, plan, phase, role]);
+
+  useEffect(() => {
+    if (!requested || !plan.length) return;
+    function click(event: MouseEvent) {
+      const button =
+        event.target instanceof Element
+          ? event.target.closest<HTMLElement>('[data-tour-action],[data-tour]')
+          : null;
+      const action = button?.dataset.tourAction ?? button?.dataset.tour;
+      if (action) setIndex((current) => tourAdvanceIndex(plan, current, action));
+    }
+    function created() {
+      if (role === 'manager') setIndex((current) => tourAdvanceIndex(plan, current, 'created'));
+    }
+    document.addEventListener('click', click);
+    window.addEventListener(TOUR_CREATED, created);
+    return () => {
+      document.removeEventListener('click', click);
+      window.removeEventListener(TOUR_CREATED, created);
+    };
+  }, [requested, plan, role]);
+
+  useEffect(() => {
+    if (!requested) return;
+    function escape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        finish('skipped');
+      }
+    }
+    document.addEventListener('keydown', escape, true);
+    return () => document.removeEventListener('keydown', escape, true);
+  });
+
+  useEffect(() => {
+    if (!requested || !snapshot?.target) return;
+    const target = snapshot.target;
+    const oldDescription = target.getAttribute('aria-describedby');
+    target.setAttribute('aria-describedby', [oldDescription, 'tour-instructions'].filter(Boolean).join(' '));
+    const frame = requestAnimationFrame(() => {
+      target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
+      if (phase?.id === 'name') target.focus({ preventScroll: true });
+      else heading.current?.focus({ preventScroll: true });
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      if (oldDescription === null) target.removeAttribute('aria-describedby');
+      else target.setAttribute('aria-describedby', oldDescription);
+    };
+  }, [requested, phase?.id, snapshot?.target]);
+
+  useEffect(() => {
+    if (!requested || !card.current) return;
+    const element = card.current;
+    const resize = new ResizeObserver(() =>
+      setCardHeight((old) => (old === element.offsetHeight ? old : element.offsetHeight)),
+    );
+    resize.observe(element);
+    return () => resize.disconnect();
+  }, [requested, phase?.id, snapshot?.slot]);
+
+  function next() {
+    if (!phase || !snapshot?.target || phase.waitForCreate) return;
+    if (
+      phase.id === 'name' &&
+      snapshot.target instanceof HTMLInputElement &&
+      !snapshot.target.reportValidity()
+    )
+      return;
+    if (phase.clickNext) {
+      const preferredTask =
+        phase.id === 'tasks'
+          ? visible(`${byName('surveyor-copy')}:not(:disabled)`)?.closest('.surveyor-task')
+          : null;
+      const nextButton =
+        phase.clickNext === 'surveyor-close-preview'
+          ? snapshot.target.closest('[role="dialog"]')?.querySelector<HTMLElement>('.modal-close')
+          : (preferredTask?.querySelector<HTMLElement>(byName(phase.clickNext)) ??
+            visible(byName(phase.clickNext)));
+      if (!nextButton || (nextButton instanceof HTMLButtonElement && nextButton.disabled)) return;
+      nextButton.click();
+    }
+    if (index === plan.length - 1) finish('completed');
+    else setIndex(index + 1);
+  }
+
+  const inline = !!snapshot?.slot;
+  const position = placeTourCard(
+    snapshot?.rect ?? null,
+    { width: 340, height: cardHeight },
+    { width: snapshot?.width ?? 390, height: snapshot?.height ?? 700 },
+  );
+  const rect = snapshot?.rect;
+  const width = snapshot?.width ?? 0,
+    height = snapshot?.height ?? 0;
+  const left = Math.max(0, (rect?.left ?? 0) - 6),
+    top = Math.max(0, (rect?.top ?? 0) - 6);
+  const right = Math.min(width, (rect?.left ?? 0) + (rect?.width ?? 0) + 6),
+    bottom = Math.min(height, (rect?.top ?? 0) + (rect?.height ?? 0) + 6);
+  const coach = (
+    <div
+      data-tour-layer
+      data-role-guide={role}
+      ref={card}
+      className={`tour-coach ${inline ? 'tour-coach-inline' : ''}`}
+      style={inline ? undefined : { left: position.left, top: position.top, width: position.width }}
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby="tour-title"
+      aria-describedby="tour-instructions"
     >
-      <div className="role-guide" data-role-guide={role}>
-        <Image
-          src={`/brand/clay/${current.image}.webp`}
-          alt=""
-          width={720}
-          height={720}
-          sizes="(max-width: 640px) 100vw, 390px"
-          className="role-guide-photo"
-        />
-        <div className="role-guide-content">
-          <ol className="role-guide-progress" aria-label="Langkah panduan">
-            {steps.map((item, index) => (
-              <li key={item.title} aria-current={step === index ? 'step' : undefined}>
-                <span>{index < step ? <Check size={14} aria-hidden="true" /> : index + 1}</span>
-                <span className="sr-only">{item.title}</span>
-              </li>
-            ))}
-          </ol>
-          <p className="role-guide-count" aria-live="polite">
-            Langkah {step + 1} dari {steps.length}
-          </p>
-          <h2 tabIndex={-1} ref={heading}>
-            {current.title}
-          </h2>
-          <p>{current.description}</p>
-          <div className="role-guide-tip">{current.tip}</div>
-          {error && (
-            <p role="alert" className="role-guide-error">
-              {error}
-            </p>
-          )}
-          <div className="role-guide-actions">
-            <Button
-              variant="ghost"
-              onClick={() => (step ? go(step - 1) : void finish('skipped'))}
-              disabled={pending}
-            >
-              {step ? (
-                <>
-                  <ArrowLeft size={16} />
-                  Kembali
-                </>
-              ) : (
-                'Lewati'
-              )}
-            </Button>
-            <Button
-              onClick={() => (step < steps.length - 1 ? go(step + 1) : void finish('completed'))}
-              disabled={pending}
-            >
-              {pending ? <Loader2 size={17} className="animate-spin" /> : null}
-              {step === steps.length - 1 ? 'Mulai sekarang' : 'Lanjut'}
-              <ArrowRight size={16} />
-            </Button>
-          </div>
-        </div>
+      <div className="tour-coach-top">
+        <span>{phase ? `${index + 1} / ${plan.length}` : 'PANDUAN'}</span>
+        <button type="button" onClick={() => finish('skipped')} aria-label="Skip panduan">
+          <X size={16} />
+        </button>
       </div>
-    </Modal>
+      <h2 id="tour-title" ref={heading} tabIndex={-1}>
+        {phase?.title ?? 'Menyiapkan panduan…'}
+      </h2>
+      <p id="tour-instructions" aria-live="polite">
+        {snapshot?.target
+          ? phase?.description
+          : 'Menunggu bagian ini terbuka. Anda bisa melewati panduan kapan saja.'}
+      </p>
+      <div className="tour-coach-actions">
+        <Button variant="ghost" onClick={() => finish('skipped')}>
+          Skip
+        </Button>
+        {phase && !snapshot?.target ? (
+          <Button variant="secondary" onClick={restart}>
+            Mulai ulang
+          </Button>
+        ) : (
+          <Button onClick={next} disabled={!snapshot?.target || phase?.waitForCreate}>
+            {index === plan.length - 1 ? (
+              <>
+                <Check size={16} />
+                Selesai
+              </>
+            ) : (
+              <>
+                Next
+                <ArrowRight size={16} />
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+      {phase?.waitForCreate && <small>Klik Buat survei untuk lanjut.</small>}
+    </div>
+  );
+
+  return (
+    <>
+      {requested &&
+        createPortal(
+          <div data-tour-layer className="tour-layer">
+            {rect && !inline && right > left && bottom > top && (
+              <>
+                <div className="tour-shade" style={{ left: 0, top: 0, width, height: top }} />
+                <div className="tour-shade" style={{ left: 0, top, width: left, height: bottom - top }} />
+                <div
+                  className="tour-shade"
+                  style={{ left: right, top, width: width - right, height: bottom - top }}
+                />
+                <div
+                  className="tour-shade"
+                  style={{ left: 0, top: bottom, width, height: height - bottom }}
+                />
+              </>
+            )}
+            {rect && right > left && bottom > top && (
+              <div
+                className="tour-spotlight"
+                style={{ left, top, width: right - left, height: bottom - top }}
+                aria-hidden="true"
+              />
+            )}
+            {!inline && coach}
+          </div>,
+          document.body,
+        )}
+      {requested && snapshot?.slot && createPortal(coach, snapshot.slot)}
+      {saveError && (
+        <div className="tour-save-error" role="alert">
+          {saveError}
+          <Button variant="secondary" onClick={() => void saveResult(lastResult.current)} disabled={saving}>
+            {saving ? <Loader2 size={14} className="animate-spin" /> : 'Coba lagi'}
+          </Button>
+          <button type="button" aria-label="Tutup pemberitahuan" onClick={() => setSaveError('')}>
+            <X size={15} />
+          </button>
+        </div>
+      )}
+    </>
   );
 }

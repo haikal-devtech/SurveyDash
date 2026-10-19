@@ -5,6 +5,7 @@ import { Layers3, ClipboardList, Plus, ArrowRight, Loader2 } from 'lucide-react'
 import { templateDefinitions } from '@/lib/templates';
 import type { SavedTemplate } from '@/lib/types';
 import { Button, Modal } from './ui';
+import { TOUR_CREATED } from '@/lib/guided-tour';
 export type { SavedTemplate } from '@/lib/types';
 export function CreateSurvey({
   open,
@@ -35,6 +36,7 @@ export function CreateSurvey({
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error);
       onOpenChange(false);
+      window.dispatchEvent(new CustomEvent(TOUR_CREATED, { detail: { id: data.id } }));
       router.push(`/studio/${data.id}`);
       router.refresh();
     } catch (error) {
@@ -55,6 +57,7 @@ export function CreateSurvey({
           <label htmlFor="survey-title">Nama survei</label>
           <input
             id="survey-title"
+            data-tour="survey-name"
             className="input"
             placeholder="Contoh: SKM Kecamatan Serpong 2026"
             value={title}
@@ -65,9 +68,11 @@ export function CreateSurvey({
             autoFocus
           />
         </div>
+        <div data-tour-slot="name" />
         <p className="label" style={{ margin: '19px 0 10px' }}>
           Pilih template
         </p>
+        <div data-tour-slot="template" />
         <div className="template-options">
           {[
             ...templateDefinitions,
@@ -80,6 +85,8 @@ export function CreateSurvey({
           ].map((t) => (
             <button
               type="button"
+              data-tour={t.id === 'skm' ? 'template-skm' : 'survey-template'}
+              data-tour-action="survey-template"
               key={t.id}
               className={`template-option ${selected === t.id ? 'active' : ''}`}
               onClick={() => setSelected(t.id)}
@@ -103,11 +110,12 @@ export function CreateSurvey({
             {error}
           </div>
         )}
+        <div data-tour-slot="submit" />
         <div className="modal-footer">
           <Button variant="secondary" onClick={() => onOpenChange(false)}>
             Batal
           </Button>
-          <Button type="submit" disabled={pending}>
+          <Button data-tour="survey-create-submit" type="submit" disabled={pending}>
             {pending ? <Loader2 size={14} className="animate-spin" /> : null}Buat survei
             <ArrowRight size={14} />
           </Button>

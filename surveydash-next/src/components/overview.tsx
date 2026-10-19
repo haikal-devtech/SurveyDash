@@ -76,7 +76,7 @@ export function Overview({
               : 'Siap mendengar lebih banyak? Mulai survei baru atau lanjutkan yang sudah ada.'}
           </p>
           <div className="workspace-welcome-actions">
-            <Button onClick={() => setSelected('blank')}>
+            <Button data-tour="create-survey" onClick={() => setSelected('blank')}>
               <Plus size={17} />
               Buat survei
             </Button>

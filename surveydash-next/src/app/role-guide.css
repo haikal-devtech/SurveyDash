@@ -1,106 +1,145 @@
-.role-guide-modal .modal-description {
-  color: #786486;
+.tour-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 360;
+  pointer-events: none;
 }
-.role-guide-modal {
-  border-radius: 20px;
+.tour-shade {
+  position: fixed;
+  background: #25163355;
+  pointer-events: none;
 }
-.role-guide {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 28px;
-  margin-top: 20px;
+.tour-spotlight {
+  position: fixed;
+  border: 2px solid #9b72e6;
+  border-radius: 12px;
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
 }
-.role-guide-photo {
-  width: 100%;
-  height: 100%;
-  min-height: 330px;
-  object-fit: cover;
-  border-radius: 16px;
+.tour-coach {
+  position: fixed;
+  z-index: 361;
+  pointer-events: auto;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  padding: 18px;
+  border: 1px solid #fff;
+  border-radius: 18px;
+  background: linear-gradient(140deg, #fffdff, #f0e5fc);
+  box-shadow:
+    0 10px 30px #32194d25,
+    inset 1px 1px 3px #fff;
+  color: #342444;
 }
-.role-guide-content {
+.tour-coach-top {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 6px 0;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 9px;
 }
-.role-guide-progress {
-  display: flex;
-  gap: 8px;
-  list-style: none;
-  margin: 0 0 22px;
-  padding: 0;
+.tour-coach-top > span {
+  font-size: 11px;
+  font-weight: 650;
+  color: #865eaf;
+  letter-spacing: 0.06em;
 }
-.role-guide-progress li > span:first-child {
+.tour-coach-top > button,
+.tour-save-error > button:last-child {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #f0ebf8;
-  color: #665774;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 9px;
+  background: #e8dcf5;
+  color: #78518f;
+}
+.tour-coach h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.5px;
+  line-height: 1.3;
+}
+.tour-coach > p {
+  font-size: 13px;
+  line-height: 1.75;
+  color: #715a80;
+  margin: 10px 0 16px;
+}
+.tour-coach-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.tour-coach-actions .btn {
+  min-height: 42px;
+  font-size: 13px;
+}
+.tour-coach > small {
+  display: block;
+  margin-top: 9px;
+  color: #7c618b;
+  font-size: 11px;
+}
+.tour-coach-inline {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  margin: 16px 0;
+  z-index: 2;
+  box-shadow: inset 1px 1px 3px #fff;
+  border-color: #dac4ee;
+}
+.tour-coach-inline h2 {
+  font-size: 17px;
+}
+.tour-coach-inline > p {
+  margin-bottom: 10px;
   font-size: 12px;
-  font-weight: 600;
 }
-.role-guide-progress li[aria-current] > span:first-child {
-  background: #7549df;
-  color: white;
+.tour-coach-inline .tour-coach-top {
+  margin-bottom: 5px;
 }
-.role-guide-count {
-  color: #6b4ba5;
-  font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-.role-guide h2 {
-  font-size: 25px;
-  line-height: 1.25;
-  letter-spacing: -0.8px;
-  margin-bottom: 14px;
-}
-.role-guide-content > p:not(.role-guide-count):not(.role-guide-error) {
-  font-size: 14px;
-  line-height: 1.8;
-  color: #62576e;
-}
-.role-guide-tip {
-  margin-block: 20px;
-  padding: 14px;
-  border-radius: 12px;
-  background: #f4f0fc;
-  font-size: 12px;
-  line-height: 1.7;
-  color: #63458f;
-}
-.role-guide-actions {
+.tour-save-error {
+  pointer-events: auto;
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
-  width: 100%;
-  margin-top: auto;
-  padding-top: 12px;
-}
-.role-guide-actions .btn {
-  min-height: 44px;
-}
-.role-guide-error {
-  color: #a33245;
+  width: min(600px, calc(100% - 32px));
+  padding: 16px;
+  border: 1px solid #e2b6c1;
+  border-radius: 14px;
+  background: #fff8fb;
+  color: #8c3953;
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 1.7;
+  z-index: 370;
 }
-@media (max-width: 640px) {
-  .role-guide {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 18px;
+[data-tour-slot]:empty {
+  display: none;
+}
+@media (max-width: 520px) {
+  .tour-coach {
+    padding: 16px;
   }
-  .role-guide-photo {
-    height: 165px;
-    min-height: 0;
+  .tour-coach h2 {
+    font-size: 18px;
   }
-  .role-guide h2 {
-    font-size: 23px;
+  .tour-coach-inline {
+    padding: 12px;
   }
-  .role-guide-progress {
-    margin-bottom: 12px;
+  .tour-coach-inline h2 {
+    font-size: 16px;
   }
 }
