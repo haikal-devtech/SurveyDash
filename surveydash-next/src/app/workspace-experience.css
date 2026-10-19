@@ -1,0 +1,309 @@
+.experience-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  color: #7b5ba3;
+  font-weight: 650;
+  margin-bottom: 11px;
+}
+.workspace-welcome {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34%;
+  align-items: stretch;
+  gap: 20px;
+  border: 1px solid #e4d9ef;
+  background: #f3eefb;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.workspace-welcome > div {
+  padding: 32px;
+  align-self: center;
+}
+.workspace-welcome h1 {
+  font-size: clamp(26px, 2.6vw, 36px);
+  letter-spacing: -1.2px;
+  font-weight: 650;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.workspace-welcome > div > p:not(.experience-eyebrow) {
+  max-width: 420px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #766486;
+  margin-top: 12px;
+}
+.workspace-welcome-photo {
+  width: 100%;
+  height: 100%;
+  min-height: 230px;
+  object-fit: cover;
+  object-position: 70% center;
+}
+.workspace-welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+.workspace-welcome-actions .btn {
+  min-height: 44px;
+}
+.workspace-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.workspace-metrics > a {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+  background: white;
+  border: 1px solid #e8e1ef;
+  border-radius: 14px;
+}
+.workspace-metrics > a:hover {
+  border-color: #bfa8dc;
+}
+.workspace-metrics span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #796b84;
+}
+.workspace-metrics svg {
+  color: #8968b5;
+}
+.workspace-metrics strong {
+  font-size: 29px;
+  line-height: 1;
+  letter-spacing: -1px;
+  font-weight: 600;
+}
+.workspace-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 30px;
+}
+.workspace-shortcuts > a {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 92px;
+  padding: 18px;
+  border: 1px solid #e8e1ef;
+  border-radius: 14px;
+  background: white;
+}
+.workspace-shortcuts > a:hover {
+  background: #faf8ff;
+  border-color: #c5b1df;
+}
+.shortcut-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: #f2ecfb;
+  color: #8057b6;
+}
+.workspace-shortcuts strong,
+.workspace-shortcuts small {
+  display: block;
+}
+.workspace-shortcuts strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.workspace-shortcuts small {
+  font-size: 11px;
+  color: #85768f;
+  margin-top: 6px;
+}
+.workspace-shortcuts > a > svg:last-child {
+  margin-left: auto;
+  color: #9c85b7;
+  flex-shrink: 0;
+}
+.workspace-help {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-bottom: 15px;
+}
+.workspace-help .btn {
+  min-height: 44px;
+  justify-content: flex-start;
+  color: #705394;
+  border-color: #e5dcf0;
+  background: #faf8fd;
+}
+.workspace-help > a {
+  color: #8a7b94;
+  font-size: 11px;
+  padding: 10px 13px;
+}
+.workspace-menu-backdrop {
+  display: none;
+}
+.workspace .nav-item {
+  min-height: 44px;
+  font-size: 12px;
+}
+.workspace .page-heading p {
+  color: #7b6b88;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.workspace .starter-tile {
+  border-radius: 12px;
+}
+.workspace .starter-tile strong {
+  font-size: 12px;
+}
+.workspace .starter-tile small {
+  color: #887891;
+  line-height: 1.7;
+}
+.surveyor-welcome-card {
+  display: grid;
+  grid-template-columns: 34% minmax(0, 1fr);
+  border: 1px solid #e3d6f0;
+  background: #fff;
+  border-radius: 18px;
+  overflow: hidden;
+}
+.surveyor-welcome-card > img {
+  width: 100%;
+  height: 100%;
+  min-height: 250px;
+  object-fit: cover;
+}
+.surveyor-welcome-card > div {
+  padding: 30px;
+  align-self: center;
+}
+.surveyor-welcome-card h3 {
+  font-size: 25px;
+  margin-top: 9px;
+  letter-spacing: -0.8px;
+  font-weight: 600;
+}
+.surveyor-welcome-card p {
+  color: #776783;
+  font-size: 13px;
+  line-height: 1.8;
+  margin-top: 12px;
+}
+.surveyor-welcome-card .btn {
+  margin-top: 18px;
+  min-height: 44px;
+}
+.surveyor-main .surveyor-summary .card {
+  border-radius: 15px;
+  background: #fff;
+}
+.surveyor-main .surveyor-task {
+  border-radius: 16px;
+}
+.surveyor-share > .btn {
+  min-height: 46px;
+  background: #7549df;
+  color: white;
+  border-color: #7549df;
+  width: 100%;
+}
+.task-link-note {
+  margin-top: 24px;
+  max-width: 640px;
+  line-height: 1.8;
+}
+.surveyor-nav > .btn {
+  color: #705394;
+  background: #faf7ff;
+  border-color: transparent;
+}
+@media (max-width: 900px) {
+  .workspace-welcome {
+    grid-template-columns: minmax(0, 1fr) 30%;
+  }
+  .workspace-welcome > div {
+    padding: 25px;
+  }
+  .workspace-shortcuts {
+    gap: 12px;
+  }
+}
+@media (max-width: 700px) {
+  .workspace-welcome {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workspace-welcome > div {
+    padding: 25px;
+  }
+  .workspace-welcome-photo {
+    display: none;
+  }
+  .workspace-metrics {
+    gap: 8px;
+  }
+  .workspace-metrics > a {
+    padding: 15px 12px;
+    gap: 12px;
+  }
+  .workspace-metrics span {
+    font-size: 10px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .workspace-metrics strong {
+    font-size: 25px;
+  }
+  .workspace-shortcuts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+  }
+  .workspace-shortcuts > a {
+    min-height: 76px;
+    padding: 14px;
+  }
+  .surveyor-welcome-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .surveyor-welcome-card > img {
+    height: 160px;
+    min-height: 0;
+    object-position: center 38%;
+  }
+  .surveyor-welcome-card > div {
+    padding: 24px;
+  }
+  .surveyor-nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .surveyor-nav > .btn {
+    font-size: 12px;
+    padding-inline: 12px;
+  }
+}
+@media (max-width: 800px) {
+  .workspace-menu-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: #1d123555;
+    border: 0;
+  }
+  .workspace .sidebar.mobile-open {
+    z-index: 40;
+  }
+}

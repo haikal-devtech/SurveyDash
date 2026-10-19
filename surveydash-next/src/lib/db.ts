@@ -68,6 +68,10 @@ const schema = `
       id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, name TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS workspace_settings (owner_id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS account_guides (
+      user_id TEXT NOT NULL, role TEXT NOT NULL, version INTEGER NOT NULL,
+      status TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(user_id, role, version)
+    );
     CREATE TABLE IF NOT EXISTS platform_admins (user_id TEXT PRIMARY KEY, granted_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS google_form_connections (
       user_id TEXT PRIMARY KEY, ciphertext TEXT NOT NULL, updated_at TEXT NOT NULL

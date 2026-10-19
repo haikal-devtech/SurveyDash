@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -22,6 +23,8 @@ import { authClient } from '@/lib/auth-client';
 import type { SurveyorAssignment, SurveyorProfile } from '@/lib/surveyor-types';
 import { Brand } from './brand';
 import { Badge, Button, EmptyState, Modal } from './ui';
+import { GuideButton, RoleGuide } from './role-guide';
+import '@/app/workspace-experience.css';
 
 interface PortalData {
   profile: SurveyorProfile | null;
@@ -63,6 +66,7 @@ export function SurveyorShell({ children, name }: { children: React.ReactNode; n
             <UserRound size={17} />
             Profil
           </Link>
+          <GuideButton role="surveyor">Bantuan</GuideButton>
         </nav>
         <div className="surveyor-account">
           <span>{name}</span>
@@ -85,6 +89,7 @@ export function SurveyorShell({ children, name }: { children: React.ReactNode; n
         <Link href="/privacy">Kebijakan privasi</Link>
         <Link href="/help">Bantuan</Link>
       </footer>
+      <RoleGuide role="surveyor" />
     </div>
   );
 }
@@ -186,7 +191,7 @@ function SurveyorProfileForm({
       </div>
       <div className="surveyor-form-grid">
         <div className="field">
-          <label htmlFor="surveyor-username">Username unik</label>
+          <label htmlFor="surveyor-username">Username</label>
           <input
             id="surveyor-username"
             className="input"
@@ -428,11 +433,15 @@ export function SurveyorPortal({
       <div className="page-heading surveyor-page-heading">
         <div>
           <p className="eyebrow">PORTAL SURVEYOR</p>
-          <h1>{profileOnly ? 'Profil dan rekening' : `Halo, ${data.profile?.fullName ?? initialName}.`}</h1>
+          <h1>
+            {profileOnly
+              ? 'Profil dan rekening'
+              : `Halo, ${(data.profile?.fullName ?? initialName).split(' ')[0]}.`}
+          </h1>
           <p>
             {profileOnly
               ? 'Kelola identitas yang tampil ke responden dan rekening administrasi Anda.'
-              : 'Lihat tugas dari pengelola survei, lalu bagikan link pribadi Anda ke responden.'}
+              : 'Tugas dan link survei Anda ada di sini.'}
           </p>
         </div>
         {!profileOnly && data.profile && (
@@ -496,23 +505,6 @@ export function SurveyorPortal({
               <span>Identitas yang terlihat responden</span>
             </div>
           </div>
-          <section className="surveyor-instructions" aria-label="Cara membagikan survei">
-            <h2>Mulai dari sini</h2>
-            <ol>
-              <li>
-                <span>1</span>Tinjau pertanyaan tugas Anda.
-              </li>
-              <li>
-                <span>2</span>Salin link responden pada kartu survei.
-              </li>
-              <li>
-                <span>3</span>Bagikan link. Identitas surveyor tercatat otomatis.
-              </li>
-            </ol>
-            <p className="surveyor-link-note">
-              Jika link diteruskan ke orang lain, respons tetap tercatat atas surveyor pemilik link tersebut.
-            </p>
-          </section>
           <div className="surveyor-task-heading">
             <h2>Tugas survei Anda</h2>
             <Button variant="ghost" onClick={() => setAttempt((value) => value + 1)}>
@@ -521,12 +513,23 @@ export function SurveyorPortal({
             </Button>
           </div>
           {data.assignments.length === 0 ? (
-            <section className="card">
-              <EmptyState
-                icon={<ClipboardList size={27} />}
-                title="Belum ada penugasan"
-                description={`Berikan username @${data.profile.username} kepada pengelola survei. Setelah ditugaskan, survei dan link pribadi Anda muncul di sini.`}
+            <section className="surveyor-welcome-card">
+              <Image
+                src="/brand/photos/surveyor.webp"
+                width={1200}
+                height={800}
+                alt=""
+                sizes="(max-width: 640px) 100vw, 300px"
               />
+              <div>
+                <span className="experience-eyebrow">SIAP MENERIMA TUGAS</span>
+                <h3>Belum ada tugas survei</h3>
+                <p>Minta link undangan dari Pengelola, lalu buka dan pilih Bergabung.</p>
+                <p className="hint">
+                  Username Anda: <strong>@{data.profile.username}</strong>
+                </p>
+                <GuideButton role="surveyor" />
+              </div>
             </section>
           ) : (
             <div className="surveyor-task-grid">
@@ -579,6 +582,10 @@ export function SurveyorPortal({
               })}
             </div>
           )}
+          <p className="surveyor-link-note task-link-note">
+            Bagikan link dari kartu tugas Anda. Respons dari link itu selalu tercatat atas nama Anda, termasuk
+            saat link diteruskan.
+          </p>
         </>
       )}
       <Modal

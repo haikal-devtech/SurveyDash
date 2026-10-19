@@ -28,6 +28,8 @@ export function Modal({
   description,
   children,
   wide = false,
+  className,
+  onCloseAutoFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,12 +37,17 @@ export function Modal({
   description?: string;
   children: ReactNode;
   wide?: boolean;
+  className?: string;
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="modal-overlay" />
-        <Dialog.Content className={cn('modal', wide && 'modal-wide')}>
+        <Dialog.Content
+          className={cn('modal', wide && 'modal-wide', className)}
+          onCloseAutoFocus={onCloseAutoFocus}
+        >
           <Dialog.Title className="modal-title">{title}</Dialog.Title>
           <Dialog.Description className="modal-description">
             {description ?? 'Atur detail sesuai kebutuhan survei Anda.'}

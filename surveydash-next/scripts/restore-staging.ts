@@ -27,6 +27,7 @@ const order = [
   'audit',
   'public_rate_limits',
   'workspace_settings',
+  'account_guides',
   'platform_admins',
   'google_form_connections',
   'surveyor_profiles',

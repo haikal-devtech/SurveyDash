@@ -6,6 +6,7 @@ import type { Answer, Question } from '@/lib/types';
 import { Brand } from './brand';
 import { Badge, Button, EmptyState } from './ui';
 import { QuestionInput } from './question-input';
+import '@/app/respondent-experience.css';
 export function PublicForm({
   token,
   survey,
@@ -28,6 +29,13 @@ export function PublicForm({
   const [done, setDone] = useState(false);
   const [closed, setClosed] = useState(survey.status === 'closed');
   const requestKey = useRef<string | null>(null);
+  const required = survey.questions.filter((question) => question.required);
+  const filled = required.filter((question) => {
+    const value = answers[question.id];
+    return Array.isArray(value)
+      ? value.length > 0
+      : value !== undefined && value !== null && String(value).trim() !== '';
+  }).length;
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setPending(true);
@@ -104,6 +112,18 @@ export function PublicForm({
                 <Badge tone="purple">{survey.questions.length} pertanyaan</Badge>
                 {survey.demo && <Badge>Form contoh / simulasi</Badge>}
               </div>
+              {required.length > 0 && (
+                <div className="respondent-progress">
+                  <span>
+                    {filled} dari {required.length} pertanyaan wajib terisi
+                  </span>
+                  <progress
+                    max={required.length}
+                    value={filled}
+                    aria-label="Pertanyaan wajib yang sudah terisi"
+                  />
+                </div>
+              )}
             </div>
             {survey.demo && (
               <div className="banner">
@@ -134,7 +154,7 @@ export function PublicForm({
               }}
             >
               <span className="hint">* Pertanyaan wajib diisi</span>
-              <Button type="submit" disabled={pending}>
+              <Button type="submit" disabled={pending} className="respondent-submit">
                 {pending ? <Loader2 size={14} className="animate-spin" /> : null}Kirim jawaban
                 <ArrowRight size={14} />
               </Button>

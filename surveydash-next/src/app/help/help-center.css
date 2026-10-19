@@ -1,0 +1,242 @@
+.help-center {
+  max-width: 1120px;
+  width: calc(100% - 64px);
+  margin: 36px auto 60px;
+  color: #2c223c;
+}
+.help-hero {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  border: 1px solid #e8dff1;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #f5f0fc;
+  margin-bottom: 44px;
+}
+.help-hero > div {
+  padding: 38px;
+  align-self: center;
+}
+.help-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #8260aa;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+.help-hero h1 {
+  font-size: clamp(32px, 4vw, 44px);
+  letter-spacing: -1.5px;
+  margin-top: 16px;
+  font-weight: 650;
+}
+.help-hero p {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #82708f;
+  margin-top: 12px;
+}
+.help-hero > img {
+  width: 100%;
+  height: 100%;
+  min-height: 260px;
+  object-fit: cover;
+}
+.help-hero nav {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.help-hero nav a {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #6e459e;
+  font-weight: 600;
+  padding: 10px 13px;
+  border: 1px solid #ded0ee;
+  border-radius: 9px;
+  background: white;
+}
+.help-role-section {
+  margin-bottom: 38px;
+  scroll-margin-top: 110px;
+}
+.help-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.help-section-title h2,
+.help-faq h2 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.7px;
+}
+.help-section-title a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #78539f;
+  min-height: 44px;
+}
+.help-step-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.help-step-grid article {
+  border: 1px solid #e7ddf0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: white;
+}
+.help-step-grid article > img {
+  width: 100%;
+  aspect-ratio: 1.8;
+  object-fit: cover;
+  height: auto;
+}
+.help-step-grid article > div {
+  padding: 20px;
+}
+.help-step-number {
+  font-size: 11px;
+  color: #9675bf;
+  font-weight: 650;
+}
+.help-step-grid h3 {
+  font-size: 16px;
+  letter-spacing: -0.4px;
+  margin-top: 8px;
+  font-weight: 600;
+}
+.help-step-grid p {
+  color: #81718e;
+  font-size: 12px;
+  line-height: 1.9;
+  margin-top: 10px;
+}
+.help-faq {
+  max-width: 800px;
+  margin: 55px auto 38px;
+}
+.help-faq h2 {
+  margin-bottom: 20px;
+}
+.help-faq details {
+  border-bottom: 1px solid #e8dff0;
+}
+.help-faq summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  cursor: pointer;
+  padding: 20px 0;
+  font-size: 14px;
+  font-weight: 550;
+  list-style: none;
+}
+.help-faq summary::-webkit-details-marker {
+  display: none;
+}
+.help-faq summary svg {
+  flex-shrink: 0;
+  color: #a48bbd;
+}
+.help-faq details[open] summary svg {
+  transform: rotate(180deg);
+}
+.help-faq details > p {
+  font-size: 13px;
+  line-height: 1.9;
+  color: #7b698a;
+  padding-bottom: 22px;
+}
+.help-contact {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border: 1px solid #e3d6ef;
+  border-radius: 14px;
+  background: #f5effc;
+  padding: 25px;
+}
+.help-contact > span {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: white;
+  color: #8963b6;
+}
+.help-contact h2 {
+  font-size: 17px;
+  font-weight: 600;
+}
+.help-contact p {
+  margin-top: 7px;
+  font-size: 12px;
+  color: #81708f;
+}
+.help-contact > a {
+  margin-left: auto;
+  min-height: 44px;
+}
+@media (max-width: 700px) {
+  .help-center {
+    width: calc(100% - 32px);
+    margin-top: 24px;
+  }
+  .help-hero {
+    grid-template-columns: minmax(0, 1fr);
+    margin-bottom: 28px;
+  }
+  .help-hero > div {
+    padding: 26px;
+  }
+  .help-hero > img {
+    height: 150px;
+    min-height: 0;
+  }
+  .help-step-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .help-step-grid article {
+    display: grid;
+    grid-template-columns: 100px minmax(0, 1fr);
+  }
+  .help-step-grid article > img {
+    height: 100%;
+    aspect-ratio: auto;
+  }
+  .help-step-grid article > div {
+    padding: 16px;
+  }
+  .help-section-title h2,
+  .help-faq h2 {
+    font-size: 20px;
+  }
+  .help-faq {
+    margin-top: 36px;
+  }
+  .help-contact {
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 20px;
+  }
+  .help-contact > a {
+    margin-left: 0;
+  }
+}

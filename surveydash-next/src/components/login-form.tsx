@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
@@ -144,217 +145,248 @@ export function LoginForm({
       <Link href="/" className="auth-entry-brand" aria-label="Beranda SurveyDash Studio">
         <Brand />
       </Link>
-      <section className="auth-entry-card" aria-labelledby="auth-entry-title">
-        <header className="auth-entry-heading">
-          <h1 id="auth-entry-title">{register ? 'Daftar' : 'Masuk'}</h1>
-          <p>{isSurveyor ? 'Surveyor' : 'Pengelola Survei'}</p>
-          <Link
-            href={loginHref(isSurveyor ? 'manager' : 'surveyor', register)}
-            className="auth-entry-role-switch"
-            aria-disabled={pending || undefined}
-            onClick={(event) => {
-              if (pending) event.preventDefault();
-            }}
-          >
-            {isSurveyor ? 'Ganti ke Pengelola Survei' : 'Ganti ke Surveyor'}
-          </Link>
-        </header>
-        {surveyorRegistration && (
-          <ol className="auth-entry-steps" aria-label="Langkah pendaftaran">
-            <li aria-current={step === 1 ? 'step' : undefined}>1. Akun</li>
-            <li aria-current={step === 2 ? 'step' : undefined}>2. Rekening</li>
-          </ol>
-        )}
-        <form onSubmit={submit} aria-busy={pending}>
-          <fieldset className="auth-entry-fields" disabled={pending}>
-            {surveyorRegistration && (
-              <h2 ref={stepTitle} tabIndex={-1} className="auth-entry-step-title" aria-live="polite">
-                {bankStep ? 'Rekening' : 'Akun'}
-              </h2>
-            )}
-            {bankStep ? (
-              <>
-                <div className="field">
-                  <label htmlFor="surveyor-bank">Bank / penyedia rekening</label>
-                  <input
-                    id="surveyor-bank"
-                    className="input"
-                    required
-                    minLength={2}
-                    maxLength={80}
-                    value={bankName}
-                    onChange={(event) => setBankName(event.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="surveyor-account-name">Nama pemilik rekening</label>
-                  <input
-                    id="surveyor-account-name"
-                    className="input"
-                    required
-                    minLength={2}
-                    maxLength={100}
-                    value={accountName}
-                    onChange={(event) => setAccountName(event.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="surveyor-account-number">Nomor rekening</label>
-                  <input
-                    id="surveyor-account-number"
-                    className="input"
-                    required
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={40}
-                    autoComplete="off"
-                    value={accountNumber}
-                    onChange={(event) => setAccountNumber(event.target.value)}
-                  />
-                </div>
-                <p className="auth-entry-note">
-                  Rekening disimpan privat untuk administrasi. Nama dan username Anda tampil di form
-                  responden.
-                </p>
-                <label className="auth-entry-consent">
-                  <input
-                    type="checkbox"
-                    required
-                    checked={consent}
-                    onChange={(event) => setConsent(event.target.checked)}
-                  />
-                  <span>
-                    Saya menyetujui{' '}
-                    <Link href="/privacy" target="_blank" rel="noreferrer">
-                      Kebijakan Privasi
-                    </Link>{' '}
-                    dan{' '}
-                    <Link href="/terms" target="_blank" rel="noreferrer">
-                      Ketentuan
-                    </Link>
-                    .
-                  </span>
-                </label>
-              </>
-            ) : (
-              <>
-                {register && (
-                  <div className="field">
-                    <label htmlFor="name">Nama lengkap</label>
-                    <input
-                      id="name"
-                      className="input"
-                      required
-                      minLength={2}
-                      maxLength={100}
-                      autoComplete="name"
-                      value={name}
-                      onChange={(event) => setName(event.target.value)}
-                    />
-                  </div>
-                )}
-                {surveyorRegistration && (
-                  <div className="field">
-                    <label htmlFor="surveyor-username">Username</label>
-                    <input
-                      id="surveyor-username"
-                      className="input"
-                      required
-                      minLength={3}
-                      maxLength={30}
-                      pattern="[a-zA-Z0-9][a-zA-Z0-9_]*"
-                      autoComplete="username"
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                      value={username}
-                      onChange={(event) => setUsername(event.target.value)}
-                      aria-describedby="surveyor-username-help"
-                    />
-                    <p id="surveyor-username-help" className="hint">
-                      Huruf, angka, atau _. Tidak dapat diganti.
-                    </p>
-                  </div>
-                )}
-                <div className="field">
-                  <label htmlFor="email">{isSurveyor && !register ? 'Email atau username' : 'Email'}</label>
-                  <input
-                    id="email"
-                    className="input"
-                    required
-                    type={isSurveyor && !register ? 'text' : 'email'}
-                    maxLength={254}
-                    autoComplete={isSurveyor && !register ? 'username' : 'email'}
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="password">Kata sandi</label>
-                  <input
-                    id="password"
-                    className="input"
-                    required
-                    type="password"
-                    minLength={register ? 10 : 1}
-                    maxLength={128}
-                    autoComplete={register ? 'new-password' : 'current-password'}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    aria-describedby={register ? 'auth-password-help' : undefined}
-                  />
-                  {register && (
-                    <p id="auth-password-help" className="hint">
-                      Minimal 10 karakter.
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
-          </fieldset>
-          {error && (
-            <p role="alert" className="auth-entry-error">
-              {error}
+      <div className="auth-entry-layout">
+        <aside className="auth-entry-visual" aria-label="Tentang peran Anda">
+          <Image
+            src={`/brand/photos/${isSurveyor ? 'surveyor' : 'manager'}.webp`}
+            alt=""
+            width={1200}
+            height={800}
+            sizes="(max-width: 860px) 1px, 470px"
+          />
+          <div>
+            <span>BERSAMA SURVEYDASH</span>
+            <h2>
+              {isSurveyor ? 'Bagikan survei. Dengarkan lebih banyak.' : 'Dari pertanyaan menjadi pemahaman.'}
+            </h2>
+            <p>
+              {isSurveyor
+                ? 'Terima tugas, bagikan link, dan pantau respons Anda.'
+                : 'Buat survei atau SKM, ajak Surveyor, dan pahami hasilnya.'}
             </p>
-          )}
-          <div className="auth-entry-actions">
-            {bankStep && (
-              <Button variant="secondary" disabled={pending} onClick={() => changeStep(1)}>
-                Kembali
-              </Button>
-            )}
-            <Button type="submit" disabled={pending}>
-              {pending && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
-              {surveyorRegistration && !bankStep ? 'Lanjut' : register ? 'Daftar' : 'Masuk'}
-            </Button>
           </div>
-        </form>
-        <p className="auth-entry-mode">
-          {register ? 'Sudah punya akun?' : 'Belum punya akun?'}{' '}
-          <Link
-            href={loginHref(role, !register)}
-            aria-disabled={pending || undefined}
-            onClick={(event) => {
-              if (pending) event.preventDefault();
-            }}
-          >
-            {register ? 'Masuk' : 'Daftar'}
+        </aside>
+        <div className="auth-entry-form-column">
+          <section className="auth-entry-card" aria-labelledby="auth-entry-title">
+            <header className="auth-entry-heading">
+              <h1 id="auth-entry-title">{register ? 'Daftar' : 'Masuk'}</h1>
+              <p>{isSurveyor ? 'Surveyor' : 'Pengelola Survei'}</p>
+              <nav className="auth-entry-role-tabs" aria-label="Pilih peran">
+                {(['manager', 'surveyor'] as const).map((item) => (
+                  <Link
+                    key={item}
+                    href={loginHref(item, register)}
+                    aria-current={role === item ? 'page' : undefined}
+                    aria-disabled={pending || undefined}
+                    onClick={(event) => {
+                      if (pending) event.preventDefault();
+                    }}
+                  >
+                    {item === 'manager' ? 'Pengelola' : 'Surveyor'}
+                  </Link>
+                ))}
+              </nav>
+            </header>
+            {surveyorRegistration && (
+              <ol className="auth-entry-steps" aria-label="Langkah pendaftaran">
+                <li aria-current={step === 1 ? 'step' : undefined}>1. Akun</li>
+                <li aria-current={step === 2 ? 'step' : undefined}>2. Rekening</li>
+              </ol>
+            )}
+            <form onSubmit={submit} aria-busy={pending}>
+              <fieldset className="auth-entry-fields" disabled={pending}>
+                {surveyorRegistration && (
+                  <h2 ref={stepTitle} tabIndex={-1} className="auth-entry-step-title" aria-live="polite">
+                    {bankStep ? 'Rekening' : 'Akun'}
+                  </h2>
+                )}
+                {bankStep ? (
+                  <>
+                    <div className="field">
+                      <label htmlFor="surveyor-bank">Bank / penyedia rekening</label>
+                      <input
+                        id="surveyor-bank"
+                        className="input"
+                        required
+                        minLength={2}
+                        maxLength={80}
+                        value={bankName}
+                        onChange={(event) => setBankName(event.target.value)}
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="surveyor-account-name">Nama pemilik rekening</label>
+                      <input
+                        id="surveyor-account-name"
+                        className="input"
+                        required
+                        minLength={2}
+                        maxLength={100}
+                        value={accountName}
+                        onChange={(event) => setAccountName(event.target.value)}
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="surveyor-account-number">Nomor rekening</label>
+                      <input
+                        id="surveyor-account-number"
+                        className="input"
+                        required
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={40}
+                        autoComplete="off"
+                        value={accountNumber}
+                        onChange={(event) => setAccountNumber(event.target.value)}
+                      />
+                    </div>
+                    <p className="auth-entry-note">
+                      Rekening disimpan privat untuk administrasi. Nama dan username Anda tampil di form
+                      responden.
+                    </p>
+                    <label className="auth-entry-consent">
+                      <input
+                        type="checkbox"
+                        required
+                        checked={consent}
+                        onChange={(event) => setConsent(event.target.checked)}
+                      />
+                      <span>
+                        Saya menyetujui{' '}
+                        <Link href="/privacy" target="_blank" rel="noreferrer">
+                          Kebijakan Privasi
+                        </Link>{' '}
+                        dan{' '}
+                        <Link href="/terms" target="_blank" rel="noreferrer">
+                          Ketentuan
+                        </Link>
+                        .
+                      </span>
+                    </label>
+                  </>
+                ) : (
+                  <>
+                    {register && (
+                      <div className="field">
+                        <label htmlFor="name">Nama lengkap</label>
+                        <input
+                          id="name"
+                          className="input"
+                          required
+                          minLength={2}
+                          maxLength={100}
+                          autoComplete="name"
+                          value={name}
+                          onChange={(event) => setName(event.target.value)}
+                        />
+                      </div>
+                    )}
+                    {surveyorRegistration && (
+                      <div className="field">
+                        <label htmlFor="surveyor-username">Username</label>
+                        <input
+                          id="surveyor-username"
+                          className="input"
+                          required
+                          minLength={3}
+                          maxLength={30}
+                          pattern="[a-zA-Z0-9][a-zA-Z0-9_]*"
+                          autoComplete="username"
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          value={username}
+                          onChange={(event) => setUsername(event.target.value)}
+                          aria-describedby="surveyor-username-help"
+                        />
+                        <p id="surveyor-username-help" className="hint">
+                          Huruf, angka, atau _. Tidak dapat diganti.
+                        </p>
+                      </div>
+                    )}
+                    <div className="field">
+                      <label htmlFor="email">
+                        {isSurveyor && !register ? 'Email atau username' : 'Email'}
+                      </label>
+                      <input
+                        id="email"
+                        className="input"
+                        required
+                        type={isSurveyor && !register ? 'text' : 'email'}
+                        maxLength={254}
+                        autoComplete={isSurveyor && !register ? 'username' : 'email'}
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="password">Kata sandi</label>
+                      <input
+                        id="password"
+                        className="input"
+                        required
+                        type="password"
+                        minLength={register ? 10 : 1}
+                        maxLength={128}
+                        autoComplete={register ? 'new-password' : 'current-password'}
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        aria-describedby={register ? 'auth-password-help' : undefined}
+                      />
+                      {register && (
+                        <p id="auth-password-help" className="hint">
+                          Minimal 10 karakter.
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </fieldset>
+              {error && (
+                <p role="alert" className="auth-entry-error">
+                  {error}
+                </p>
+              )}
+              <div className="auth-entry-actions">
+                {bankStep && (
+                  <Button variant="secondary" disabled={pending} onClick={() => changeStep(1)}>
+                    Kembali
+                  </Button>
+                )}
+                <Button type="submit" disabled={pending}>
+                  {pending && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
+                  {surveyorRegistration && !bankStep ? 'Lanjut' : register ? 'Daftar' : 'Masuk'}
+                </Button>
+              </div>
+            </form>
+            <p className="auth-entry-mode">
+              {register ? 'Sudah punya akun?' : 'Belum punya akun?'}{' '}
+              <Link
+                href={loginHref(role, !register)}
+                aria-disabled={pending || undefined}
+                onClick={(event) => {
+                  if (pending) event.preventDefault();
+                }}
+              >
+                {register ? 'Masuk' : 'Daftar'}
+              </Link>
+            </p>
+            {!register && (
+              <div className="auth-entry-help">
+                {recoveryAvailable ? (
+                  <Link href="/forgot-password">Lupa kata sandi?</Link>
+                ) : (
+                  <a href={'mailto:' + supportEmail}>Bantuan akun</a>
+                )}
+              </div>
+            )}
+          </section>
+          <Link href="/surveys" className="auth-entry-respondent">
+            Isi survei tanpa login
           </Link>
-        </p>
-        {!register && (
-          <div className="auth-entry-help">
-            {recoveryAvailable ? (
-              <Link href="/forgot-password">Lupa kata sandi?</Link>
-            ) : (
-              <a href={'mailto:' + supportEmail}>Bantuan akun</a>
-            )}
-          </div>
-        )}
-      </section>
-      <Link href="/surveys" className="auth-entry-respondent">
-        Isi survei
-      </Link>
+        </div>
+      </div>
     </main>
   );
 }

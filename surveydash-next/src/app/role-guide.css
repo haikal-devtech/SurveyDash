@@ -1,0 +1,106 @@
+.role-guide-modal .modal-description {
+  color: #786486;
+}
+.role-guide-modal {
+  border-radius: 20px;
+}
+.role-guide {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin-top: 20px;
+}
+.role-guide-photo {
+  width: 100%;
+  height: 100%;
+  min-height: 330px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+.role-guide-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 6px 0;
+}
+.role-guide-progress {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 22px;
+  padding: 0;
+}
+.role-guide-progress li > span:first-child {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #f0ebf8;
+  color: #665774;
+  font-size: 12px;
+  font-weight: 600;
+}
+.role-guide-progress li[aria-current] > span:first-child {
+  background: #7549df;
+  color: white;
+}
+.role-guide-count {
+  color: #6b4ba5;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.role-guide h2 {
+  font-size: 25px;
+  line-height: 1.25;
+  letter-spacing: -0.8px;
+  margin-bottom: 14px;
+}
+.role-guide-content > p:not(.role-guide-count):not(.role-guide-error) {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #62576e;
+}
+.role-guide-tip {
+  margin-block: 20px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #f4f0fc;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #63458f;
+}
+.role-guide-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 12px;
+}
+.role-guide-actions .btn {
+  min-height: 44px;
+}
+.role-guide-error {
+  color: #a33245;
+  font-size: 12px;
+  line-height: 1.6;
+}
+@media (max-width: 640px) {
+  .role-guide {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .role-guide-photo {
+    height: 165px;
+    min-height: 0;
+  }
+  .role-guide h2 {
+    font-size: 23px;
+  }
+  .role-guide-progress {
+    margin-bottom: 12px;
+  }
+}

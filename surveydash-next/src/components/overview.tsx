@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 import {
   Plus,
@@ -10,11 +11,14 @@ import {
   Grid2X2,
   ArrowRight,
   Loader2,
+  ListChecks,
+  MessageSquare,
 } from 'lucide-react';
 import type { SavedTemplate, Survey } from '@/lib/types';
 import { CreateSurvey } from './create-survey';
 import { SurveyExplorer } from './survey-explorer';
 import { Button } from './ui';
+import { GuideButton } from './role-guide';
 import { useRouter } from 'next/navigation';
 import '@/app/manager-surveyors.css';
 const starters = [
@@ -45,6 +49,7 @@ export function Overview({
   const [selected, setSelected] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+  const currentSurveys = surveys.filter((survey) => !survey.deletedAt && !survey.archivedAt);
   async function demo() {
     setPending(true);
     setError('');
@@ -61,33 +66,88 @@ export function Overview({
   }
   return (
     <>
-      <div className="page-heading home-heading">
+      <div className={listOnly ? 'page-heading home-heading' : 'workspace-welcome'}>
         <div>
-          <p className="home-eyebrow">Workspace</p>
-          <h1>{listOnly ? 'Semua survei Anda.' : `Selamat datang kembali, ${name.split(' ')[0]}.`}</h1>
+          <p className="experience-eyebrow">PENGELOLA SURVEI</p>
+          <h1>{listOnly ? 'Semua survei Anda' : `Halo, ${name.split(' ')[0]}.`}</h1>
           <p>
             {listOnly
-              ? 'Temukan, atur, dan lanjutkan pekerjaan survei Anda.'
-              : 'Buat survei baru, gunakan template, atau lanjutkan pekerjaan terakhir Anda.'}
+              ? 'Cari survei atau lanjutkan pekerjaan Anda.'
+              : 'Siap mendengar lebih banyak? Mulai survei baru atau lanjutkan yang sudah ada.'}
           </p>
+          <div className="workspace-welcome-actions">
+            <Button onClick={() => setSelected('blank')}>
+              <Plus size={17} />
+              Buat survei
+            </Button>
+            {!listOnly && <GuideButton role="manager" />}
+          </div>
         </div>
-        <Button onClick={() => setSelected('blank')}>
-          <Plus size={17} />
-          Buat survei baru
-        </Button>
+        {!listOnly && (
+          <Image
+            src="/brand/photos/hero.webp"
+            alt=""
+            width={1200}
+            height={800}
+            sizes="(max-width: 700px) 100vw, 340px"
+            className="workspace-welcome-photo"
+          />
+        )}
       </div>
       {!listOnly && (
-        <section className="card manager-home-surveyors">
-          <UsersRound size={24} />
-          <div>
-            <h2>Surveyor</h2>
-            <p>Undang orang untuk membantu menyebarkan survei.</p>
+        <>
+          <section className="workspace-metrics" aria-label="Ringkasan survei">
+            <Link href="/studio/surveys">
+              <span>
+                <FileText size={19} />
+                Survei Anda
+              </span>
+              <strong>{currentSurveys.length.toLocaleString('id-ID')}</strong>
+            </Link>
+            <Link href="/studio/surveys">
+              <span>
+                <ClipboardCheck size={19} />
+                Survei terbuka
+              </span>
+              <strong>
+                {currentSurveys.filter((survey) => survey.status === 'open').length.toLocaleString('id-ID')}
+              </strong>
+            </Link>
+            <Link href="/studio/surveys">
+              <span>
+                <MessageSquare size={19} />
+                Total respons
+              </span>
+              <strong>
+                {currentSurveys
+                  .reduce((total, survey) => total + (survey.responseCount ?? 0), 0)
+                  .toLocaleString('id-ID')}
+              </strong>
+            </Link>
+          </section>
+          <div className="workspace-shortcuts">
+            <Link href="/studio/surveyors">
+              <span className="shortcut-icon">
+                <UsersRound size={22} />
+              </span>
+              <span>
+                <strong>Kelola Surveyor</strong>
+                <small>Undang dan lihat penugasan</small>
+              </span>
+              <ArrowRight size={17} />
+            </Link>
+            <Link href="/studio/cleaning">
+              <span className="shortcut-icon">
+                <ListChecks size={22} />
+              </span>
+              <span>
+                <strong>Cleaning data</strong>
+                <small>Tinjau respons mencurigakan</small>
+              </span>
+              <ArrowRight size={17} />
+            </Link>
           </div>
-          <Link href="/studio/surveyors" className="btn btn-secondary">
-            Kelola Surveyor
-            <ArrowRight size={16} />
-          </Link>
-        </section>
+        </>
       )}
       {!listOnly && (
         <section className="starter-section">

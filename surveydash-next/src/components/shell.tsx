@@ -22,6 +22,8 @@ import { Brand } from './brand';
 import { Button } from './ui';
 import { UserAvatar } from './user-avatar';
 import { ReturnWorkspace } from './admin-workspaces';
+import { GuideButton, RoleGuide } from './role-guide';
+import '@/app/workspace-experience.css';
 export function Shell({
   children,
   name,
@@ -70,6 +72,14 @@ export function Shell({
   ];
   return (
     <div className={`workspace ${focused ? 'focus-workspace' : ''} ${canvas ? 'slide-workspace' : ''}`}>
+      {mobile && (
+        <button
+          type="button"
+          className="workspace-menu-backdrop"
+          aria-label="Tutup menu"
+          onClick={() => setMobile(false)}
+        />
+      )}
       <aside className={`sidebar ${mobile ? 'mobile-open' : ''}`}>
         <Link href="/studio" onClick={() => setMobile(false)}>
           <Brand />
@@ -88,6 +98,11 @@ export function Shell({
               href={item.href}
               target={item.href === '/surveys' ? '_blank' : undefined}
               className={`nav-item ${(item.href === '/studio' ? pathname === item.href : pathname.startsWith(item.href)) ? 'active' : ''}`}
+              aria-current={
+                (item.href === '/studio' ? pathname === item.href : pathname.startsWith(item.href))
+                  ? 'page'
+                  : undefined
+              }
               onClick={() => setMobile(false)}
             >
               <item.icon size={18} />
@@ -97,11 +112,14 @@ export function Shell({
           ))}
         </nav>
         <div className="sidebar-bottom">
+          <div className="workspace-help">
+            <GuideButton role="manager" /> <Link href="/help">Bantuan lainnya</Link>
+          </div>
           <div className="profile">
             <UserAvatar name={name} image={image} />
             <Link href="/studio/settings/account">
               <strong>{name}</strong>
-              <small>{isAdmin ? 'Admin platform' : 'Akses penuh workspace'}</small>
+              <small>{isAdmin ? 'Admin platform' : 'Pengelola Survei'}</small>
             </Link>
             <button
               className="btn btn-ghost"
@@ -132,6 +150,7 @@ export function Shell({
               className={`mobile-menu ${focused ? 'focus-menu' : ''}`}
               variant="ghost"
               aria-label="Buka menu"
+              aria-expanded={mobile}
               onClick={() => setMobile(true)}
             >
               <Menu size={18} />
@@ -163,6 +182,7 @@ export function Shell({
           {children}
         </div>
       </main>
+      <RoleGuide role="manager" />
     </div>
   );
 }
