@@ -24,12 +24,10 @@
   max-height: calc(100dvh - 24px);
   overflow-y: auto;
   padding: 18px;
-  border: 1px solid #fff;
-  border-radius: 18px;
-  background: linear-gradient(140deg, #fffdff, #f0e5fc);
-  box-shadow:
-    0 10px 30px #32194d25,
-    inset 1px 1px 3px #fff;
+  border: 1px solid #ded5eb;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 10px 30px #32194d25;
   color: #342444;
 }
 .tour-coach-top {
@@ -49,8 +47,8 @@
 .tour-save-error > button:last-child {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 9px;
   background: #e8dcf5;
@@ -76,7 +74,7 @@
   gap: 12px;
 }
 .tour-coach-actions .btn {
-  min-height: 42px;
+  min-height: 44px;
   font-size: 13px;
 }
 .tour-coach > small {

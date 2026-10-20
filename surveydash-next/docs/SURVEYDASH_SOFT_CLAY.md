@@ -1,5 +1,7 @@
 # Soft Claymorphism + Gradient Design
 
+Historical implementation notes for the first clay revision. The current refinement is documented in [SurveyDash interface direction](SURVEYDASH_INTERFACE_DIRECTION.md): flat working surfaces, simpler login, mobile navigation, and desktop-only decorative hero/empty-state artwork replace the broader clay treatment described below. The five asset files and their sizes remain valid.
+
 The user requested a stronger clay visual direction after finding the people photography generic. Five bespoke matte clay illustrations now represent the actual workflow: a survey workshop, SKM clipboard, invitation envelope, personal link, and result chart with magnifier. All are generated with the built-in ImageGen tool, inspected, and exported to alpha-preserving WebP. The existing supplied logo is unchanged.
 
 ## Material and interaction

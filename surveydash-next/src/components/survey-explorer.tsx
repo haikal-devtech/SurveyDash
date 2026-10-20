@@ -224,21 +224,31 @@ export function SurveyExplorer({
           </div>
         ) : (
           <div className="survey-file-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Nama survei</th>
-                  <th>Status</th>
-                  <th>Respons</th>
-                  <th>Dibuat</th>
-                  <th>Terakhir dibuka</th>
-                  <th aria-label="Tindakan" />
+            <table role="table" aria-label="Survei Anda">
+              <thead role="rowgroup">
+                <tr role="row">
+                  <th role="columnheader" scope="col">
+                    Nama survei
+                  </th>
+                  <th role="columnheader" scope="col">
+                    Status
+                  </th>
+                  <th role="columnheader" scope="col">
+                    Respons
+                  </th>
+                  <th role="columnheader" scope="col">
+                    Dibuat
+                  </th>
+                  <th role="columnheader" scope="col">
+                    Terakhir dibuka
+                  </th>
+                  <th role="columnheader" scope="col" aria-label="Tindakan" />
                 </tr>
               </thead>
-              <tbody>
+              <tbody role="rowgroup">
                 {visible.map((survey) => (
-                  <tr key={survey.id}>
-                    <td>
+                  <tr key={survey.id} role="row">
+                    <td role="cell" className="survey-file-title">
                       <Link href={`/studio/${survey.id}`} className="survey-file-name">
                         <span className="file-icon">
                           <FileText size={21} />
@@ -252,11 +262,31 @@ export function SurveyExplorer({
                         </span>
                       </Link>
                     </td>
-                    <td>{status(survey)}</td>
-                    <td>{survey.responseCount ?? 0}</td>
-                    <td>{date(survey.createdAt)}</td>
-                    <td>{date(survey.lastOpenedAt)}</td>
-                    <td>{menuButton(survey)}</td>
+                    <td role="cell" className="survey-file-status">
+                      {status(survey)}
+                    </td>
+                    <td role="cell" className="survey-file-responses">
+                      {survey.responseCount ?? 0}
+                      <span className="survey-file-mobile-label" aria-hidden="true">
+                        {' '}
+                        respons
+                      </span>
+                    </td>
+                    <td role="cell" className="survey-file-date">
+                      <span className="survey-file-mobile-label" aria-hidden="true">
+                        Dibuat
+                      </span>
+                      {date(survey.createdAt)}
+                    </td>
+                    <td role="cell" className="survey-file-date">
+                      <span className="survey-file-mobile-label" aria-hidden="true">
+                        Terakhir dibuka
+                      </span>
+                      {date(survey.lastOpenedAt)}
+                    </td>
+                    <td role="cell" className="survey-file-actions">
+                      {menuButton(survey)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

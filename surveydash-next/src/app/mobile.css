@@ -1,0 +1,627 @@
+/* Mobile layouts follow the work, rather than shrinking the desktop canvas. */
+@media (max-width: 800px) {
+  .clay-ui {
+    font-size: 15px;
+  }
+  .clay-ui .btn {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 14px;
+  }
+  .clay-ui .input {
+    min-height: 46px;
+    font-size: 16px;
+  }
+  .clay-ui .field > label,
+  .clay-ui .label {
+    font-size: 14px;
+  }
+  .clay-ui .modal {
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+    padding: 24px 20px;
+  }
+  .clay-ui .modal-footer {
+    flex-wrap: wrap;
+  }
+  .clay-ui .modal-footer .btn {
+    flex: 1;
+  }
+  .clay-ui .marketing-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    height: 72px;
+    gap: 8px;
+    padding: 0 16px;
+  }
+  .clay-ui .marketing-header > a:first-child {
+    min-width: 0;
+  }
+  .clay-ui .marketing-header .brand {
+    width: min(160px, 100%);
+  }
+  .clay-ui .marketing-header .public-navigation {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .clay-ui .marketing-header > .actions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .clay-ui .marketing-header > .actions > .btn {
+    display: none;
+  }
+  .clay-ui .marketing-header .marketing-signin {
+    display: inline-flex;
+    font-size: 14px;
+    padding: 0 4px;
+  }
+  .clay-ui .marketing-menu {
+    padding: 10px;
+  }
+  .clay-ui .marketing-footer {
+    padding: 28px 20px;
+    gap: 20px;
+  }
+  .clay-ui .marketing-footer nav {
+    gap: 2px 20px;
+    font-size: 14px;
+  }
+  .clay-ui .workspace .main {
+    margin-left: 0;
+    width: 100%;
+    min-width: 0;
+  }
+  .clay-ui .workspace .content {
+    padding: 24px 16px;
+  }
+  .clay-ui .workspace.has-bottom-nav .content {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+  .clay-ui .workspace .topbar {
+    height: 64px;
+    padding: 0 16px;
+    gap: 12px;
+  }
+  .clay-ui .global-search {
+    padding: 10px 12px;
+    min-width: 0;
+  }
+  .clay-ui .global-search input {
+    font-size: 16px;
+  }
+  .clay-ui .workspace .topbar-account {
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .clay-ui .workspace-welcome > div {
+    display: block;
+  }
+  .clay-ui .workspace-welcome h1 {
+    font-size: 28px;
+  }
+  .clay-ui .workspace-welcome > div > p {
+    margin-top: 10px;
+    font-size: 15px;
+    line-height: 1.65;
+  }
+  .clay-ui .workspace-welcome-actions {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .clay-ui .workspace-welcome-actions .btn {
+    white-space: normal;
+    text-align: center;
+  }
+  .clay-ui .workspace-metrics > a {
+    padding: 18px 12px;
+    gap: 12px;
+  }
+  .clay-ui .workspace-metrics span {
+    font-size: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+    line-height: 1.5;
+  }
+  .clay-ui .workspace-metrics strong {
+    font-size: 26px;
+  }
+  .clay-ui .workspace-shortcuts {
+    gap: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .clay-ui .workspace-shortcuts > a {
+    padding: 16px 0;
+    min-height: 80px;
+  }
+  .clay-ui .workspace .starter-tiles {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+  }
+  .clay-ui .workspace .starter-tile,
+  .clay-ui .workspace .starter-tile:last-child {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 4px 14px;
+    min-height: 82px;
+    padding: 16px;
+    text-align: left;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+  }
+  .clay-ui .workspace .starter-tile:last-child {
+    border-bottom: 0;
+  }
+  .clay-ui .workspace .starter-tile > span {
+    grid-row: 1 / span 2;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    margin: 0;
+    align-self: center;
+  }
+  .clay-ui .workspace .starter-tile strong {
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .clay-ui .workspace .starter-tile small,
+  .clay-ui .workspace .starter-tile:last-child small {
+    grid-column: 2;
+    margin: 0;
+    font-size: 13px;
+  }
+  .clay-ui .explorer-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .clay-ui .explorer-heading > .actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: nowrap;
+  }
+  .clay-ui .explorer-sort {
+    width: 100%;
+    flex: 1;
+    min-width: 0;
+  }
+  .clay-ui .explorer-toolbar {
+    gap: 12px;
+  }
+  .clay-ui .explorer-toolbar .search-input {
+    order: -1;
+    width: 100%;
+  }
+  .clay-ui .explorer-toolbar .tabs-filter {
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 4px;
+    gap: 6px;
+  }
+  .clay-ui .explorer-toolbar .tabs-filter button {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+  .clay-ui .explorer-pagination {
+    font-size: 13px;
+    gap: 12px;
+  }
+  /* Preserve table headers and explicit roles while reflowing the same records. */
+  .clay-ui .survey-file-table {
+    overflow: visible;
+    border-radius: 12px;
+  }
+  .clay-ui .survey-file-table table,
+  .clay-ui .survey-file-table tbody {
+    display: block;
+    white-space: normal;
+  }
+  .clay-ui .survey-file-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .clay-ui .survey-file-table tbody tr {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+    padding: 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .clay-ui .survey-file-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .clay-ui .survey-file-table td {
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    font-size: 14px;
+  }
+  .clay-ui .survey-file-table .survey-file-title {
+    grid-column: 1 / -1;
+    padding-right: 44px;
+  }
+  .clay-ui .survey-file-name {
+    min-width: 0;
+    gap: 12px;
+    min-height: 44px;
+    align-items: flex-start;
+  }
+  .clay-ui .survey-file-name .file-icon {
+    display: none;
+  }
+  .clay-ui .survey-file-name strong {
+    font-size: 16px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  .clay-ui .survey-file-name small {
+    font-size: 13px;
+    line-height: 1.6;
+    margin-top: 4px;
+    overflow-wrap: anywhere;
+  }
+  .clay-ui .survey-file-status {
+    align-self: center;
+  }
+  .clay-ui .survey-file-status .badge {
+    font-size: 12px;
+    padding: 5px 9px;
+  }
+  .clay-ui .survey-file-responses {
+    text-align: right;
+    align-self: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .clay-ui .survey-file-mobile-label {
+    display: inline;
+  }
+  .clay-ui .survey-file-table .survey-file-date {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .clay-ui .survey-file-date .survey-file-mobile-label {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .clay-ui .survey-file-table .survey-file-actions {
+    position: absolute;
+    top: 12px;
+    right: 8px;
+  }
+  .clay-ui .editor-tabs {
+    gap: 4px;
+    scroll-padding-inline: 12px;
+  }
+  .clay-ui .editor-tabs button {
+    min-height: 48px;
+    font-size: 14px;
+    padding-inline: 12px;
+  }
+  .clay-ui .editor-heading .actions .btn {
+    font-size: 14px;
+  }
+  .clay-ui .workspace-bottom-nav {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 35;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-top: 1px solid var(--border);
+    background: white;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+  .clay-ui .workspace-bottom-nav > a,
+  .clay-ui .workspace-bottom-nav > button {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    min-height: 56px;
+    min-width: 0;
+    padding: 7px 4px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: #716979;
+    font-size: 12px;
+  }
+  .clay-ui .workspace-bottom-nav > [aria-current='page'] {
+    color: #5f389e;
+    background: #f3eef9;
+    font-weight: 600;
+  }
+  .clay-ui .workspace-mobile-drawer {
+    inset: 0 auto 0 0;
+    transform: none;
+    width: min(340px, 90vw);
+    max-width: 90vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    padding: 28px 20px max(20px, env(safe-area-inset-bottom, 0px));
+    border-radius: 0 16px 16px 0;
+  }
+  .clay-ui .workspace-mobile-drawer > .modal-title,
+  .clay-ui .workspace-mobile-drawer > .modal-description {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    padding: 0;
+    margin: -1px;
+  }
+  .clay-ui .workspace-mobile-menu {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
+  .clay-ui .workspace-mobile-menu > a:first-child {
+    padding-right: 40px;
+  }
+  .clay-ui .workspace-mobile-menu .brand {
+    max-width: 100%;
+  }
+  .clay-ui .workspace-mobile-menu .nav-item {
+    min-height: 48px;
+    font-size: 15px;
+  }
+  .clay-ui .workspace-mobile-menu .nav-item.active {
+    background: var(--purple-soft);
+    color: var(--purple);
+  }
+  .clay-ui .workspace-mobile-menu .sidebar-bottom {
+    margin-top: 24px;
+  }
+  .clay-ui .workspace-mobile-menu .workspace-select {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .clay-ui .workspace-mobile-menu .workspace-select > div {
+    min-width: 0;
+  }
+  .clay-ui .workspace-mobile-menu .workspace-select strong,
+  .clay-ui .workspace-mobile-menu .workspace-select small {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+  .clay-ui .workspace-mobile-menu .profile {
+    min-width: 0;
+  }
+  .clay-ui .workspace-mobile-menu .profile a {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .clay-ui .surveyor-header {
+    gap: 12px;
+    padding: 14px 16px 10px;
+  }
+  .clay-ui .surveyor-nav {
+    gap: 6px;
+    padding-top: 8px;
+  }
+  .clay-ui .surveyor-nav a,
+  .clay-ui .surveyor-nav > .btn {
+    flex: 1;
+    font-size: 14px;
+    gap: 6px;
+    padding-inline: 8px;
+    min-height: 46px;
+  }
+  .clay-ui .surveyor-main {
+    padding: 28px 16px 48px;
+    min-width: 0;
+  }
+  .clay-ui .surveyor-page-heading h1 {
+    font-size: 28px;
+  }
+  .clay-ui .surveyor-page-heading p,
+  .clay-ui .surveyor-task-heading p {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .clay-ui .surveyor-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .clay-ui .surveyor-summary .card {
+    padding: 18px 16px;
+  }
+  .clay-ui .surveyor-summary .card:nth-child(2) {
+    border-right: 0;
+  }
+  .clay-ui .surveyor-summary .card:last-child {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    border-top: 1px solid var(--border);
+  }
+  .clay-ui .surveyor-summary .card:last-child strong {
+    font-size: 17px;
+  }
+  .clay-ui .surveyor-summary .card:last-child span {
+    margin-left: auto;
+    font-size: 13px;
+  }
+  .clay-ui .surveyor-task {
+    padding: 22px 18px;
+  }
+  .clay-ui .surveyor-task h3 {
+    font-size: 20px;
+    line-height: 1.4;
+  }
+  .clay-ui .surveyor-task p,
+  .clay-ui .surveyor-task .hint,
+  .clay-ui .surveyor-link-note,
+  .clay-ui .surveyor-confidentiality-note {
+    font-size: 14px;
+  }
+  .clay-ui .surveyor-task .surveyor-link-input {
+    font-size: 16px;
+  }
+  .clay-ui .surveyor-share > .btn {
+    min-height: 48px;
+    font-size: 15px;
+  }
+  .clay-ui .surveyor-welcome-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .clay-ui .surveyor-welcome-art {
+    display: none;
+  }
+  .clay-ui .surveyor-welcome-card > div {
+    padding: 24px 20px;
+  }
+  .clay-ui .surveyor-welcome-card h3 {
+    font-size: 23px;
+  }
+  .clay-ui .surveyor-welcome-card p {
+    font-size: 15px;
+  }
+  .clay-ui .surveyor-footer {
+    font-size: 13px;
+    gap: 8px 20px;
+  }
+  .clay-ui .surveyor-footer a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .clay-ui .public-shell {
+    padding: 24px 16px;
+  }
+  .clay-ui .public-shell .form-cover,
+  .clay-ui .public-shell .form-question {
+    padding: 22px 20px;
+  }
+  .clay-ui .public-shell .form-cover h1 {
+    font-size: 26px;
+  }
+  .clay-ui .public-shell .form-cover p {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  .clay-ui .public-shell .form-question label.question-label {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .clay-ui .public-shell .radio-option {
+    min-height: 48px;
+    font-size: 16px;
+    color: #62576e;
+  }
+  .clay-ui .public-shell .rating-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .clay-ui .public-shell .rating-option {
+    min-height: 72px;
+    font-size: 14px;
+    color: #62576e;
+  }
+  .clay-ui .public-shell .rating-option span {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+  }
+  .clay-ui .tour-coach {
+    background: white;
+    border-color: #ded5eb;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 8px 28px #24123826;
+  }
+  .clay-ui .tour-coach > p {
+    font-size: 14px;
+    color: #62596c;
+    line-height: 1.65;
+  }
+  .clay-ui .tour-coach-actions .btn {
+    min-height: 44px;
+  }
+  .clay-ui .tour-coach-top > button {
+    min-width: 44px;
+    min-height: 44px;
+    background: #f3eff8;
+  }
+}
+@media (max-width: 860px) {
+  .clay-ui .auth-entry {
+    background: white;
+    justify-content: flex-start;
+    align-items: stretch;
+    padding: 28px 20px 40px;
+  }
+  .clay-ui .auth-entry-brand {
+    align-self: flex-start;
+    margin-bottom: 32px;
+  }
+  .clay-ui .auth-entry-layout {
+    margin-inline: auto;
+  }
+  .clay-ui .auth-entry-card {
+    max-width: none;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+  }
+  .clay-ui .auth-entry-role-tabs {
+    margin-top: 24px;
+  }
+  .clay-ui .auth-entry-role-tabs a {
+    min-height: 46px;
+    font-size: 14px;
+  }
+  .clay-ui .auth-entry-heading h1 {
+    font-size: 30px;
+  }
+  .clay-ui .auth-entry .field {
+    margin-top: 20px;
+  }
+  .clay-ui .auth-entry-mode {
+    font-size: 14px;
+  }
+  .clay-ui .auth-entry-help a,
+  .clay-ui .auth-entry-respondent {
+    font-size: 14px;
+  }
+}
+@media (max-width: 700px) {
+  .clay-ui .help-hero > img {
+    display: none;
+  }
+  .clay-ui .help-step-grid article > img {
+    height: 100%;
+    padding: 12px;
+  }
+}
+@media print {
+  .workspace-bottom-nav {
+    display: none !important;
+  }
+}

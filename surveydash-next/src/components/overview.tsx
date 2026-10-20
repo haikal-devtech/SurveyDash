@@ -1,6 +1,5 @@
 'use client';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useState } from 'react';
 import {
   Plus,
@@ -22,7 +21,6 @@ import { GuideButton } from './role-guide';
 import { useRouter } from 'next/navigation';
 import '@/app/manager-surveyors.css';
 const starters = [
-  { id: 'blank', title: 'Survei kosong', description: 'Mulai dari awal', icon: Plus },
   {
     id: 'skm',
     title: 'Survei Kepuasan Masyarakat',
@@ -68,12 +66,11 @@ export function Overview({
     <>
       <div className={listOnly ? 'page-heading home-heading' : 'workspace-welcome'}>
         <div>
-          <p className="experience-eyebrow">PENGELOLA SURVEI</p>
           <h1>{listOnly ? 'Semua survei Anda' : `Halo, ${name.split(' ')[0]}.`}</h1>
           <p>
             {listOnly
               ? 'Cari survei atau lanjutkan pekerjaan Anda.'
-              : 'Siap mendengar lebih banyak? Mulai survei baru atau lanjutkan yang sudah ada.'}
+              : 'Buat survei baru atau lanjutkan pekerjaan Anda.'}
           </p>
           <div className="workspace-welcome-actions">
             <Button data-tour="create-survey" onClick={() => setSelected('blank')}>
@@ -83,16 +80,6 @@ export function Overview({
             {!listOnly && <GuideButton role="manager" />}
           </div>
         </div>
-        {!listOnly && (
-          <Image
-            src="/brand/clay/hero.webp"
-            alt=""
-            width={1200}
-            height={800}
-            sizes="(max-width: 700px) 100vw, 340px"
-            className="workspace-welcome-photo"
-          />
-        )}
       </div>
       {!listOnly && (
         <>
@@ -152,7 +139,7 @@ export function Overview({
       {!listOnly && (
         <section className="starter-section">
           <div className="explorer-heading">
-            <h2>Mulai membuat</h2>
+            <h2>Mulai dari template</h2>
             <Link href="/studio/templates" className="text-link">
               Lihat semua template <ArrowRight size={15} />
             </Link>
@@ -160,7 +147,7 @@ export function Overview({
           <div className="starter-tiles">
             {starters.map((item) => (
               <button
-                className={`starter-tile ${item.id === 'blank' ? 'starter-first' : ''}`}
+                className="starter-tile"
                 type="button"
                 key={item.id}
                 onClick={() => setSelected(item.id)}

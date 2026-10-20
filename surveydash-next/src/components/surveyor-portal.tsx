@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -436,7 +435,6 @@ export function SurveyorPortal({
     <>
       <div className="page-heading surveyor-page-heading">
         <div>
-          <p className="eyebrow">PORTAL SURVEYOR</p>
           <h1>
             {profileOnly
               ? 'Profil dan rekening'
@@ -518,15 +516,8 @@ export function SurveyorPortal({
           </div>
           {data.assignments.length === 0 ? (
             <section className="surveyor-welcome-card">
-              <Image
-                src="/brand/clay/invite.webp"
-                width={720}
-                height={720}
-                alt=""
-                sizes="(max-width: 640px) 100vw, 300px"
-              />
+              <div className="surveyor-welcome-art" aria-hidden="true" />
               <div>
-                <span className="experience-eyebrow">SIAP MENERIMA TUGAS</span>
                 <h3>Belum ada tugas survei</h3>
                 <p>Minta link undangan dari Pengelola, lalu buka dan pilih Bergabung.</p>
                 <p className="hint">

@@ -2,7 +2,6 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
@@ -146,26 +145,6 @@ export function LoginForm({
         <Brand />
       </Link>
       <div className="auth-entry-layout">
-        <aside className="auth-entry-visual" aria-label="Tentang peran Anda">
-          <Image
-            src={`/brand/clay/${isSurveyor ? 'share' : 'create'}.webp`}
-            alt=""
-            width={720}
-            height={720}
-            sizes="(max-width: 860px) 1px, 470px"
-          />
-          <div>
-            <span>BERSAMA SURVEYDASH</span>
-            <h2>
-              {isSurveyor ? 'Bagikan survei. Dengarkan lebih banyak.' : 'Dari pertanyaan menjadi pemahaman.'}
-            </h2>
-            <p>
-              {isSurveyor
-                ? 'Terima tugas, bagikan link, dan pantau respons Anda.'
-                : 'Buat survei atau SKM, ajak Surveyor, dan pahami hasilnya.'}
-            </p>
-          </div>
-        </aside>
         <div className="auth-entry-form-column">
           <section className="auth-entry-card" aria-labelledby="auth-entry-title">
             <header className="auth-entry-heading">

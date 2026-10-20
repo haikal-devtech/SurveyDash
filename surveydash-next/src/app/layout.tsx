@@ -8,6 +8,7 @@ import '@fontsource-variable/inter';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import './soft-clay.css';
+import './mobile.css';
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.BETTER_AUTH_URL ?? 'http://localhost:3100'),
   title: 'SurveyDash Studio — Ruang kerja survei',

@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   LayoutDashboard,
   Files,
@@ -10,7 +10,6 @@ import {
   Settings2,
   LogOut,
   Menu,
-  X,
   Search,
   ArrowUpRight,
   ShieldCheck,
@@ -19,7 +18,7 @@ import {
 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import { Brand } from './brand';
-import { Button } from './ui';
+import { Button, Modal } from './ui';
 import { UserAvatar } from './user-avatar';
 import { ReturnWorkspace } from './admin-workspaces';
 import { GuideButton, RoleGuide } from './role-guide';
@@ -44,6 +43,7 @@ export function Shell({
   const pathname = usePathname();
   const router = useRouter();
   const [mobile, setMobile] = useState(false);
+  const menuOpener = useRef<HTMLButtonElement | null>(null);
   const [query, setQuery] = useState('');
   const section = pathname.split('/')[2];
   const focused =
@@ -70,79 +70,88 @@ export function Shell({
     { href: '/studio/settings', label: 'Pengaturan', icon: Settings2 },
     ...(isAdmin ? [{ href: '/studio/admin', label: 'Admin workspace', icon: ShieldCheck }] : []),
   ];
-  return (
-    <div className={`workspace ${focused ? 'focus-workspace' : ''} ${canvas ? 'slide-workspace' : ''}`}>
-      {mobile && (
-        <button
-          type="button"
-          className="workspace-menu-backdrop"
-          aria-label="Tutup menu"
-          onClick={() => setMobile(false)}
-        />
-      )}
-      <aside className={`sidebar ${mobile ? 'mobile-open' : ''}`}>
-        <Link href="/studio" onClick={() => setMobile(false)}>
-          <Brand />
-        </Link>
-        <Link href="/studio/settings/workspace" className="workspace-select" onClick={() => setMobile(false)}>
-          <span className="avatar-square">SD</span>
-          <div>
-            <strong>{workspace.name}</strong>
-            <small>{workspace.description || 'Ruang kerja pribadi'}</small>
-          </div>
-        </Link>
-        <nav className="workspace-nav" aria-label="Menu workspace">
-          {links.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              target={item.href === '/surveys' ? '_blank' : undefined}
-              className={`nav-item ${(item.href === '/studio' ? pathname === item.href : pathname.startsWith(item.href)) ? 'active' : ''}`}
-              aria-current={
-                (item.href === '/studio' ? pathname === item.href : pathname.startsWith(item.href))
-                  ? 'page'
-                  : undefined
-              }
-              onClick={() => setMobile(false)}
-            >
-              <item.icon size={18} />
-              {item.label}
-              {item.href === '/surveys' && <ArrowUpRight size={12} style={{ marginLeft: 'auto' }} />}
-            </Link>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <div className="workspace-help">
-            <GuideButton role="manager" /> <Link href="/help">Bantuan lainnya</Link>
-          </div>
-          <div className="profile">
-            <UserAvatar name={name} image={image} />
-            <Link href="/studio/settings/account">
-              <strong>{name}</strong>
-              <small>{isAdmin ? 'Admin platform' : 'Pengelola Survei'}</small>
-            </Link>
-            <button
-              className="btn btn-ghost"
-              aria-label="Keluar"
-              onClick={async () => {
-                await authClient.signOut();
-                router.replace('/login');
-                router.refresh();
-              }}
-            >
-              <LogOut size={15} />
-            </button>
-          </div>
+  const sidebarContent = (
+    <>
+      <Link href="/studio" onClick={() => setMobile(false)}>
+        <Brand />
+      </Link>
+      <Link href="/studio/settings/workspace" className="workspace-select" onClick={() => setMobile(false)}>
+        <span className="avatar-square">SD</span>
+        <div>
+          <strong>{workspace.name}</strong>
+          <small>{workspace.description || 'Ruang kerja pribadi'}</small>
         </div>
-        <Button
-          className="sidebar-close"
-          variant="ghost"
-          aria-label="Tutup menu"
-          onClick={() => setMobile(false)}
+      </Link>
+      <nav className="workspace-nav" aria-label="Menu workspace">
+        {links.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            target={item.href === '/surveys' ? '_blank' : undefined}
+            className={`nav-item ${(item.href === '/studio' ? pathname === item.href : pathname.startsWith(item.href)) ? 'active' : ''}`}
+            aria-current={
+              (item.href === '/studio' ? pathname === item.href : pathname.startsWith(item.href))
+                ? 'page'
+                : undefined
+            }
+            onClick={() => setMobile(false)}
+          >
+            <item.icon size={18} />
+            {item.label}
+            {item.href === '/surveys' && <ArrowUpRight size={12} style={{ marginLeft: 'auto' }} />}
+          </Link>
+        ))}
+      </nav>
+      <div className="sidebar-bottom">
+        <div className="workspace-help">
+          <GuideButton role="manager" /> <Link href="/help">Bantuan lainnya</Link>
+        </div>
+        <div className="profile">
+          <UserAvatar name={name} image={image} />
+          <Link href="/studio/settings/account" onClick={() => setMobile(false)}>
+            <strong>{name}</strong>
+            <small>{isAdmin ? 'Admin platform' : 'Pengelola Survei'}</small>
+          </Link>
+          <button
+            className="btn btn-ghost"
+            aria-label="Keluar"
+            onClick={async () => {
+              await authClient.signOut();
+              router.replace('/login');
+              router.refresh();
+            }}
+          >
+            <LogOut size={15} />
+          </button>
+        </div>
+      </div>
+    </>
+  );
+  return (
+    <div
+      className={`workspace ${focused ? 'focus-workspace' : ''} ${canvas ? 'slide-workspace' : ''} ${!focused && !canvas ? 'has-bottom-nav' : ''}`}
+    >
+      <aside className="sidebar">{sidebarContent}</aside>
+      <Modal
+        open={mobile}
+        onOpenChange={setMobile}
+        title="Menu SurveyDash"
+        description="Pilih halaman ruang survei."
+        className="workspace-mobile-drawer"
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          menuOpener.current?.focus();
+        }}
+      >
+        <div
+          className="workspace-mobile-menu"
+          onClick={(event) => {
+            if ((event.target as HTMLElement).closest('[data-guide-trigger]')) setMobile(false);
+          }}
         >
-          <X size={18} />
-        </Button>
-      </aside>
+          {sidebarContent}
+        </div>
+      </Modal>
       <main className="main">
         {!canvas && (
           <header className="topbar">
@@ -150,8 +159,12 @@ export function Shell({
               className={`mobile-menu ${focused ? 'focus-menu' : ''}`}
               variant="ghost"
               aria-label="Buka menu"
+              aria-haspopup="dialog"
               aria-expanded={mobile}
-              onClick={() => setMobile(true)}
+              onClick={(event) => {
+                menuOpener.current = event.currentTarget;
+                setMobile(true);
+              }}
             >
               <Menu size={18} />
             </Button>
@@ -182,6 +195,31 @@ export function Shell({
           {children}
         </div>
       </main>
+      {!focused && !canvas && (
+        <nav className="workspace-bottom-nav" aria-label="Navigasi utama">
+          {links.slice(0, 3).map((item) => {
+            const active = item.href === '/studio' ? pathname === item.href : pathname.startsWith(item.href);
+            return (
+              <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined}>
+                <item.icon size={21} aria-hidden="true" />
+                <span>{item.href === '/studio/surveys' ? 'Survei' : item.label}</span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            aria-expanded={mobile}
+            aria-haspopup="dialog"
+            onClick={(event) => {
+              menuOpener.current = event.currentTarget;
+              setMobile(true);
+            }}
+          >
+            <Menu size={21} aria-hidden="true" />
+            <span>Menu</span>
+          </button>
+        </nav>
+      )}
       <RoleGuide role="manager" />
     </div>
   );

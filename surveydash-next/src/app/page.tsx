@@ -1,6 +1,5 @@
-import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, ClipboardList, UsersRound, Check, FilePenLine } from 'lucide-react';
+import { ArrowRight, ClipboardList, UsersRound, FilePenLine } from 'lucide-react';
 import { PublicFrame } from '@/components/public-frame';
 import './role-entry.css';
 
@@ -8,115 +7,75 @@ const roles = [
   {
     id: 'manager',
     title: 'Pengelola Survei',
-    description: 'Buat survei atau SKM, kelola Surveyor, dan lihat hasilnya.',
+    description: 'Buat pertanyaan, undang Surveyor, dan kelola hasil survei atau SKM.',
     icon: ClipboardList,
-    image: 'create',
   },
   {
     id: 'surveyor',
     title: 'Surveyor',
-    description: 'Terima tugas dan bagikan link survei kepada responden.',
+    description: 'Buka tugas dari pengelola dan bagikan link survei ke responden.',
     icon: UsersRound,
-    image: 'share',
   },
 ];
+
 export default function Page() {
   return (
     <PublicFrame>
       <div className="role-entry">
         <section className="entry-hero" aria-labelledby="entry-title">
           <div className="entry-hero-copy">
-            <p className="entry-eyebrow">
-              <span /> FORM · DATA · INSIGHT
-            </p>
             <h1 id="entry-title">
-              Survei lebih mudah.
+              Ruang untuk
               <br />
-              <em>Hasil lebih bermakna.</em>
+              survei Anda.
             </h1>
-            <p>Dari membuat pertanyaan sampai memahami jawaban. Mulai bersama SurveyDash.</p>
-            <a href="#pilih-peran" className="entry-start">
-              Pilih peran Anda <ArrowRight size={18} />
-            </a>
+            <p>Buat survei, bagikan bersama tim, lalu pahami setiap jawaban.</p>
           </div>
-          <div className="entry-hero-visual">
-            <Image
-              src="/brand/clay/hero.webp"
-              alt="Ilustrasi clay kartu survei, token jawaban, dan grafik ungu"
-              width={1200}
-              height={800}
-              sizes="(max-width: 700px) 100vw, 48vw"
-              preload
-            />
-            <span className="entry-photo-label">
-              <Check size={16} /> Satu tempat. Dari form sampai hasil.
-            </span>
-          </div>
+          <div className="entry-hero-art" aria-hidden="true" />
         </section>
         <section id="pilih-peran" aria-labelledby="role-entry-title">
           <div className="entry-section-heading">
-            <h2 id="role-entry-title">Apa yang ingin Anda lakukan?</h2>
-            <span>Pilih untuk mulai</span>
+            <h2 id="role-entry-title">Masuk sebagai</h2>
           </div>
           <div className="role-entry-cards">
             {roles.map((role) => (
-              <article
-                key={role.id}
-                className={`role-entry-card role-entry-card-${role.id}`}
-                aria-labelledby={`${role.id}-role-title`}
-              >
-                <Image
-                  src={`/brand/clay/${role.image}.webp`}
-                  alt=""
-                  width={720}
-                  height={720}
-                  sizes="(max-width: 700px) 90px, 150px"
-                  className="entry-role-photo"
-                />
-                <div className="entry-role-body">
-                  <span className="role-entry-icon" aria-hidden="true">
-                    <role.icon size={20} />
-                  </span>
-                  <h3 id={`${role.id}-role-title`}>{role.title}</h3>
-                  <p>{role.description}</p>
-                  <div className="entry-role-actions">
-                    <Link
-                      href={`/login?role=${role.id}`}
-                      className="btn btn-primary"
-                      aria-label={`Masuk sebagai ${role.title}`}
-                    >
-                      Masuk <ArrowRight size={16} />
-                    </Link>
-                    <Link
-                      href={`/login?role=${role.id}&mode=signup`}
-                      className="entry-register"
-                      aria-label={`Daftar sebagai ${role.title}`}
-                    >
-                      Daftar
-                    </Link>
+              <article key={role.id} className="role-entry-card" aria-labelledby={`${role.id}-role-title`}>
+                <Link
+                  href={`/login?role=${role.id}`}
+                  className="entry-role-main"
+                  aria-label={`Masuk sebagai ${role.title}`}
+                >
+                  <role.icon className="entry-role-icon" size={25} strokeWidth={1.6} aria-hidden="true" />
+                  <div className="entry-role-body">
+                    <h3 id={`${role.id}-role-title`}>{role.title}</h3>
+                    <p>{role.description}</p>
                   </div>
+                  <ArrowRight className="entry-role-arrow" size={20} aria-hidden="true" />
+                </Link>
+                <div className="entry-role-footer">
+                  <span>Belum punya akun?</span>
+                  <Link
+                    href={`/login?role=${role.id}&mode=signup`}
+                    aria-label={`Daftar sebagai ${role.title}`}
+                  >
+                    Daftar
+                  </Link>
                 </div>
               </article>
             ))}
           </div>
         </section>
         <Link href="/surveys" className="entry-respondent">
-          <span className="entry-respondent-icon">
-            <FilePenLine size={22} />
-          </span>
+          <FilePenLine size={23} strokeWidth={1.6} aria-hidden="true" />
           <span>
-            <strong>Mau mengisi survei?</strong>
+            <strong>Ingin mengisi survei?</strong>
             <small>Langsung isi, tanpa login.</small>
           </span>
-          <span className="entry-respondent-action">
-            Buka survei <ArrowRight size={17} />
-          </span>
+          <ArrowRight size={20} aria-hidden="true" />
         </Link>
         <div className="entry-bottom-note">
-          <span>Baru pertama kali? Ada panduan singkat setelah masuk.</span>
-          <Link href="/help">
-            Lihat bantuan <ArrowRight size={14} />
-          </Link>
+          <span>Pengguna baru akan dipandu setelah masuk.</span>
+          <Link href="/help">Butuh bantuan?</Link>
         </div>
       </div>
     </PublicFrame>
