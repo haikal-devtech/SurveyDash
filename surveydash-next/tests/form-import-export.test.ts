@@ -180,6 +180,22 @@ test('staged import is private, owner/actor bound, acknowledged, atomic and retr
   assert.equal((await commitFormImport('atomic-owner', actor, atomic.batchId, true)).responseCount, 121);
 });
 
+test('spreadsheet reconstruction requires review and retains text without inferring original form settings', async () => {
+  const source = { sourceKind: 'google-sheets', form, responses: [response(0)] };
+  const parsed = parseFormWithResponses(source);
+  assert.ok(parsed.warnings.some((w) => w.includes('Sumber Google Sheets')));
+  assert.equal(parsed.responses[0].answers['import-q-2'], '0000123456789');
+  const preview = await prepareFormImport('sheet-owner', 'sheet-actor', source, 'file');
+  await assert.rejects(
+    () => commitFormImport('sheet-owner', 'sheet-actor', preview.batchId, false),
+    /catatan/,
+  );
+  const survey = await commitFormImport('sheet-owner', 'sheet-actor', preview.batchId, true);
+  assert.equal(survey.visibility, 'private');
+  assert.equal(survey.status, 'draft');
+  assert.ok(survey.questions.every((q) => !q.scored));
+});
+
 test('Excel preserves numeric zero and decimal values and aborts cancelled downloads', async () => {
   let survey = await createSurvey('numeric-owner', 'Numeric export example', 'blank');
   survey = await updateSurvey(survey.id, survey.ownerId, {

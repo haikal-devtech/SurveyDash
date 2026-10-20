@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileUp, ArrowRight } from 'lucide-react';
 import type { FormImportPreview } from '@/lib/form-responses-import';
+import { MAX_IMPORT_FILE_BYTES } from '@/lib/form-import-limits';
 import { Button, Badge } from './ui';
 import { GoogleFormsConnection } from './google-forms-connection';
 export function FormsImport({ googleFailed = false }: { googleFailed?: boolean }) {
@@ -19,8 +20,8 @@ export function FormsImport({ googleFailed = false }: { googleFailed?: boolean }
   async function upload(file: File) {
     setPreview(null);
     setError('');
-    if (file.size > 3_000_000) {
-      setError('File JSON maksimal 3 MB. Untuk data lebih besar, sambungkan Google.');
+    if (file.size > MAX_IMPORT_FILE_BYTES) {
+      setError('File JSON maksimal 4,4 MB. Untuk data lebih besar, sambungkan Google.');
       return;
     }
     setPending(true);
@@ -88,14 +89,14 @@ export function FormsImport({ googleFailed = false }: { googleFailed?: boolean }
       <details className="card import-file">
         <summary>
           <FileUp size={18} />
-          Punya file JSON dari Google Forms API?
+          Unggah file impor (.json)
         </summary>
         <p>
           Unggah resource Form, atau gabungan pertanyaan dan jawaban dengan format{' '}
           <code>{'{ "form": {...}, "responses": [...] }'}</code>.
         </p>
         <label className="field">
-          File JSON (maksimal 3 MB)
+          File JSON (maksimal 4,4 MB)
           <input
             type="file"
             accept="application/json,.json"

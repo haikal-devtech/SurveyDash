@@ -32,6 +32,7 @@ export function parseFormWithResponses(input: unknown) {
   const bundle = z
     .object({
       form: z.unknown(),
+      sourceKind: z.literal('google-sheets').optional(),
       responses: z.array(responseSchema).max(MAX_IMPORT_RESPONSES).default([]),
     })
     .parse(input && typeof input === 'object' && 'form' in input ? input : { form: input });
@@ -99,6 +100,10 @@ export function parseFormWithResponses(input: unknown) {
     };
   });
   const warnings = [...form.warnings];
+  if (bundle.sourceKind === 'google-sheets')
+    warnings.push(
+      'Sumber Google Sheets: jawaban dipertahankan sebagai teks. Jenis pertanyaan, pilihan jawaban, percabangan, kewajiban isi, dan akun surveyor asli belum dipulihkan. Tinjau kolom dan isinya sebelum membuka form untuk pengumpulan baru.',
+    );
   if (unmapped)
     warnings.push(
       `${unmapped} jawaban belum cocok dengan pertanyaan yang didukung. Data aslinya tetap disimpan dan tersedia pada unduhan Excel/CSV; belum masuk grafik.`,
