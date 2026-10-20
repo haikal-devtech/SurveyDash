@@ -23,6 +23,8 @@ import type { SurveyorAssignment, SurveyorProfile } from '@/lib/surveyor-types';
 import { Brand } from './brand';
 import { Badge, Button, EmptyState, Modal } from './ui';
 import { GuideButton, RoleGuide } from './role-guide';
+import { DashboardMotionProvider } from './dashboard-motion-context';
+import { SelectionRail } from './dashboard-motion';
 import '@/app/workspace-experience.css';
 
 interface PortalData {
@@ -51,49 +53,51 @@ export function SurveyorShell({ children, name }: { children: React.ReactNode; n
   }
 
   return (
-    <div className="surveyor-shell">
-      <header className="surveyor-header">
-        <Link href="/surveyor" aria-label="Beranda surveyor SurveyDash">
-          <Brand />
-        </Link>
-        <nav aria-label="Menu surveyor" className="surveyor-nav">
-          <Link href="/surveyor" aria-current={pathname === '/surveyor' ? 'page' : undefined}>
-            <ClipboardList size={17} />
-            Tugas survei
+    <DashboardMotionProvider>
+      <div className="surveyor-shell" data-dashboard-motion="">
+        <header className="surveyor-header">
+          <Link href="/surveyor" aria-label="Beranda surveyor SurveyDash">
+            <Brand />
           </Link>
-          <Link
-            data-tour="surveyor-profile"
-            href="/surveyor/profile"
-            aria-current={pathname === '/surveyor/profile' ? 'page' : undefined}
-          >
-            <UserRound size={17} />
-            Profil
-          </Link>
-          <GuideButton role="surveyor">Bantuan</GuideButton>
-        </nav>
-        <div className="surveyor-account">
-          <span>{name}</span>
-          <Button variant="ghost" onClick={signOut} disabled={pending}>
-            {pending ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
-            Keluar
-          </Button>
-        </div>
-      </header>
-      <main className="surveyor-main">
-        {error && (
-          <div role="alert" className="banner banner-error">
-            {error}
+          <SelectionRail label="Menu surveyor" className="surveyor-nav" activeKey={pathname}>
+            <Link href="/surveyor" aria-current={pathname === '/surveyor' ? 'page' : undefined}>
+              <ClipboardList size={17} />
+              Tugas survei
+            </Link>
+            <Link
+              data-tour="surveyor-profile"
+              href="/surveyor/profile"
+              aria-current={pathname === '/surveyor/profile' ? 'page' : undefined}
+            >
+              <UserRound size={17} />
+              Profil
+            </Link>
+            <GuideButton role="surveyor">Bantuan</GuideButton>
+          </SelectionRail>
+          <div className="surveyor-account">
+            <span>{name}</span>
+            <Button variant="ghost" onClick={signOut} disabled={pending}>
+              {pending ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+              Keluar
+            </Button>
           </div>
-        )}
-        {children}
-      </main>
-      <footer className="surveyor-footer">
-        <span>SurveyDash · Portal surveyor</span>
-        <Link href="/privacy">Kebijakan privasi</Link>
-        <Link href="/help">Bantuan</Link>
-      </footer>
-      <RoleGuide role="surveyor" />
-    </div>
+        </header>
+        <main className="surveyor-main">
+          {error && (
+            <div role="alert" className="banner banner-error">
+              {error}
+            </div>
+          )}
+          {children}
+        </main>
+        <footer className="surveyor-footer">
+          <span>SurveyDash · Portal surveyor</span>
+          <Link href="/privacy">Kebijakan privasi</Link>
+          <Link href="/help">Bantuan</Link>
+        </footer>
+        <RoleGuide role="surveyor" />
+      </div>
+    </DashboardMotionProvider>
   );
 }
 
@@ -114,7 +118,11 @@ export function SurveyorShareLink({ shareUrl, disabled = false }: { shareUrl: st
   return (
     <div className="surveyor-share">
       <Button data-tour="surveyor-copy" variant="secondary" onClick={copy} disabled={disabled || !shareUrl}>
-        {copied ? <Check size={15} /> : <Copy size={15} />}
+        {copied ? (
+          <Check size={15} className="dashboard-success-check" aria-hidden="true" />
+        ) : (
+          <Copy size={15} />
+        )}
         {copied ? 'Link tersalin' : 'Salin link responden'}
       </Button>
       {!disabled && shareUrl && (
@@ -378,6 +386,7 @@ export function SurveyorPortal({
   const [attempt, setAttempt] = useState(0);
   const [editing, setEditing] = useState(false);
   const [selected, setSelected] = useState<SurveyorAssignment | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -554,7 +563,10 @@ export function SurveyorPortal({
                       variant="ghost"
                       data-tour="surveyor-preview"
                       className="surveyor-preview-button"
-                      onClick={() => setSelected(task)}
+                      onClick={() => {
+                        setSelected(task);
+                        setPreviewOpen(true);
+                      }}
                     >
                       <Eye size={16} />
                       Lihat pertanyaan
@@ -585,10 +597,8 @@ export function SurveyorPortal({
         </>
       )}
       <Modal
-        open={!!selected}
-        onOpenChange={(open) => {
-          if (!open) setSelected(null);
-        }}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
         title={selected?.title ?? 'Pertanyaan survei'}
         description="Tinjau instrumen sebelum membagikan link ke responden. Pertanyaan dikelola oleh pengelola survei."
         wide

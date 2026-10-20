@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { useDashboardMotion } from './dashboard-motion-context';
 export const cn = (...values: Parameters<typeof clsx>) => twMerge(clsx(values));
 export function Button({
   className,
@@ -40,12 +41,14 @@ export function Modal({
   className?: string;
   onCloseAutoFocus?: (event: Event) => void;
 }) {
+  const dashboardMotion = useDashboardMotion();
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="modal-overlay" />
+        <Dialog.Overlay className="modal-overlay" data-dashboard-motion={dashboardMotion ? '' : undefined} />
         <Dialog.Content
           className={cn('modal', wide && 'modal-wide', className)}
+          data-dashboard-motion={dashboardMotion ? '' : undefined}
           onCloseAutoFocus={onCloseAutoFocus}
         >
           <Dialog.Title className="modal-title">{title}</Dialog.Title>

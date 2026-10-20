@@ -22,6 +22,7 @@ import { Button, Modal } from './ui';
 import { UserAvatar } from './user-avatar';
 import { ReturnWorkspace } from './admin-workspaces';
 import { GuideButton, RoleGuide } from './role-guide';
+import { DashboardMotionProvider } from './dashboard-motion-context';
 import '@/app/workspace-experience.css';
 export function Shell({
   children,
@@ -128,99 +129,103 @@ export function Shell({
     </>
   );
   return (
-    <div
-      className={`workspace ${focused ? 'focus-workspace' : ''} ${canvas ? 'slide-workspace' : ''} ${!focused && !canvas ? 'has-bottom-nav' : ''}`}
-    >
-      <aside className="sidebar">{sidebarContent}</aside>
-      <Modal
-        open={mobile}
-        onOpenChange={setMobile}
-        title="Menu SurveyDash"
-        description="Pilih halaman ruang survei."
-        className="workspace-mobile-drawer"
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-          menuOpener.current?.focus();
-        }}
+    <DashboardMotionProvider>
+      <div
+        data-dashboard-motion=""
+        className={`workspace ${focused ? 'focus-workspace' : ''} ${canvas ? 'slide-workspace' : ''} ${!focused && !canvas ? 'has-bottom-nav' : ''}`}
       >
-        <div
-          className="workspace-mobile-menu"
-          onClick={(event) => {
-            if ((event.target as HTMLElement).closest('[data-guide-trigger]')) setMobile(false);
+        <aside className="sidebar">{sidebarContent}</aside>
+        <Modal
+          open={mobile}
+          onOpenChange={setMobile}
+          title="Menu SurveyDash"
+          description="Pilih halaman ruang survei."
+          className="workspace-mobile-drawer"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            menuOpener.current?.focus();
           }}
         >
-          {sidebarContent}
-        </div>
-      </Modal>
-      <main className="main">
-        {!canvas && (
-          <header className="topbar">
-            <Button
-              className={`mobile-menu ${focused ? 'focus-menu' : ''}`}
-              variant="ghost"
-              aria-label="Buka menu"
-              aria-haspopup="dialog"
+          <div
+            className="workspace-mobile-menu"
+            onClick={(event) => {
+              if ((event.target as HTMLElement).closest('[data-guide-trigger]')) setMobile(false);
+            }}
+          >
+            {sidebarContent}
+          </div>
+        </Modal>
+        <main className="main">
+          {!canvas && (
+            <header className="topbar">
+              <Button
+                className={`mobile-menu ${focused ? 'focus-menu' : ''}`}
+                variant="ghost"
+                aria-label="Buka menu"
+                aria-haspopup="dialog"
+                aria-expanded={mobile}
+                onClick={(event) => {
+                  menuOpener.current = event.currentTarget;
+                  setMobile(true);
+                }}
+              >
+                <Menu size={18} />
+              </Button>
+              <form
+                className="global-search"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (query.trim()) router.push(`/studio/search?query=${encodeURIComponent(query.trim())}`);
+                }}
+              >
+                <Search size={19} />
+                <input
+                  aria-label="Cari survei dan template"
+                  placeholder="Cari survei, template…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  maxLength={200}
+                />
+              </form>
+              <Link className="topbar-account" href="/studio/settings/account">
+                <UserAvatar name={name} image={image} />
+                <strong>{name.split(' ')[0]}</strong>
+              </Link>
+            </header>
+          )}
+          <div className="content">
+            {managingOther && <ReturnWorkspace userId={userId} />}
+            {children}
+          </div>
+        </main>
+        {!focused && !canvas && (
+          <nav className="workspace-bottom-nav" aria-label="Navigasi utama">
+            {links.slice(0, 3).map((item) => {
+              const active =
+                item.href === '/studio' ? pathname === item.href : pathname.startsWith(item.href);
+              return (
+                <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined}>
+                  <item.icon size={21} aria-hidden="true" />
+                  <span>{item.href === '/studio/surveys' ? 'Survei' : item.label}</span>
+                </Link>
+              );
+            })}
+            <button
+              type="button"
               aria-expanded={mobile}
+              aria-haspopup="dialog"
               onClick={(event) => {
                 menuOpener.current = event.currentTarget;
                 setMobile(true);
               }}
             >
-              <Menu size={18} />
-            </Button>
-            <form
-              className="global-search"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (query.trim()) router.push(`/studio/search?query=${encodeURIComponent(query.trim())}`);
-              }}
-            >
-              <Search size={19} />
-              <input
-                aria-label="Cari survei dan template"
-                placeholder="Cari survei, template…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                maxLength={200}
-              />
-            </form>
-            <Link className="topbar-account" href="/studio/settings/account">
-              <UserAvatar name={name} image={image} />
-              <strong>{name.split(' ')[0]}</strong>
-            </Link>
-          </header>
+              <Menu size={21} aria-hidden="true" />
+              <span>Menu</span>
+            </button>
+          </nav>
         )}
-        <div className="content">
-          {managingOther && <ReturnWorkspace userId={userId} />}
-          {children}
-        </div>
-      </main>
-      {!focused && !canvas && (
-        <nav className="workspace-bottom-nav" aria-label="Navigasi utama">
-          {links.slice(0, 3).map((item) => {
-            const active = item.href === '/studio' ? pathname === item.href : pathname.startsWith(item.href);
-            return (
-              <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined}>
-                <item.icon size={21} aria-hidden="true" />
-                <span>{item.href === '/studio/surveys' ? 'Survei' : item.label}</span>
-              </Link>
-            );
-          })}
-          <button
-            type="button"
-            aria-expanded={mobile}
-            aria-haspopup="dialog"
-            onClick={(event) => {
-              menuOpener.current = event.currentTarget;
-              setMobile(true);
-            }}
-          >
-            <Menu size={21} aria-hidden="true" />
-            <span>Menu</span>
-          </button>
-        </nav>
-      )}
-      <RoleGuide role="manager" />
-    </div>
+        <RoleGuide role="manager" />
+      </div>
+    </DashboardMotionProvider>
   );
 }

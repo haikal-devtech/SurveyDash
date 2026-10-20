@@ -173,7 +173,11 @@ export function SurveyorAssignments({
               />
               <div className="manager-invitation-actions">
                 <Button data-tour="manager-invitation" onClick={copyInvitation} disabled={invitationPending}>
-                  {copiedUrl === invitation.url ? <Check size={16} /> : <Copy size={16} />}
+                  {copiedUrl === invitation.url ? (
+                    <Check size={16} className="dashboard-success-check" aria-hidden="true" />
+                  ) : (
+                    <Copy size={16} />
+                  )}
                   {copiedUrl === invitation.url ? 'Link undangan tersalin' : 'Salin link undangan'}
                 </Button>
                 <Button

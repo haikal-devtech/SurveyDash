@@ -1,0 +1,213 @@
+/* Dashboard motion: selection → result continuity, bounded feedback, no page-load choreography. */
+.clay-ui [data-dashboard-motion] {
+  --motion-quick: 120ms;
+  --motion-change: 220ms;
+  --motion-exit: 140ms;
+  --motion-arrive: cubic-bezier(0.16, 1, 0.3, 1);
+}
+.clay-ui [data-dashboard-motion] .btn,
+.clay-ui [data-dashboard-motion] .starter-tile,
+.clay-ui [data-dashboard-motion] .nav-item,
+.clay-ui [data-dashboard-motion] .workspace-bottom-nav > a,
+.clay-ui [data-dashboard-motion] .workspace-bottom-nav > button {
+  transition:
+    transform 120ms ease-out,
+    background-color 120ms ease-out,
+    border-color 120ms ease-out;
+}
+.clay-ui [data-dashboard-motion] .btn:active:not(:disabled),
+.clay-ui [data-dashboard-motion] .starter-tile:active,
+.clay-ui [data-dashboard-motion] .workspace-bottom-nav > a:active,
+.clay-ui [data-dashboard-motion] .workspace-bottom-nav > button:active {
+  transform: scale(0.98);
+}
+.dashboard-selection-rail {
+  position: relative;
+}
+.dashboard-selection-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  height: 2px;
+  background: var(--purple);
+  transform-origin: left center;
+  pointer-events: none;
+  z-index: 1;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.clay-ui [data-dashboard-motion] .dashboard-selection-rail {
+  padding-bottom: 5px;
+}
+.clay-ui [data-dashboard-motion] .dashboard-selection-rail button {
+  transition:
+    color 120ms,
+    background-color 120ms;
+}
+.clay-ui [data-dashboard-motion] .workspace-shortcuts > a > svg:last-child {
+  transition: transform 180ms var(--motion-arrive);
+}
+.clay-ui [data-dashboard-motion] .nav-item > svg:first-child {
+  transition: transform 180ms var(--motion-arrive);
+}
+.clay-ui [data-dashboard-motion] .nav-item.active > svg:first-child {
+  transform: scale(1.08);
+}
+@media (hover: hover) and (pointer: fine) {
+  .clay-ui [data-dashboard-motion] .workspace-shortcuts > a:hover > svg:last-child {
+    transform: translateX(4px);
+  }
+  .clay-ui [data-dashboard-motion] .starter-tile:hover {
+    background: #faf8ff;
+  }
+}
+.clay-ui [data-dashboard-motion].modal-overlay[data-state='open'] {
+  animation: dashboard-fade-in 180ms ease-out;
+}
+.clay-ui [data-dashboard-motion].modal-overlay[data-state='closed'] {
+  animation: dashboard-fade-out 140ms ease-in;
+}
+.clay-ui [data-dashboard-motion].modal[data-state='open'] {
+  animation: dashboard-dialog-in 220ms var(--motion-arrive);
+}
+.clay-ui [data-dashboard-motion].modal[data-state='closed'] {
+  animation: dashboard-dialog-out 140ms ease-in;
+  pointer-events: none;
+}
+.clay-ui [data-dashboard-motion] .dashboard-success-check {
+  animation: dashboard-check-in 220ms var(--motion-arrive);
+}
+.clay-ui [data-dashboard-motion] .dashboard-success-check path {
+  stroke-dasharray: 24;
+  animation: dashboard-check-draw 240ms ease-out;
+}
+.clay-ui [data-dashboard-motion] .surveyor-copy-status,
+.clay-ui [data-dashboard-motion] .manager-invitation-copied,
+.clay-ui [data-dashboard-motion] .banner[role='status'] {
+  animation: dashboard-feedback-in 180ms ease-out;
+}
+@keyframes dashboard-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dashboard-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes dashboard-dialog-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+    scale: 0.985;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+@keyframes dashboard-dialog-out {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+@keyframes dashboard-feedback-in {
+  from {
+    opacity: 0;
+    translate: 0 -3px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes dashboard-check-in {
+  from {
+    scale: 0.7;
+  }
+  to {
+    scale: 1;
+  }
+}
+@keyframes dashboard-check-draw {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@media (max-width: 800px) {
+  .clay-ui [data-dashboard-motion].workspace-mobile-drawer[data-state='open'] {
+    animation: dashboard-drawer-in 250ms var(--motion-arrive);
+  }
+  .clay-ui [data-dashboard-motion].workspace-mobile-drawer[data-state='closed'] {
+    animation: dashboard-drawer-out 160ms ease-in;
+  }
+}
+@keyframes dashboard-drawer-in {
+  from {
+    translate: -100% 0;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@keyframes dashboard-drawer-out {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: -100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clay-ui [data-dashboard-motion] .btn,
+  .clay-ui [data-dashboard-motion] .starter-tile,
+  .clay-ui [data-dashboard-motion] .nav-item,
+  .clay-ui [data-dashboard-motion] .workspace-bottom-nav > a,
+  .clay-ui [data-dashboard-motion] .workspace-bottom-nav > button,
+  .clay-ui [data-dashboard-motion] .workspace-shortcuts > a > svg:last-child,
+  .clay-ui [data-dashboard-motion] .nav-item > svg:first-child,
+  .dashboard-selection-line {
+    transition: none;
+  }
+  .clay-ui [data-dashboard-motion] .btn:active:not(:disabled),
+  .clay-ui [data-dashboard-motion] .starter-tile:active,
+  .clay-ui [data-dashboard-motion] .workspace-bottom-nav > a:active,
+  .clay-ui [data-dashboard-motion] .workspace-bottom-nav > button:active,
+  .clay-ui [data-dashboard-motion] .nav-item.active > svg:first-child {
+    transform: none;
+  }
+  .clay-ui [data-dashboard-motion] .workspace-shortcuts > a:hover > svg:last-child {
+    transform: none;
+  }
+  .clay-ui [data-dashboard-motion] .dashboard-success-check,
+  .clay-ui [data-dashboard-motion] .dashboard-success-check path,
+  .clay-ui [data-dashboard-motion] .surveyor-copy-status,
+  .clay-ui [data-dashboard-motion] .manager-invitation-copied,
+  .clay-ui [data-dashboard-motion] .banner[role='status'] {
+    animation: none;
+  }
+  .clay-ui [data-dashboard-motion].modal[data-state='open'],
+  .clay-ui [data-dashboard-motion].modal-overlay[data-state='open'] {
+    animation: dashboard-fade-in 80ms linear;
+  }
+  .clay-ui [data-dashboard-motion].modal[data-state='closed'],
+  .clay-ui [data-dashboard-motion].modal-overlay[data-state='closed'] {
+    animation: dashboard-fade-out 60ms linear;
+  }
+}

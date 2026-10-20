@@ -45,9 +45,16 @@ export function Overview({
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createSession, setCreateSession] = useState(0);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const currentSurveys = surveys.filter((survey) => !survey.deletedAt && !survey.archivedAt);
+  function startCreation(template: string) {
+    setSelected(template);
+    setCreateSession((session) => session + 1);
+    setCreateOpen(true);
+  }
   async function demo() {
     setPending(true);
     setError('');
@@ -73,7 +80,7 @@ export function Overview({
               : 'Buat survei baru atau lanjutkan pekerjaan Anda.'}
           </p>
           <div className="workspace-welcome-actions">
-            <Button data-tour="create-survey" onClick={() => setSelected('blank')}>
+            <Button data-tour="create-survey" onClick={() => startCreation('blank')}>
               <Plus size={17} />
               Buat survei
             </Button>
@@ -150,7 +157,7 @@ export function Overview({
                 className="starter-tile"
                 type="button"
                 key={item.id}
-                onClick={() => setSelected(item.id)}
+                onClick={() => startCreation(item.id)}
               >
                 <span>
                   <item.icon size={25} />
@@ -191,11 +198,9 @@ export function Overview({
       )}
       {selected && (
         <CreateSurvey
-          key={selected}
-          open
-          onOpenChange={(open) => {
-            if (!open) setSelected(null);
-          }}
+          key={createSession}
+          open={createOpen}
+          onOpenChange={setCreateOpen}
           initialTemplate={selected}
           templates={templates}
         />

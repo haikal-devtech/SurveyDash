@@ -49,8 +49,8 @@ export function CreateSurvey({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Mulai cerita baru."
-      description="Pilih fondasi survei Anda. Pertanyaan dapat disesuaikan setelah survei dibuat."
+      title="Buat survei"
+      description="Isi nama dan pilih template. Pertanyaan bisa diubah setelah survei dibuat."
     >
       <form onSubmit={create}>
         <div className="field" style={{ marginTop: 0 }}>

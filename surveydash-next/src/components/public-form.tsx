@@ -1,12 +1,14 @@
 'use client';
 import Link from 'next/link';
-import { useRef, useState } from 'react';
-import { Check, ArrowRight, LockKeyhole, Loader2, Info } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Check, ArrowLeft, ArrowRight, LockKeyhole, Loader2, Info, UserRound } from 'lucide-react';
 import type { Answer, Question } from '@/lib/types';
+import { respondentProgress } from '@/lib/respondent-progress';
 import { Brand } from './brand';
-import { Badge, Button, EmptyState } from './ui';
+import { Badge, Button } from './ui';
 import { QuestionInput } from './question-input';
 import '@/app/respondent-experience.css';
+
 export function PublicForm({
   token,
   survey,
@@ -28,16 +30,28 @@ export function PublicForm({
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
   const [closed, setClosed] = useState(survey.status === 'closed');
+  const [attempted, setAttempted] = useState(false);
   const requestKey = useRef<string | null>(null);
-  const required = survey.questions.filter((question) => question.required);
-  const filled = required.filter((question) => {
-    const value = answers[question.id];
-    return Array.isArray(value)
-      ? value.length > 0
-      : value !== undefined && value !== null && String(value).trim() !== '';
-  }).length;
+  const form = useRef<HTMLFormElement>(null);
+  const stateHeading = useRef<HTMLHeadingElement>(null);
+  const progress = respondentProgress(survey.questions, answers);
+
+  useEffect(() => {
+    if (done || closed) stateHeading.current?.focus();
+  }, [done, closed]);
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    setAttempted(true);
+    if (progress.missing.length) {
+      setError('Lengkapi pertanyaan wajib yang belum diisi.');
+      const question = [...(form.current?.querySelectorAll<HTMLElement>('[data-question-id]') ?? [])].find(
+        (element) => element.dataset.questionId === progress.missing[0],
+      );
+      question?.querySelector<HTMLElement>('input, textarea, select')?.focus();
+      question?.scrollIntoView({ block: 'center', behavior: 'auto' });
+      return;
+    }
     setPending(true);
     setError('');
     if (!requestKey.current) requestKey.current = crypto.randomUUID();
@@ -53,116 +67,127 @@ export function PublicForm({
         throw new Error(data.error);
       }
       setDone(true);
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'Pengiriman gagal. Jawaban Anda masih ada di halaman ini.',
-      );
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Pengiriman gagal. Coba kirim kembali.');
     } finally {
       setPending(false);
     }
   }
+
   return (
-    <main className="public-shell">
-      <div className="public-brand">
-        <Link href="/surveys">
-          <Brand />
-        </Link>
-      </div>
-      {surveyor && (
-        <div className="banner" role="note" style={{ maxWidth: 720, margin: '0 auto 18px' }}>
-          Surveyor: <strong>{surveyor.fullName}</strong> · @{surveyor.username}
-          <p>
-            Link ini mencatat sumber pengiriman jawaban secara otomatis. Nama surveyor tidak perlu Anda isi.
-          </p>
-        </div>
-      )}
-      <div className="form-preview">
-        {done ? (
-          <section className="card">
-            <EmptyState
-              icon={<Check size={27} />}
-              title="Terima kasih. Jawaban Anda berarti."
-              description="Respons berhasil tersimpan. Masukan Anda akan membantu meningkatkan kualitas pelayanan."
-            >
-              <Link href="/surveys" className="btn btn-secondary">
-                Kembali ke portal responden
-                <ArrowRight size={14} />
-              </Link>
-            </EmptyState>
-          </section>
-        ) : closed ? (
-          <section className="card">
-            <EmptyState
-              icon={<LockKeyhole size={27} />}
-              title="Survei sudah ditutup."
-              description={`Pengumpulan jawaban untuk "${survey.title}" sudah berakhir. Terima kasih atas partisipasi Anda.`}
-            >
-              <Link href="/surveys" className="btn btn-secondary">
-                Lihat survei lainnya
-              </Link>
-            </EmptyState>
+    <main className="public-shell respondent-form-page">
+      <div className="respondent-layout">
+        <header className="respondent-header">
+          <Link href="/surveys" aria-label="Portal responden SurveyDash">
+            <Brand />
+          </Link>
+          <Link href="/surveys" className="respondent-back">
+            <ArrowLeft size={16} aria-hidden="true" />
+            Daftar survei
+          </Link>
+        </header>
+        {done || closed ? (
+          <section className={`respondent-state ${done ? 'respondent-state-success' : ''}`}>
+            <div className="respondent-state-icon" aria-hidden="true">
+              {done ? <Check size={32} /> : <LockKeyhole size={30} />}
+            </div>
+            <h1 ref={stateHeading} tabIndex={-1}>
+              {done ? 'Jawaban berhasil dikirim.' : 'Survei sudah ditutup.'}
+            </h1>
+            <p>
+              {done
+                ? 'Terima kasih sudah meluangkan waktu untuk mengisi survei ini.'
+                : `Pengumpulan jawaban untuk “${survey.title}” sudah berakhir.`}
+            </p>
+            <Link href="/surveys" className="btn btn-secondary">
+              Kembali ke daftar survei
+              <ArrowRight size={17} aria-hidden="true" />
+            </Link>
           </section>
         ) : (
-          <form onSubmit={submit}>
-            <div className="card form-cover">
-              <p className="eyebrow">{survey.institution || 'SURVEYDASH STUDIO'}</p>
+          <form ref={form} onSubmit={submit} aria-busy={pending}>
+            <section className="card form-cover">
+              <p className="respondent-institution">{survey.institution || 'SurveyDash Studio'}</p>
               <h1>{survey.title}</h1>
-              <p>{survey.description}</p>
-              <div style={{ display: 'flex', gap: 7, marginTop: 17 }}>
-                <Badge tone="purple">{survey.questions.length} pertanyaan</Badge>
+              {survey.description && <p className="respondent-form-description">{survey.description}</p>}
+              <div className="respondent-form-meta">
+                <span>{survey.questions.length} pertanyaan</span>
+                <span>Tanpa login</span>
                 {survey.demo && <Badge>Form contoh / simulasi</Badge>}
               </div>
-              {required.length > 0 && (
-                <div className="respondent-progress">
-                  <span>
-                    {filled} dari {required.length} pertanyaan wajib terisi
-                  </span>
-                  <progress
-                    max={required.length}
-                    value={filled}
-                    aria-label="Pertanyaan wajib yang sudah terisi"
-                  />
-                </div>
+              {surveyor && (
+                <aside className="respondent-surveyor" role="note">
+                  <UserRound size={20} aria-hidden="true" />
+                  <div>
+                    <p>
+                      Surveyor: <strong>{surveyor.fullName}</strong> <span>@{surveyor.username}</span>
+                    </p>
+                    <small>Jawaban dari link ini otomatis tercatat untuk Surveyor tersebut.</small>
+                  </div>
+                </aside>
               )}
-            </div>
+            </section>
+            {progress.total > 0 && (
+              <div className="respondent-progress">
+                <div>
+                  <span>
+                    {progress.answered} dari {progress.total} pertanyaan terisi
+                  </span>
+                  <small>
+                    {progress.required
+                      ? progress.remainingRequired
+                        ? `${progress.remainingRequired} wajib belum diisi`
+                        : 'Semua pertanyaan wajib terisi'
+                      : 'Semua pertanyaan opsional'}
+                  </small>
+                </div>
+                <progress
+                  max={progress.total}
+                  value={progress.answered}
+                  aria-label="Pertanyaan yang sudah terisi"
+                />
+                <div className="respondent-progress-track" aria-hidden="true">
+                  <span style={{ transform: `scaleX(${progress.answered / progress.total})` }} />
+                </div>
+              </div>
+            )}
             {survey.demo && (
-              <div className="banner">
-                <Info size={14} />
-                Form ini digunakan untuk mencoba fitur. Gunakan jawaban contoh.
+              <div className="respondent-demo-note">
+                <Info size={18} aria-hidden="true" />
+                <p>Ini form simulasi. Gunakan jawaban contoh untuk mencoba fitur.</p>
               </div>
             )}
-            {survey.questions.map((q) => (
-              <QuestionInput
-                key={q.id}
-                question={q}
-                value={answers[q.id]}
-                onChange={(value) => setAnswers((prev) => ({ ...prev, [q.id]: value }))}
-                disabled={pending}
-              />
-            ))}
+            <div className="respondent-questions">
+              {survey.questions.map((question, index) => (
+                <QuestionInput
+                  key={question.id}
+                  question={question}
+                  number={index + 1}
+                  invalid={attempted && progress.missing.includes(question.id)}
+                  value={answers[question.id]}
+                  onChange={(value) => setAnswers((previous) => ({ ...previous, [question.id]: value }))}
+                  disabled={pending}
+                />
+              ))}
+            </div>
             {error && (
-              <div className="banner banner-error" role="alert">
-                {error}
+              <div className="banner banner-error respondent-form-error" role="alert">
+                <strong>{error}</strong>
+                <p>Jawaban Anda tetap ada di halaman ini.</p>
               </div>
             )}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginTop: 20,
-              }}
-            >
-              <span className="hint">* Pertanyaan wajib diisi</span>
+            <div className="respondent-form-actions">
+              <p>
+                <span aria-hidden="true">*</span> Pertanyaan wajib diisi
+              </p>
               <Button type="submit" disabled={pending} className="respondent-submit">
-                {pending ? <Loader2 size={14} className="animate-spin" /> : null}Kirim jawaban
-                <ArrowRight size={14} />
+                {pending ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : null}
+                {pending ? 'Sedang mengirim…' : 'Kirim jawaban'}
+                {!pending && <ArrowRight size={18} aria-hidden="true" />}
               </Button>
             </div>
-            <p className="hint" style={{ marginTop: 18, lineHeight: 1.8 }}>
-              Jawaban digunakan oleh Pengelola Survei sesuai tujuan form ini. Rekening responden hanya
-              dikumpulkan jika ada pertanyaannya.{' '}
-              {surveyor ? 'Sumber link Surveyor disimpan bersama jawaban. ' : ''}
+            <p className="respondent-privacy-note">
+              Jawaban diterima oleh Pengelola Survei sesuai tujuan form ini.{' '}
               <Link href="/privacy" target="_blank" rel="noreferrer">
                 Baca Kebijakan Privasi
               </Link>
@@ -170,7 +195,10 @@ export function PublicForm({
             </p>
           </form>
         )}
-        <p className="public-footer">Dikelola melalui SurveyDash Studio</p>
+        <footer className="respondent-footer">
+          <span>SurveyDash Studio</span>
+          <Link href="/contact">Butuh bantuan?</Link>
+        </footer>
       </div>
     </main>
   );

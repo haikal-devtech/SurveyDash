@@ -5,21 +5,32 @@ export function QuestionInput({
   value,
   onChange,
   disabled = false,
+  number,
+  invalid = false,
 }: {
   question: Question;
   value: Answer | undefined;
   onChange: (value: Answer) => void;
   disabled?: boolean;
+  number?: number;
+  invalid?: boolean;
 }) {
   const id = `field-${q.id}`;
   return (
-    <div className="card form-question">
+    <div className="card form-question" data-question-id={q.id} data-incomplete={invalid || undefined}>
       <label
         className="question-label"
         htmlFor={['choice', 'checkbox', 'rating'].includes(q.type) ? undefined : id}
       >
-        {q.label}
-        {q.required && <span className="required">*</span>}
+        {number !== undefined && (
+          <span className="respondent-question-number" aria-hidden="true">
+            {number}
+          </span>
+        )}
+        <span>
+          {q.label}
+          {q.required && <span className="required">*</span>}
+        </span>
       </label>
       {q.description && (
         <p className="hint" style={{ margin: '-5px 0 12px' }}>
@@ -31,6 +42,8 @@ export function QuestionInput({
           className="rating-options"
           style={{ border: 0, padding: 0, margin: 0 }}
           aria-label={q.label}
+          aria-invalid={invalid || undefined}
+          aria-describedby={invalid ? `${id}-error` : undefined}
         >
           {q.options.map((o, i) => (
             <label className="rating-option" key={o.id}>
@@ -49,7 +62,12 @@ export function QuestionInput({
           ))}
         </fieldset>
       ) : q.type === 'choice' || q.type === 'checkbox' ? (
-        <fieldset style={{ border: 0, padding: 0, margin: 0 }} aria-label={q.label}>
+        <fieldset
+          style={{ border: 0, padding: 0, margin: 0 }}
+          aria-label={q.label}
+          aria-invalid={invalid || undefined}
+          aria-describedby={invalid ? `${id}-error` : undefined}
+        >
           {q.options.map((o) => (
             <label className="radio-option" key={o.id}>
               <input
@@ -79,6 +97,8 @@ export function QuestionInput({
           required={q.required}
           maxLength={10000}
           placeholder="Tuliskan jawaban Anda…"
+          aria-invalid={invalid || undefined}
+          aria-describedby={invalid ? `${id}-error` : undefined}
           onChange={(e) => onChange(e.target.value)}
         />
       ) : (
@@ -92,10 +112,17 @@ export function QuestionInput({
           maxLength={10000}
           step={q.type === 'number' ? 'any' : undefined}
           placeholder="Jawaban Anda"
+          aria-invalid={invalid || undefined}
+          aria-describedby={invalid ? `${id}-error` : undefined}
           onChange={(e) =>
             onChange(q.type === 'number' && e.target.value !== '' ? Number(e.target.value) : e.target.value)
           }
         />
+      )}
+      {invalid && (
+        <p id={`${id}-error`} className="respondent-question-error">
+          Isi pertanyaan ini sebelum mengirim.
+        </p>
       )}
     </div>
   );

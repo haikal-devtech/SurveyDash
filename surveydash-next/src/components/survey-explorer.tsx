@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import type { Survey } from '@/lib/types';
 import { Badge, Button, EmptyState, Modal } from './ui';
+import { SelectionRail, useListMotion } from './dashboard-motion';
 const date = (value?: string) =>
   value
     ? new Date(value).toLocaleDateString('id-ID', {
@@ -44,6 +45,8 @@ export function SurveyExplorer({
   const [grid, setGrid] = useState(false);
   const [page, setPage] = useState(0);
   const [menu, setMenu] = useState<Survey | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { ref: listRef, capture: captureList, reset: resetList } = useListMotion();
   const [confirm, setConfirm] = useState<'archive' | 'trash' | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
@@ -82,9 +85,9 @@ export function SurveyExplorer({
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
+      captureList();
       setSurveys((rows) => [data, ...rows.filter((row) => row.id !== data.id)]);
-      setMenu(null);
-      setConfirm(null);
+      setMenuOpen(false);
       setNotice(
         type === 'duplicate'
           ? 'Salinan survei dibuat tanpa jawaban responden.'
@@ -127,6 +130,8 @@ export function SurveyExplorer({
       aria-label={`Tindakan ${survey.title}`}
       onClick={() => {
         setMenu(survey);
+        setMenuOpen(true);
+        setConfirm(null);
         setError('');
       }}
     >
@@ -142,7 +147,10 @@ export function SurveyExplorer({
             className="input explorer-sort"
             aria-label="Urutkan survei"
             value={sort}
-            onChange={(e) => setSort(e.target.value)}
+            onChange={(e) => {
+              captureList();
+              setSort(e.target.value);
+            }}
           >
             <option value="opened">Terakhir dibuka</option>
             <option value="created">Tanggal dibuat</option>
@@ -152,14 +160,17 @@ export function SurveyExplorer({
           <Button
             variant="secondary"
             aria-label={grid ? 'Tampilan tabel' : 'Tampilan kartu'}
-            onClick={() => setGrid((value) => !value)}
+            onClick={() => {
+              captureList();
+              setGrid((value) => !value);
+            }}
           >
             {grid ? <List size={17} /> : <Grid2X2 size={17} />}
           </Button>
         </div>
       </div>
       <div className="explorer-toolbar">
-        <nav className="tabs-filter" aria-label="Filter survei">
+        <SelectionRail className="tabs-filter" label="Filter survei" activeKey={filter}>
           {[
             ['all', 'Semua'],
             ['open', 'Aktif'],
@@ -174,6 +185,7 @@ export function SurveyExplorer({
               aria-pressed={filter === id}
               key={id}
               onClick={() => {
+                if (id !== filter || page !== 0) captureList();
                 setFilter(id);
                 setPage(0);
               }}
@@ -181,7 +193,7 @@ export function SurveyExplorer({
               {label}
             </button>
           ))}
-        </nav>
+        </SelectionRail>
         <div className="search-input">
           <Search size={15} />
           <input
@@ -190,6 +202,7 @@ export function SurveyExplorer({
             placeholder="Cari survei…"
             value={query}
             onChange={(e) => {
+              resetList();
               setQuery(e.target.value);
               setPage(0);
             }}
@@ -201,113 +214,115 @@ export function SurveyExplorer({
           {notice}
         </p>
       )}
-      {visible.length ? (
-        grid ? (
-          <div className="survey-grid">
-            {visible.map((survey) => (
-              <article className="survey-card" key={survey.id}>
-                <div className="survey-card-top">
-                  <FileText size={21} />
-                  {status(survey)}
-                  {menuButton(survey)}
-                </div>
-                <Link href={`/studio/${survey.id}`}>
-                  <h3>{survey.title}</h3>
-                  <p className="institution">{survey.institution || 'Instansi belum diatur'}</p>
-                </Link>
-                <p className="hint">
-                  {survey.responseCount ?? 0} respons · {survey.questions.length} pertanyaan
-                  {survey.demo ? ' · Data simulasi' : ''}
-                </p>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="survey-file-table">
-            <table role="table" aria-label="Survei Anda">
-              <thead role="rowgroup">
-                <tr role="row">
-                  <th role="columnheader" scope="col">
-                    Nama survei
-                  </th>
-                  <th role="columnheader" scope="col">
-                    Status
-                  </th>
-                  <th role="columnheader" scope="col">
-                    Respons
-                  </th>
-                  <th role="columnheader" scope="col">
-                    Dibuat
-                  </th>
-                  <th role="columnheader" scope="col">
-                    Terakhir dibuka
-                  </th>
-                  <th role="columnheader" scope="col" aria-label="Tindakan" />
-                </tr>
-              </thead>
-              <tbody role="rowgroup">
-                {visible.map((survey) => (
-                  <tr key={survey.id} role="row">
-                    <td role="cell" className="survey-file-title">
-                      <Link href={`/studio/${survey.id}`} className="survey-file-name">
-                        <span className="file-icon">
-                          <FileText size={21} />
-                        </span>
-                        <span>
-                          <strong>{survey.title}</strong>
-                          <small>
-                            {survey.institution || 'Instansi belum diatur'}
-                            {survey.demo ? ' · Data simulasi' : ''}
-                          </small>
-                        </span>
-                      </Link>
-                    </td>
-                    <td role="cell" className="survey-file-status">
-                      {status(survey)}
-                    </td>
-                    <td role="cell" className="survey-file-responses">
-                      {survey.responseCount ?? 0}
-                      <span className="survey-file-mobile-label" aria-hidden="true">
-                        {' '}
-                        respons
-                      </span>
-                    </td>
-                    <td role="cell" className="survey-file-date">
-                      <span className="survey-file-mobile-label" aria-hidden="true">
-                        Dibuat
-                      </span>
-                      {date(survey.createdAt)}
-                    </td>
-                    <td role="cell" className="survey-file-date">
-                      <span className="survey-file-mobile-label" aria-hidden="true">
-                        Terakhir dibuka
-                      </span>
-                      {date(survey.lastOpenedAt)}
-                    </td>
-                    <td role="cell" className="survey-file-actions">
-                      {menuButton(survey)}
-                    </td>
+      <div ref={listRef} className="dashboard-survey-results">
+        {visible.length ? (
+          grid ? (
+            <div className="survey-grid">
+              {visible.map((survey) => (
+                <article className="survey-card" key={survey.id} data-motion-key={survey.id}>
+                  <div className="survey-card-top">
+                    <FileText size={21} />
+                    {status(survey)}
+                    {menuButton(survey)}
+                  </div>
+                  <Link href={`/studio/${survey.id}`}>
+                    <h3>{survey.title}</h3>
+                    <p className="institution">{survey.institution || 'Instansi belum diatur'}</p>
+                  </Link>
+                  <p className="hint">
+                    {survey.responseCount ?? 0} respons · {survey.questions.length} pertanyaan
+                    {survey.demo ? ' · Data simulasi' : ''}
+                  </p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="survey-file-table">
+              <table role="table" aria-label="Survei Anda">
+                <thead role="rowgroup">
+                  <tr role="row">
+                    <th role="columnheader" scope="col">
+                      Nama survei
+                    </th>
+                    <th role="columnheader" scope="col">
+                      Status
+                    </th>
+                    <th role="columnheader" scope="col">
+                      Respons
+                    </th>
+                    <th role="columnheader" scope="col">
+                      Dibuat
+                    </th>
+                    <th role="columnheader" scope="col">
+                      Terakhir dibuka
+                    </th>
+                    <th role="columnheader" scope="col" aria-label="Tindakan" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody role="rowgroup">
+                  {visible.map((survey) => (
+                    <tr key={survey.id} role="row" data-motion-key={survey.id}>
+                      <td role="cell" className="survey-file-title">
+                        <Link href={`/studio/${survey.id}`} className="survey-file-name">
+                          <span className="file-icon">
+                            <FileText size={21} />
+                          </span>
+                          <span>
+                            <strong>{survey.title}</strong>
+                            <small>
+                              {survey.institution || 'Instansi belum diatur'}
+                              {survey.demo ? ' · Data simulasi' : ''}
+                            </small>
+                          </span>
+                        </Link>
+                      </td>
+                      <td role="cell" className="survey-file-status">
+                        {status(survey)}
+                      </td>
+                      <td role="cell" className="survey-file-responses">
+                        {survey.responseCount ?? 0}
+                        <span className="survey-file-mobile-label" aria-hidden="true">
+                          {' '}
+                          respons
+                        </span>
+                      </td>
+                      <td role="cell" className="survey-file-date">
+                        <span className="survey-file-mobile-label" aria-hidden="true">
+                          Dibuat
+                        </span>
+                        {date(survey.createdAt)}
+                      </td>
+                      <td role="cell" className="survey-file-date">
+                        <span className="survey-file-mobile-label" aria-hidden="true">
+                          Terakhir dibuka
+                        </span>
+                        {date(survey.lastOpenedAt)}
+                      </td>
+                      <td role="cell" className="survey-file-actions">
+                        {menuButton(survey)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        ) : (
+          <div className="card">
+            <EmptyState
+              icon={<FileText size={25} />}
+              title={
+                query
+                  ? 'Survei tidak ditemukan.'
+                  : filter === 'trash'
+                    ? 'Sampah masih kosong.'
+                    : 'Belum ada survei di sini.'
+              }
+              description="Mulai dari template atau buat survei pertama Anda."
+            />
           </div>
-        )
-      ) : (
-        <div className="card">
-          <EmptyState
-            icon={<FileText size={25} />}
-            title={
-              query
-                ? 'Survei tidak ditemukan.'
-                : filter === 'trash'
-                  ? 'Sampah masih kosong.'
-                  : 'Belum ada survei di sini.'
-            }
-            description="Mulai dari template atau buat survei pertama Anda."
-          />
-        </div>
-      )}
+        )}
+      </div>
       {pageCount > 1 && (
         <div className="explorer-pagination">
           <span>
@@ -318,7 +333,10 @@ export function SurveyExplorer({
               variant="secondary"
               aria-label="Halaman sebelumnya"
               disabled={!currentPage}
-              onClick={() => setPage(currentPage - 1)}
+              onClick={() => {
+                captureList();
+                setPage(currentPage - 1);
+              }}
             >
               <ChevronLeft size={16} />
             </Button>
@@ -326,7 +344,10 @@ export function SurveyExplorer({
               variant="secondary"
               aria-label="Halaman berikutnya"
               disabled={currentPage + 1 >= pageCount}
-              onClick={() => setPage(currentPage + 1)}
+              onClick={() => {
+                captureList();
+                setPage(currentPage + 1);
+              }}
             >
               <ChevronRight size={16} />
             </Button>
@@ -335,13 +356,8 @@ export function SurveyExplorer({
       )}
       {menu && (
         <Modal
-          open
-          onOpenChange={(open) => {
-            if (!open) {
-              setMenu(null);
-              setConfirm(null);
-            }
-          }}
+          open={menuOpen}
+          onOpenChange={setMenuOpen}
           title={
             confirm ? (confirm === 'trash' ? 'Pindahkan ke sampah?' : 'Arsipkan survei?') : 'Kelola survei'
           }
