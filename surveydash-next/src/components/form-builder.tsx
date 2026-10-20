@@ -259,7 +259,7 @@ export function FormBuilder({
                 </div>
                 <div className="field">
                   <label htmlFor={`description-${q.id}`}>
-                    Deskripsi <span style={{ fontWeight: 400, color: '#b3a1bf' }}>(opsional)</span>
+                    Deskripsi <span style={{ fontWeight: 400, color: 'var(--muted)' }}>(opsional)</span>
                   </label>
                   <input
                     id={`description-${q.id}`}
@@ -358,6 +358,14 @@ export function FormBuilder({
                       onChange={(e) => change({ ...q, required: e.target.checked })}
                     />
                     Wajib diisi
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={q.chartVisible ?? q.options.length > 0}
+                      onChange={(event) => change({ ...q, chartVisible: event.target.checked })}
+                    />
+                    Tampilkan chart
                   </label>
                   {['choice', 'rating'].includes(q.type) && (
                     <label>

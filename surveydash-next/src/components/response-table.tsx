@@ -231,7 +231,7 @@ export function ResponseTable({
           timeStyle: 'short',
         }),
       cell: (info) => (
-        <span style={{ padding: '0 5px', whiteSpace: 'nowrap', color: '#675b75' }}>
+        <span style={{ padding: '0 5px', whiteSpace: 'nowrap', color: 'var(--muted)' }}>
           {String(info.getValue())}
         </span>
       ),

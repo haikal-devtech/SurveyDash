@@ -4,6 +4,7 @@ import { AppError, getSurvey, listAudit, listSubmissions } from './repository';
 import { answerLabel, calculateStats, csvCell, distribution } from './model';
 import type { Question, ResponsePage, Submission, Survey, SurveyInsights } from './types';
 import { attributionColumns, attributionJoin, parseAttribution } from './surveyor-repository';
+import { questionBreakdown, responseTimeline } from './analytics-model';
 
 export const responseQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(100000).default(1),
@@ -174,13 +175,19 @@ export async function getSurveyInsights(
   const rows = await listSubmissions(id);
   return {
     stats: calculateStats(survey, rows),
+    timeline: responseTimeline(rows),
     questions: Object.fromEntries(
       survey.questions.map((q) => [
         q.id,
         {
           answered: rows.filter((row) => {
             const value = row.answers[q.id];
-            return value !== undefined && value !== '' && (!Array.isArray(value) || value.length > 0);
+            return (
+              value !== undefined &&
+              value !== '' &&
+              (typeof value !== 'string' || !!value.trim()) &&
+              (!Array.isArray(value) || value.length > 0)
+            );
           }).length,
           distribution: q.options.length ? distribution(q, rows) : [],
           samples:
@@ -197,6 +204,12 @@ export async function getSurveyInsights(
       ]),
     ),
   };
+}
+export async function getQuestionBreakdown(id: string, ownerId: string, questionId: string) {
+  const survey = await getSurvey(id, ownerId);
+  const question = survey.questions.find((q) => q.id === questionId);
+  if (!question) throw new AppError('Pertanyaan tidak ditemukan.', 404);
+  return questionBreakdown(question, await listSubmissions(id));
 }
 export async function exportResponseCsv(id: string, ownerId: string, input: unknown, signal: AbortSignal) {
   const query = responseQuerySchema.parse(input);

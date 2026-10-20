@@ -1,252 +1,420 @@
 'use client';
-import { Users, Target, Gauge, CircleCheck, RefreshCw, BarChart3, WandSparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from 'recharts';
-import type { Survey, SurveyInsights } from '@/lib/types';
-import { Badge, Button, EmptyState } from './ui';
-const colors = ['#b79bdc', '#8f73b4', '#c9b6e3', '#92bcb0', '#dbc58f', '#b1bbd7', '#d3a5b6'];
+  Users,
+  Target,
+  Gauge,
+  ListChecks,
+  RefreshCw,
+  BarChart3,
+  SlidersHorizontal,
+  Presentation,
+  EyeOff,
+} from 'lucide-react';
+import type { Question, Survey, SurveyInsights } from '@/lib/types';
+import type { QuestionBreakdown } from '@/lib/analytics-model';
+import {
+  categoryChartTypes,
+  chartCatalog,
+  chartColors,
+  type CategoryChartType,
+  type DataChartType,
+} from '@/lib/chart-types';
+import { DataChart, ChartTypePicker } from './data-chart';
+import { Badge, Button, Modal } from './ui';
+
+function QuestionChart({
+  question,
+  index,
+  survey,
+  insights,
+  onPatch,
+}: {
+  question: Question;
+  index: number;
+  survey: Survey;
+  insights: SurveyInsights;
+  onPatch: (patch: Partial<Question>) => void;
+}) {
+  const [result, setResult] = useState<{ key: string; data?: QuestionBreakdown; error?: string }>();
+  const [gallery, setGallery] = useState(false);
+  const key = `${survey.id}:${survey.version}:${question.id}:${insights.stats.total}`;
+  useEffect(() => {
+    if (question.options.length) return;
+    const controller = new AbortController();
+    fetch(`/api/surveys/${survey.id}/insights?questionId=${encodeURIComponent(question.id)}`, {
+      signal: controller.signal,
+      cache: 'no-store',
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? 'Grafik belum dapat dimuat.');
+        return data as QuestionBreakdown;
+      })
+      .then((data) => setResult({ key, data }))
+      .catch((error) => {
+        if (!controller.signal.aborted) setResult({ key, error: error.message });
+      });
+    return () => controller.abort();
+  }, [survey.id, question.id, question.options.length, key, insights]);
+  const state = result?.key === key ? result : undefined;
+  const data = question.options.length
+    ? (insights.questions[question.id]?.distribution ?? [])
+    : (state?.data?.rows ?? []);
+  const answered = insights.questions[question.id]?.answered ?? state?.data?.answered ?? 0;
+  const type =
+    question.chartType ?? (question.options.length > 1 && question.options.length < 5 ? 'donut' : 'bar');
+  const unavailable = state?.data?.unavailable;
+  return (
+    <section className="analysis-question card">
+      <header className="analysis-chart-header">
+        <div>
+          <span className="analysis-kicker">PERTANYAAN {index + 1}</span>
+          <h3>{question.label}</h3>
+          <p>
+            {answered.toLocaleString('id-ID')} dari {insights.stats.total.toLocaleString('id-ID')} responden
+            menjawab
+          </p>
+        </div>
+        <button
+          className="btn btn-ghost chart-hide"
+          type="button"
+          aria-label={`Sembunyikan chart ${question.label}`}
+          title="Sembunyikan chart"
+          onClick={() => onPatch({ chartVisible: false })}
+        >
+          <EyeOff size={16} />
+        </button>
+      </header>
+      <div className="analysis-chart-controls">
+        <label>
+          Jenis chart
+          <select
+            className="input"
+            value={type}
+            onChange={(event) => onPatch({ chartType: event.target.value as CategoryChartType })}
+          >
+            {categoryChartTypes.map((value) => (
+              <option key={value} value={value}>
+                {chartCatalog[value].label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          aria-expanded={gallery}
+          onClick={() => setGallery(!gallery)}
+        >
+          Pilihan chart
+        </button>
+      </div>
+      {gallery && (
+        <ChartTypePicker
+          compact
+          value={type}
+          onChange={(value) => {
+            onPatch({ chartType: value as CategoryChartType });
+            setGallery(false);
+          }}
+        />
+      )}
+      {!question.options.length && !state ? (
+        <p className="analysis-message" role="status">
+          Memuat distribusi jawaban…
+        </p>
+      ) : state?.error || unavailable ? (
+        <p className="analysis-message" role="status">
+          {state?.error ?? unavailable}
+        </p>
+      ) : (
+        <DataChart
+          type={type}
+          data={data}
+          title={question.label}
+          accent={chartColors[index % chartColors.length]}
+          unit={question.type === 'checkbox' ? 'pilihan' : 'jawaban'}
+        />
+      )}
+      <p className="analysis-chart-note">
+        {question.type === 'checkbox'
+          ? 'Persentase dihitung dari total pilihan; satu responden dapat memilih beberapa.'
+          : state?.data?.note || 'Persentase dihitung dari jawaban yang terisi.'}
+      </p>
+    </section>
+  );
+}
 export function AnalyticsPanel({
   survey,
   insights,
+  onChange,
   onRefresh,
   onGenerate,
 }: {
   survey: Survey;
   insights: SurveyInsights;
+  onChange: (survey: Survey) => void;
   onRefresh: () => void;
   onGenerate: () => void;
 }) {
+  const [manage, setManage] = useState(false);
+  const [search, setSearch] = useState('');
+  const [trend, setTrend] = useState<DataChartType>('area');
   const { stats } = insights;
-  const profile =
-    survey.questions.find((q) => q.id === 'gender') ?? survey.questions.find((q) => q.type === 'choice');
-  const profileData = profile ? (insights.questions[profile.id]?.distribution ?? []) : [];
-  const scored = stats.indicators.length > 0;
-  const bars = scored
-    ? stats.indicators.map((i, index) => ({
-        name: `U${index + 1}`,
-        fullName: i.label,
-        value: Number(i.average.toFixed(2)),
-      }))
-    : survey.questions
-        .filter((q) => q.options.length > 0)
-        .map((q) => ({
-          name: q.label.length > 16 ? q.label.slice(0, 16) + '…' : q.label,
-          fullName: q.label,
-          value: insights.questions[q.id]?.answered ?? 0,
-        }));
+  const visible = (q: Question) => q.chartVisible ?? q.options.length > 0;
+  const displayed = survey.questions.filter(visible);
+  const answered = Object.values(insights.questions).reduce((sum, question) => sum + question.answered, 0);
+  const completeness =
+    stats.total && survey.questions.length
+      ? Math.round((answered / (stats.total * survey.questions.length)) * 100)
+      : 0;
+  function patch(id: string, values: Partial<Question>) {
+    onChange({ ...survey, questions: survey.questions.map((q) => (q.id === id ? { ...q, ...values } : q)) });
+  }
   const metrics = [
     {
-      label: 'Total responden',
-      value: String(stats.total),
-      foot: `Target ${survey.target} responden`,
+      label: 'Respons terkumpul',
+      value: stats.total.toLocaleString('id-ID'),
+      foot: `${survey.questions.length} pertanyaan`,
       icon: Users,
-    },
-    {
-      label: survey.kind === 'skm' ? 'Nilai IKM' : 'Pertanyaan',
-      value: stats.ikm?.toFixed(2) ?? (survey.kind === 'skm' ? '—' : String(survey.questions.length)),
-      foot: survey.kind === 'skm' ? stats.category : 'Pertanyaan dalam form',
-      icon: Gauge,
-    },
-    {
-      label: survey.kind === 'skm' ? 'Mutu pelayanan' : 'Respons valid',
-      value: survey.kind === 'skm' ? stats.grade : String(stats.total),
-      foot: survey.kind === 'skm' ? stats.category : 'Tervalidasi sebelum disimpan',
-      icon: CircleCheck,
     },
     {
       label: 'Capaian target',
       value: `${stats.completion}%`,
-      foot: `${stats.total} dari ${survey.target} responden`,
+      foot: `${stats.total.toLocaleString('id-ID')} / ${survey.target.toLocaleString('id-ID')} responden`,
       icon: Target,
+    },
+    {
+      label: 'Kelengkapan isian',
+      value: `${completeness}%`,
+      foot: 'Semua pertanyaan, termasuk yang opsional',
+      icon: ListChecks,
+    },
+    {
+      label: survey.kind === 'skm' ? 'Nilai IKM' : 'Chart ditampilkan',
+      value: survey.kind === 'skm' ? (stats.ikm?.toFixed(2) ?? '—') : String(displayed.length),
+      foot: survey.kind === 'skm' ? stats.category : `Dari ${survey.questions.length} pertanyaan`,
+      icon: Gauge,
     },
   ];
   return (
-    <>
+    <div className="analysis-workspace">
       <div className="panel-intro">
         <div>
-          <h2>Melihat lebih jauh dari angka.</h2>
-          <p>
-            Hasil dihitung dari jawaban yang tersimpan.{' '}
-            {survey.demo ? 'Survei ini berisi data simulasi.' : ''}
-          </p>
+          <span className="analysis-kicker">HASIL SURVEI</span>
+          <h2>Dashboard analisis</h2>
+          <p>Ringkasan respons dan chart pilihanmu.{survey.demo ? ' Data simulasi.' : ''}</p>
         </div>
         <div className="actions">
           <Button variant="secondary" onClick={onRefresh}>
-            <RefreshCw size={13} />
+            <RefreshCw size={15} />
             Muat ulang
           </Button>
           <Button onClick={onGenerate}>
-            <WandSparkles size={14} />
+            <Presentation size={16} />
             Buat presentasi
           </Button>
         </div>
       </div>
-      <div className="stats-grid">
-        {metrics.map((m) => (
-          <div className="stat-card" key={m.label}>
+      <div className="stats-grid analysis-metrics">
+        {metrics.map((metric) => (
+          <div className="stat-card" key={metric.label}>
             <div className="stat-top">
-              <span>{m.label}</span>
-              <span className="stat-icon">
-                <m.icon size={15} />
-              </span>
+              <span>{metric.label}</span>
+              <metric.icon size={17} />
             </div>
-            <div className="stat-value">{m.value}</div>
-            <p className="stat-foot">{m.foot}</p>
+            <strong className="stat-value">{metric.value}</strong>
+            <p className="stat-foot">{metric.foot}</p>
           </div>
         ))}
       </div>
-      {!stats.total ? (
-        <section className="card">
-          <EmptyState
-            icon={<BarChart3 size={24} />}
-            title="Insight dimulai dari jawaban pertama."
-            description="Buka form dan kumpulkan respons. Grafik dan nilai akan dihitung secara otomatis."
+      <div className="analysis-overview">
+        <section className="card analysis-trend">
+          <header className="analysis-chart-header">
+            <div>
+              <h3>Tren respons</h3>
+              <p>
+                {insights.timeline?.start
+                  ? `${insights.timeline.start} — ${insights.timeline.end} · WIB`
+                  : 'Waktu masuknya jawaban'}
+              </p>
+            </div>
+            <div className="chart-segmented" role="group" aria-label="Tampilan tren">
+              {(['area', 'line'] as const).map((value) => (
+                <button
+                  type="button"
+                  key={value}
+                  aria-pressed={trend === value}
+                  onClick={() => setTrend(value)}
+                >
+                  {chartCatalog[value].label}
+                </button>
+              ))}
+            </div>
+          </header>
+          <DataChart
+            type={trend}
+            data={insights.timeline?.points ?? []}
+            title="Tren respons"
+            unit="respons"
           />
+          <p className="analysis-chart-note">
+            {(insights.timeline?.intervalDays ?? 1) > 1
+              ? `Dikelompokkan per ${insights.timeline!.intervalDays} hari.`
+              : 'Jumlah respons setiap hari.'}{' '}
+            Hari tanpa respons tetap ditampilkan.
+          </p>
         </section>
-      ) : (
-        <>
-          <div className="overview-grid">
-            <section className="card">
-              <div className="card-header">
-                <div>
-                  <h2>{scored ? 'Rata-rata unsur pelayanan' : 'Respons per pertanyaan'}</h2>
-                  <p>
-                    {scored
-                      ? 'Skala 1–4 · Jawaban kosong dikecualikan per unsur'
-                      : 'Jumlah jawaban yang tersedia'}
-                  </p>
-                </div>
-                <Badge tone="purple">{scored ? '9 unsur' : 'Distribusi'}</Badge>
-              </div>
-              <div style={{ height: 250, padding: '0 20px 20px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={bars} margin={{ left: -25, top: 12, right: 10, bottom: 0 }}>
-                    <CartesianGrid vertical={false} stroke="#f0eaf7" />
-                    <XAxis
-                      dataKey="name"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 10, fill: '#b09ebf' }}
-                    />
-                    <YAxis
-                      domain={scored ? [0, 4] : undefined}
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 10, fill: '#b09ebf' }}
-                    />
-                    <Tooltip
-                      contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e9e0f4' }}
-                      labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ''}
-                    />
-                    <Bar
-                      isAnimationActive={false}
-                      dataKey="value"
-                      name={scored ? 'Rata-rata' : 'Jawaban'}
-                      fill="#af93d3"
-                      radius={[5, 5, 0, 0]}
-                      maxBarSize={31}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </section>
-            <section className="card">
-              <div className="card-header">
-                <div>
-                  <h2>{profile?.label ?? 'Profil responden'}</h2>
-                  <p>Komposisi jawaban responden</p>
-                </div>
-              </div>
-              <div style={{ height: 167 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      isAnimationActive={false}
-                      data={profileData}
-                      dataKey="count"
-                      nameKey="name"
-                      innerRadius={49}
-                      outerRadius={70}
-                      paddingAngle={3}
-                      stroke="none"
-                    >
-                      {profileData.map((p, i) => (
-                        <Cell key={p.name} fill={colors[i % colors.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e9e0f4' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div style={{ padding: '0 23px 22px', display: 'grid', gap: 9 }}>
-                {profileData.map((p, i) => (
-                  <div
-                    key={p.name}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontSize: 10,
-                      color: '#aa95b8',
-                    }}
-                  >
-                    <span>
-                      <i className="legend-dot" style={{ background: colors[i % colors.length] }} />
-                      {p.name}
-                    </span>
-                    <strong style={{ fontWeight: 500 }}>{p.count}</strong>
-                  </div>
-                ))}
-              </div>
-            </section>
+        <section className="card analysis-target">
+          <span className="analysis-kicker">PENGUMPULAN DATA</span>
+          <h3>Progres target</h3>
+          <div className="target-number">
+            {stats.completion}
+            <span>%</span>
           </div>
-          {scored && (
-            <section className="card">
-              <div className="card-header">
-                <div>
-                  <h2>Detail unsur pelayanan</h2>
-                  <p>Rata-rata memakai jumlah jawaban valid pada masing-masing unsur.</p>
-                </div>
-              </div>
-              <div className="table-scroll">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Unsur pelayanan</th>
-                      <th>Jawaban valid</th>
-                      <th>Kosong</th>
-                      <th>Rata-rata</th>
+          <progress
+            value={Math.min(stats.total, survey.target)}
+            max={survey.target}
+            aria-label="Capaian target responden"
+          />
+          <p>
+            <strong>{stats.total.toLocaleString('id-ID')}</strong> respons terkumpul dari target{' '}
+            {survey.target.toLocaleString('id-ID')}.
+          </p>
+          <div className="analysis-target-foot">
+            <span>{Math.max(0, survey.target - stats.total).toLocaleString('id-ID')} lagi menuju target</span>
+            <Badge>
+              {survey.status === 'open' ? 'Sedang dibuka' : survey.status === 'closed' ? 'Ditutup' : 'Draf'}
+            </Badge>
+          </div>
+        </section>
+      </div>
+      {stats.indicators.length > 0 && (
+        <section className="card analysis-indicators">
+          <header className="analysis-chart-header">
+            <div>
+              <h3>Unsur pelayanan</h3>
+              <p>Rata-rata pada skala 1–4; jawaban kosong dikecualikan.</p>
+            </div>
+            <Badge tone="purple">{stats.indicators.length} unsur</Badge>
+          </header>
+          <DataChart
+            type="column"
+            maxValue={4}
+            decimals
+            data={stats.indicators.map((item, index) => ({
+              name: `U${index + 1} · ${item.label}`,
+              count: item.average,
+            }))}
+            title="Rata-rata unsur pelayanan"
+            unit="rata-rata"
+          />
+          <details>
+            <summary>Lihat detail per unsur</summary>
+            <div className="table-scroll">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Unsur</th>
+                    <th>Terisi</th>
+                    <th>Kosong</th>
+                    <th>Rata-rata</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.indicators.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.label}</td>
+                      <td>{item.answered}</td>
+                      <td>{item.missing}</td>
+                      <td>{item.average.toFixed(2)}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {stats.indicators.map((ind, i) => (
-                      <tr key={ind.id}>
-                        <td>{i + 1}</td>
-                        <td style={{ padding: 14, minWidth: 230 }}>{ind.label}</td>
-                        <td>{ind.answered}</td>
-                        <td>{ind.missing}</td>
-                        <td>
-                          <Badge tone="purple">{ind.average.toFixed(2)}</Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
-        </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </section>
       )}
-    </>
+      <div className="analysis-section-heading">
+        <div>
+          <h2>
+            Chart per pertanyaan <span>{displayed.length}</span>
+          </h2>
+          <p>Pilih pertanyaan yang ingin kamu lihat di dashboard.</p>
+        </div>
+        <Button variant="secondary" onClick={() => setManage(true)}>
+          <SlidersHorizontal size={16} />
+          Atur chart
+        </Button>
+      </div>
+      {displayed.length ? (
+        <div className="analysis-chart-grid">
+          {survey.questions.map((question, index) =>
+            visible(question) ? (
+              <QuestionChart
+                key={question.id}
+                question={question}
+                index={index}
+                survey={survey}
+                insights={insights}
+                onPatch={(values) => patch(question.id, values)}
+              />
+            ) : null,
+          )}
+        </div>
+      ) : (
+        <section className="card analysis-no-charts">
+          <BarChart3 size={32} />
+          <h3>Pilih chart pertamamu</h3>
+          <p>Klik Atur chart, lalu aktifkan pertanyaan yang ingin ditampilkan.</p>
+          <Button onClick={() => setManage(true)}>Atur chart</Button>
+        </section>
+      )}
+      <Modal
+        open={manage}
+        onOpenChange={setManage}
+        title="Tampilkan chart"
+        description="Aktifkan pertanyaan yang ingin dilihat. Jawaban aslinya tetap tersimpan."
+      >
+        <label className="field">
+          Cari pertanyaan
+          <input
+            className="input"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Ketik judul pertanyaan…"
+          />
+        </label>
+        <div className="chart-question-list">
+          {survey.questions
+            .filter((q) => q.label.toLocaleLowerCase('id').includes(search.toLocaleLowerCase('id')))
+            .map((q) => (
+              <label key={q.id} className="chart-question-toggle">
+                <input
+                  type="checkbox"
+                  checked={visible(q)}
+                  onChange={(event) => patch(q.id, { chartVisible: event.target.checked })}
+                />
+                <span>
+                  {q.label}
+                  <small>
+                    {q.options.length
+                      ? 'Pilihan jawaban'
+                      : q.type === 'number'
+                        ? 'Kelompok angka'
+                        : 'Distribusi teks · hanya di ruang kerja'}
+                  </small>
+                </span>
+              </label>
+            ))}
+        </div>
+        <p className="hint">Teks panjang atau jawaban yang terlalu beragam tetap dilihat di tab Data.</p>
+        <div className="modal-footer">
+          <Button onClick={() => setManage(false)}>Selesai</Button>
+        </div>
+      </Modal>
+    </div>
   );
 }

@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { calculateStats, distribution } from './model';
 import type { Distribution, Submission, Survey } from './types';
+import { categoryChartTypes, trendChartTypes, type DataChartType } from './chart-types';
+import { responseTimeline } from './analytics-model';
 export const SLIDE_WIDTH = 1280;
 export const SLIDE_HEIGHT = 720;
 export const themes = {
@@ -22,10 +24,10 @@ export const themes = {
 };
 export type PresentationTheme = keyof typeof themes;
 export interface DataBinding {
-  kind: 'metric' | 'chart';
+  kind: 'metric' | 'chart' | 'timeline';
   key?: 'total' | 'ikm' | 'grade' | 'completion' | 'category' | 'target' | 'summaryText';
   questionId?: string;
-  chartType?: 'bar' | 'pie' | 'table';
+  chartType?: DataChartType;
 }
 export interface SlideElement {
   id: string;
@@ -76,16 +78,23 @@ export interface PresentationDocument {
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const bindingSchema = z
   .object({
-    kind: z.enum(['metric', 'chart']),
+    kind: z.enum(['metric', 'chart', 'timeline']),
     key: z.enum(['total', 'ikm', 'grade', 'completion', 'category', 'target', 'summaryText']).optional(),
     questionId: z.string().max(100).optional(),
-    chartType: z.enum(['bar', 'pie', 'table']).optional(),
+    chartType: z.enum([...categoryChartTypes, ...trendChartTypes]).optional(),
   })
   .superRefine((b, ctx) => {
     if (b.kind === 'metric' && !b.key)
       ctx.addIssue({ code: 'custom', message: 'Pilih metrik untuk komponen data.' });
     if (b.kind === 'chart' && (!b.questionId || !b.chartType))
       ctx.addIssue({ code: 'custom', message: 'Pilih pertanyaan dan jenis grafik.' });
+    if (b.kind === 'chart' && b.chartType && !(categoryChartTypes as readonly string[]).includes(b.chartType))
+      ctx.addIssue({ code: 'custom', message: 'Gunakan grafik kategori untuk pertanyaan.' });
+    if (
+      b.kind === 'timeline' &&
+      (b.questionId || !(trendChartTypes as readonly (string | undefined)[]).includes(b.chartType))
+    )
+      ctx.addIssue({ code: 'custom', message: 'Grafik tren memakai waktu respons dan jenis garis/area.' });
   });
 export const slideElementSchema = z
   .object({
@@ -128,7 +137,7 @@ export const slideElementSchema = z
       ctx.addIssue({ code: 'custom', message: 'Komponen berada di luar slide.' });
     if (e.type === 'image' && !e.assetId)
       ctx.addIssue({ code: 'custom', message: 'Pilih gambar yang tersimpan di workspace.' });
-    if (e.type === 'chart' && e.binding?.kind !== 'chart')
+    if (e.type === 'chart' && !['chart', 'timeline'].includes(e.binding?.kind ?? ''))
       ctx.addIssue({ code: 'custom', message: 'Grafik harus memiliki sumber pertanyaan.' });
   });
 export const presentationInputSchema = z
@@ -193,6 +202,7 @@ export function refreshPresentationData(
   rows: Submission[],
 ): PresentationDocument {
   const stats = calculateStats(survey, rows);
+  const timeline = responseTimeline(rows);
   return {
     ...document,
     sourceRevision: dataRevision(survey, rows),
@@ -220,6 +230,8 @@ export function refreshPresentationData(
             missing: binding.key === 'ikm' || binding.key === 'grade' ? stats.ikm === null : false,
           };
         }
+        if (binding.kind === 'timeline')
+          return { ...element, data: timeline.points, missing: !timeline.total };
         const question = survey.questions.find((q) => q.id === binding.questionId);
         return {
           ...element,
@@ -273,14 +285,7 @@ export function generateSlides(
       binding: { kind: 'metric', key },
     }),
   ];
-  const chart = (
-    questionId: string,
-    x = 90,
-    y = 190,
-    w = 1100,
-    h = 400,
-    chartType: 'bar' | 'pie' | 'table' = 'bar',
-  ) =>
+  const chart = (questionId: string, x = 90, y = 190, w = 1100, h = 400, chartType: DataChartType = 'bar') =>
     makeElement(id(), 'chart', {
       x,
       y,
@@ -324,13 +329,16 @@ export function generateSlides(
     if (section === 'demographic') {
       const q =
         survey.questions.find(
-          (q) => ['gender', 'region', 'age', 'education', 'occupation'].includes(q.id) && q.options.length,
-        ) ?? survey.questions.find((q) => q.type === 'choice' && !q.scored);
+          (q) =>
+            q.chartVisible !== false &&
+            ['gender', 'region', 'age', 'education', 'occupation'].includes(q.id) &&
+            q.options.length,
+        ) ?? survey.questions.find((q) => q.chartVisible !== false && q.type === 'choice' && !q.scored);
       result.push(
         slide('Profil responden', [
           ...heading('Profil responden'),
           ...(q
-            ? [chart(q.id, 96, 195, 1080, 420, 'pie')]
+            ? [chart(q.id, 96, 195, 1080, 420, 'donut')]
             : [text('Belum ada pertanyaan profil yang dapat digrafikkan.', 96, 230, 1080, 120, 32)]),
         ]),
       );
@@ -361,17 +369,45 @@ export function generateSlides(
         ]),
       );
     if (section === 'charts') {
-      const available = survey.questions.filter((q) => q.options.length);
+      const available = survey.questions.filter((q) => q.options.length && q.chartVisible !== false);
       const candidates = available.slice(0, 30);
+      result.push(
+        slide('Tren respons', [
+          ...heading('Tren pengumpulan respons'),
+          makeElement(id(), 'chart', {
+            x: 96,
+            y: 210,
+            w: 1080,
+            h: 400,
+            text: 'Jumlah respons dari waktu ke waktu · WIB',
+            color: palette.ink,
+            fill: palette.accent,
+            binding: { kind: 'timeline', chartType: 'area' },
+          }),
+        ]),
+      );
       if (!candidates.length)
         result.push(
           slide('Distribusi jawaban', [
             ...heading('Distribusi jawaban'),
-            text('Belum ada pertanyaan pilihan yang dapat digrafikkan.', 96, 230, 1080, 120, 32),
+            text('Belum ada pertanyaan pilihan yang diaktifkan untuk chart.', 96, 230, 1080, 120, 32),
           ]),
         );
       for (const question of candidates)
-        result.push(slide(question.label.slice(0, 100), [...heading(question.label), chart(question.id)]));
+        result.push(
+          slide(question.label.slice(0, 100), [
+            ...heading(question.label),
+            chart(
+              question.id,
+              90,
+              195,
+              1100,
+              420,
+              question.chartType ??
+                (question.options.length < 5 ? 'donut' : question.scored ? 'column' : 'bar'),
+            ),
+          ]),
+        );
       if (available.length > 30)
         result.push(
           slide('Grafik tambahan', [

@@ -1,10 +1,18 @@
 import { api, requireWorkspaceUser } from '@/lib/http';
-import { getSurveyInsights } from '@/lib/responses-repository';
+import { getSurveyInsights, getQuestionBreakdown } from '@/lib/responses-repository';
+import { z } from 'zod';
 type Context = { params: Promise<{ id: string }> };
 export const runtime = 'nodejs';
 export async function GET(request: Request, context: Context) {
   return api(async () => {
     const user = await requireWorkspaceUser();
+    const questionId = new URL(request.url).searchParams.get('questionId');
+    if (questionId !== null)
+      return getQuestionBreakdown(
+        (await context.params).id,
+        user.ownerId,
+        z.string().min(1).max(100).parse(questionId),
+      );
     return getSurveyInsights(
       (await context.params).id,
       user.ownerId,

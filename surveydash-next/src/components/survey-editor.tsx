@@ -78,7 +78,13 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
   const responseCount = survey.responseCount ?? 0;
   const needsInsights = tab === 'analytics' || (tab === 'presentation' && dashboardOpen) || presenting;
   const includeSamples = dashboardOpen || presenting;
-  const requestKey = survey.id + ':' + survey.version + ':' + insightsEpoch + ':' + includeSamples;
+  const insightsSource = JSON.stringify([
+    survey.kind,
+    survey.target,
+    survey.responseCount,
+    survey.questions.map((q) => [q.id, q.label, q.type, q.scored, q.options]),
+  ]);
+  const requestKey = survey.id + ':' + insightsSource + ':' + insightsEpoch + ':' + includeSamples;
   const insightsError = insightsFailure?.key === requestKey ? insightsFailure.message : '';
   const insightsLoading = needsInsights && insightsKey !== requestKey && !insightsError;
   useEffect(() => {
@@ -410,8 +416,10 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
           <AnalyticsPanel
             survey={survey}
             insights={insights}
+            onChange={change}
             onRefresh={refresh}
-            onGenerate={() => {
+            onGenerate={async () => {
+              if (dirty && !(await save())) return;
               setGenerateFromAnalysis(true);
               setTab('presentation');
             }}

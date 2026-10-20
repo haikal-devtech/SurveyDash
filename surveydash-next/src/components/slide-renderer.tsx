@@ -1,114 +1,20 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { SLIDE_HEIGHT, SLIDE_WIDTH, type Slide, type SlideElement } from '@/lib/presentation-model';
-const chartColors = ['#7549df', '#aa8add', '#89b6aa', '#d5bb7d', '#768fb2', '#c68fa5', '#97a7bf'];
+import { DataChart } from './data-chart';
 function BoundChart({ element }: { element: SlideElement }) {
-  const data = element.data ?? [];
-  const total = data.reduce((sum, row) => sum + row.count, 0);
-  const type = element.binding?.chartType ?? 'bar';
-  if (!total)
-    return (
-      <div className="slide-chart-empty">
-        <strong>{element.text}</strong>
-        <span>{element.missing ? 'Data belum tersedia' : 'Belum ada jawaban untuk pertanyaan ini.'}</span>
-      </div>
-    );
-  const sorted = data.filter((row) => row.count).toSorted((a, b) => b.count - a.count);
-  if (type === 'table')
-    return (
-      <div className="slide-chart-table">
-        <strong>{element.text}</strong>
-        <table>
-          <thead>
-            <tr>
-              <th>Jawaban</th>
-              <th>Jumlah</th>
-              <th>Persentase</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.slice(0, 12).map((row, index) => (
-              <tr key={index}>
-                <td>{row.name}</td>
-                <td>{row.count}</td>
-                <td>{((row.count / total) * 100).toFixed(1)}%</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {data.length > 12 && <small>Menampilkan 12 dari {data.length} kategori</small>}
-      </div>
-    );
-  if (type === 'pie') {
-    const portions = sorted.slice(0, 6);
-    if (sorted.length > 6)
-      portions.push({
-        name: 'Kategori lainnya',
-        count: sorted.slice(6).reduce((sum, row) => sum + row.count, 0),
-      });
-    const gradient = portions
-      .map((row, index) => {
-        const start = (portions.slice(0, index).reduce((sum, item) => sum + item.count, 0) / total) * 100;
-        return `${chartColors[index % chartColors.length]} ${start}% ${start + (row.count / total) * 100}%`;
-      })
-      .join(',');
-    return (
-      <div className="slide-chart-pie" style={{ color: element.color }}>
-        <strong>{element.text}</strong>
-        <div className="slide-pie-body">
-          <div className="slide-pie-circle" style={{ background: `conic-gradient(${gradient})` }}>
-            <span>
-              {total}
-              <small>jawaban</small>
-            </span>
-          </div>
-          <ul>
-            {portions.map((row, index) => (
-              <li key={index}>
-                <i style={{ background: chartColors[index % chartColors.length] }} />
-                <span>{row.name}</span>
-                <b>{row.count}</b>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    );
-  }
-  const bars = sorted.slice(0, 10);
-  const max = Math.max(...bars.map((row) => row.count), 1);
-  const height = Math.max(250, 70 + bars.length * 36);
   return (
-    <div className="slide-chart-bar">
+    <div className="slide-data-chart" style={{ color: element.color }}>
       <strong>{element.text}</strong>
-      <svg
-        viewBox={`0 0 750 ${height}`}
-        width="100%"
-        height="100%"
-        role="img"
-        aria-label={data.map((row) => `${row.name}: ${row.count}`).join(', ')}
-      >
-        {bars.map((row, index) => (
-          <g key={index}>
-            <text x="5" y={39 + index * 36} fill={element.color} fontSize="17">
-              {row.name.length > 27 ? `${row.name.slice(0, 25)}…` : row.name}
-            </text>
-            <title>{row.name}</title>
-            <rect
-              x="295"
-              y={20 + index * 36}
-              width={Math.max(2, (row.count / max) * 390)}
-              height="23"
-              rx="4"
-              fill={element.fill}
-            />
-            <text x={310 + (row.count / max) * 390} y={39 + index * 36} fill={element.color} fontSize="16">
-              {row.count}
-            </text>
-          </g>
-        ))}
-      </svg>
-      {sorted.length > 10 && <small>10 kategori terbesar dari {sorted.length}</small>}
+      <DataChart
+        type={element.binding?.chartType ?? 'bar'}
+        data={element.data ?? []}
+        title={element.text}
+        accent={element.fill}
+        ink={element.color}
+        variant="slide"
+        unit={element.binding?.kind === 'timeline' ? 'respons' : 'pilihan/jawaban'}
+      />
     </div>
   );
 }

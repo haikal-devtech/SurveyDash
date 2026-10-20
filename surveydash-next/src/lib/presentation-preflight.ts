@@ -23,8 +23,11 @@ export function presentationPreflight(
   if (sections.includes('demographic')) {
     const question =
       survey.questions.find(
-        (q) => ['gender', 'region', 'age', 'education', 'occupation'].includes(q.id) && q.options.length,
-      ) ?? survey.questions.find((q) => q.type === 'choice' && !q.scored);
+        (q) =>
+          q.chartVisible !== false &&
+          ['gender', 'region', 'age', 'education', 'occupation'].includes(q.id) &&
+          q.options.length,
+      ) ?? survey.questions.find((q) => q.chartVisible !== false && q.type === 'choice' && !q.scored);
     const answered = question ? (insights.questions[question.id]?.answered ?? 0) : 0;
     result.push({
       section: 'demographic',
@@ -50,13 +53,19 @@ export function presentationPreflight(
     });
   }
   if (sections.includes('charts')) {
-    const questions = survey.questions.filter((q) => q.options.length).slice(0, 30);
+    const questions = survey.questions
+      .filter((q) => q.options.length && q.chartVisible !== false)
+      .slice(0, 30);
     const ready = questions.filter((q) => (insights.questions[q.id]?.answered ?? 0) > 0).length;
     result.push({
       section: 'charts',
       title: 'Grafik',
       status: !questions.length ? 'unavailable' : ready < questions.length ? 'missing' : 'ready',
-      detail: ready + ' dari ' + questions.length + ' grafik memiliki jawaban. Grafik kosong akan ditandai.',
+      detail:
+        ready +
+        ' dari ' +
+        questions.length +
+        ' chart pertanyaan memiliki jawaban. Tren respons juga disertakan; chart kosong ditandai.',
     });
   }
   return result;

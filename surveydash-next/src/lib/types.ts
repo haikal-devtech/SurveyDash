@@ -13,8 +13,10 @@ export interface Question {
   required: boolean;
   options: Option[];
   scored: boolean;
+  chartVisible?: boolean;
+  chartType?: import('./chart-types').CategoryChartType;
 }
-export type WidgetType = 'pie' | 'bar' | 'table' | 'metric' | 'text';
+export type WidgetType = import('./chart-types').DataChartType | 'metric' | 'text';
 export interface Widget {
   id: string;
   type: WidgetType;
@@ -107,6 +109,7 @@ export interface SurveyStats {
 }
 export interface SurveyInsights {
   stats: SurveyStats;
+  timeline?: import('./analytics-model').ResponseTimeline;
   questions: Record<string, { answered: number; distribution: Distribution[]; samples: string[] }>;
 }
 export interface ResponsePage {

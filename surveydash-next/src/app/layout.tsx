@@ -11,6 +11,11 @@ import './soft-clay.css';
 import './mobile.css';
 import './dashboard-motion.css';
 import './import-editor.css';
+import './analytics-studio.css';
+import './dark-surfaces.css';
+import './theme.css';
+import { ThemeSwitcher } from '@/components/theme-switcher';
+import { themeBootstrap } from '@/lib/theme';
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.BETTER_AUTH_URL ?? 'http://localhost:3100'),
   title: 'SurveyDash Studio — Ruang kerja survei',
@@ -32,8 +37,12 @@ export const metadata: Metadata = {
 };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id">
-      <body className="clay-ui">{children}</body>
+    <html lang="id" suppressHydrationWarning>
+      <body className="clay-ui">
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+        {children}
+        <ThemeSwitcher />
+      </body>
     </html>
   );
 }

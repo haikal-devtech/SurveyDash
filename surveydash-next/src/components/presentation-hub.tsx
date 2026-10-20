@@ -260,19 +260,23 @@ export function PresentationHub({
               />
             </div>
             <div className="field">
-              <label htmlFor="presentation-theme">Tema</label>
-              <select
-                id="presentation-theme"
-                className="input"
-                value={theme}
-                onChange={(e) => setTheme(e.target.value as PresentationTheme)}
-              >
+              <span className="label">Tema slide</span>
+              <div className="presentation-theme-picker" role="group" aria-label="Tema slide">
                 {Object.entries(themes).map(([id, value]) => (
-                  <option key={id} value={id}>
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={theme === id}
+                    onClick={() => setTheme(id as PresentationTheme)}
+                  >
+                    <span className="presentation-theme-swatch" style={{ background: value.background }}>
+                      <i style={{ background: value.accent }} />
+                      <b style={{ background: value.ink }} />
+                    </span>
                     {value.name}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
             {mode === 'generate' && (
               <fieldset className="generation-sections">

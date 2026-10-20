@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Answer, Distribution, Question, Submission, Survey, SurveyStats, WidgetType } from './types';
+import { categoryChartTypes, trendChartTypes } from './chart-types';
 
 export class ModelError extends Error {}
 
@@ -11,6 +12,8 @@ export const questionSchema = z
     type: z.enum(['text', 'textarea', 'choice', 'checkbox', 'rating', 'number', 'date']),
     required: z.boolean(),
     scored: z.boolean(),
+    chartVisible: z.boolean().optional(),
+    chartType: z.enum(categoryChartTypes).optional(),
     options: z
       .array(
         z.object({
@@ -44,7 +47,7 @@ export const surveyInputSchema = z
       .array(
         z.object({
           id: z.string().min(1).max(100),
-          type: z.enum(['pie', 'bar', 'table', 'metric', 'text']),
+          type: z.enum([...categoryChartTypes, ...trendChartTypes, 'metric', 'text']),
           title: z.string().max(300),
           questionId: z.string().max(100).optional(),
           content: z.string().max(3000).optional(),
@@ -66,15 +69,17 @@ export const surveyInputSchema = z
     s.widgets.forEach((w) => {
       if (w.x + w.w > 12) ctx.addIssue({ code: 'custom', message: 'Komponen melebihi lebar kanvas.' });
       const question = s.questions.find((q) => q.id === w.questionId);
-      if (['pie', 'bar', 'table'].includes(w.type) && !question)
+      if ((categoryChartTypes as readonly string[]).includes(w.type) && !question)
         ctx.addIssue({ code: 'custom', message: 'Pilih pertanyaan untuk komponen grafik atau tabel.' });
       if (question && !allowedWidgets(question).includes(w.type))
         ctx.addIssue({ code: 'custom', message: 'Jenis grafik tidak sesuai dengan pertanyaan.' });
+      if ((trendChartTypes as readonly string[]).includes(w.type) && w.questionId)
+        ctx.addIssue({ code: 'custom', message: 'Grafik tren memakai waktu respons, tanpa pertanyaan.' });
     });
   });
 
 export function allowedWidgets(q: Question): WidgetType[] {
-  return ['choice', 'checkbox', 'rating'].includes(q.type) ? ['bar', 'pie', 'table'] : ['table'];
+  return ['choice', 'checkbox', 'rating'].includes(q.type) ? [...categoryChartTypes] : ['table'];
 }
 
 export function validateAnswers(questions: Question[], input: unknown): Record<string, Answer> {

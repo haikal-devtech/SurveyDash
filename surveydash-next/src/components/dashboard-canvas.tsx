@@ -5,15 +5,14 @@ import { Hash, Type, GripVertical, Plus, Trash2, Pencil, MousePointer2 } from 'l
 import type { Question, Survey, SurveyInsights, Widget, WidgetType } from '@/lib/types';
 import { allowedWidgets } from '@/lib/model';
 import { Button, Modal } from './ui';
+import { DataChart, ChartTypePicker } from './data-chart';
+import { chartCatalog, trendChartTypes, type DataChartType } from '@/lib/chart-types';
 
-const colors = ['#ab8bcc', '#cdb9e0', '#90b8ac', '#d4b779', '#a9b7d4', '#d1a1b6', '#8f79b0'];
 const typeLabels: Record<WidgetType, string> = {
-  pie: 'Pie chart',
-  bar: 'Bar chart',
-  table: 'Tabel',
+  ...Object.fromEntries(Object.entries(chartCatalog).map(([key, value]) => [key, value.label])),
   metric: 'Angka',
   text: 'Catatan',
-};
+} as Record<WidgetType, string>;
 function WidgetView({
   widget,
   survey,
@@ -41,6 +40,15 @@ function WidgetView({
     );
   if (widget.type === 'text')
     return <p className="widget-note">{widget.content || 'Tambahkan catatan untuk presentasi Anda.'}</p>;
+  if (widget.type === 'line' || widget.type === 'area')
+    return (
+      <DataChart
+        type={widget.type}
+        data={insights.timeline?.points ?? []}
+        title={widget.title}
+        unit="respons"
+      />
+    );
   if (!q) return <div className="chart-empty">Pilih pertanyaan untuk komponen ini.</div>;
   if (!stats.total) return <div className="chart-empty">Grafik muncul setelah ada jawaban.</div>;
   if (widget.type === 'table')
@@ -75,68 +83,13 @@ function WidgetView({
         </table>
       </div>
     );
-  if (widget.type === 'pie')
-    return (
-      <div style={{ height: '100%', minHeight: 120, display: 'flex', flexDirection: 'column' }}>
-        <div className="native-pie-wrap">
-          <div
-            className="native-pie"
-            role="img"
-            aria-label={data.map((d) => `${d.name}: ${d.count}`).join(', ')}
-            style={{
-              background: `conic-gradient(${data
-                .map((d, i) => {
-                  const total = data.reduce((sum, item) => sum + item.count, 0);
-                  const before = data.slice(0, i).reduce((sum, item) => sum + item.count, 0);
-                  return `${colors[i % colors.length]} ${total ? (before / total) * 100 : 0}% ${total ? ((before + d.count) / total) * 100 : 0}%`;
-                })
-                .join(', ')})`,
-            }}
-          >
-            <div className="native-pie-center">
-              <strong>{data.reduce((sum, item) => sum + item.count, 0)}</strong>
-              <span>jawaban</span>
-            </div>
-          </div>
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            gap: '5px 12px',
-            marginTop: 5,
-          }}
-        >
-          {data.map((d, i) => (
-            <span key={d.name} style={{ fontSize: 9, color: '#a68eb5' }}>
-              <i className="legend-dot" style={{ background: colors[i % colors.length] }} />
-              {d.name} ({d.count})
-            </span>
-          ))}
-        </div>
-      </div>
-    );
-  const maximum = Math.max(1, ...data.map((d) => d.count));
   return (
-    <div
-      className="native-bar-chart"
-      role="img"
-      aria-label={data.map((d) => `${d.name}: ${d.count}`).join(', ')}
-    >
-      {data.map((d, i) => (
-        <div className="native-bar-group" key={d.name} title={`${d.name}: ${d.count} jawaban`}>
-          <div className="native-bar-track">
-            <strong>{d.count}</strong>
-            <div
-              className="native-bar"
-              style={{ height: `${(d.count / maximum) * 75}%`, background: colors[i % colors.length] }}
-            />
-          </div>
-          <span className="native-bar-label">{d.name}</span>
-        </div>
-      ))}
-    </div>
+    <DataChart
+      type={widget.type}
+      data={data}
+      title={widget.title}
+      unit={q.type === 'checkbox' ? 'pilihan' : 'jawaban'}
+    />
   );
 }
 export function DashboardCanvas({
@@ -168,8 +121,14 @@ export function DashboardCanvas({
   function add(q?: Question, type?: WidgetType, x = 0, y?: number) {
     const widget: Widget = {
       id: crypto.randomUUID(),
-      type: type ?? allowedWidgets(q!)[0],
-      title: q?.label ?? (type === 'metric' ? 'Total responden' : 'Catatan presentasi'),
+      type: type ?? (q ? allowedWidgets(q)[0] : 'metric'),
+      title:
+        q?.label ??
+        (type === 'metric'
+          ? 'Total responden'
+          : type === 'line' || type === 'area'
+            ? 'Tren respons'
+            : 'Catatan presentasi'),
       ...(q ? { questionId: q.id } : {}),
       content: type === 'text' ? 'Tuliskan insight utama survei Anda.' : undefined,
       x,
@@ -229,6 +188,14 @@ export function DashboardCanvas({
               </div>
             ))}
           </div>
+          <div className="dashboard-trend-add">
+            {trendChartTypes.map((type) => (
+              <button type="button" key={type} className="palette-item" onClick={() => add(undefined, type)}>
+                Tren · {chartCatalog[type].label}
+                <Plus size={14} />
+              </button>
+            ))}
+          </div>
           <div style={{ borderTop: '1px solid #ede5f5', paddingTop: 13, marginTop: 15 }}>
             <button className="palette-item" onClick={() => add(undefined, 'metric')}>
               <Hash size={14} />
@@ -286,7 +253,9 @@ export function DashboardCanvas({
                         >
                           {(w.questionId
                             ? allowedWidgets(survey.questions.find((q) => q.id === w.questionId)!)
-                            : [w.type]
+                            : w.type === 'line' || w.type === 'area'
+                              ? [...trendChartTypes]
+                              : [w.type]
                           ).map((type) => (
                             <option key={type} value={type}>
                               {typeLabels[type]}
@@ -348,6 +317,18 @@ export function DashboardCanvas({
                 maxLength={300}
               />
             </div>
+            {selected.type !== 'metric' &&
+              selected.type !== 'text' &&
+              (selected.questionId
+                ? !!survey.questions.find((q) => q.id === selected.questionId)?.options.length
+                : true) && (
+                <ChartTypePicker
+                  compact
+                  value={selected.type as DataChartType}
+                  trend={selected.type === 'line' || selected.type === 'area'}
+                  onChange={(type) => setSelected({ ...selected, type })}
+                />
+              )}
             {selected.type === 'text' && (
               <div className="field">
                 <label htmlFor="widget-note">Isi catatan</label>

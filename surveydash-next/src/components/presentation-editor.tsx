@@ -38,6 +38,9 @@ import {
 import { ElementContent, SlideRenderer, SlideThumbnail } from './slide-renderer';
 import { Button, Badge, FullscreenDialog, Modal } from './ui';
 import { ShareDialog } from './share-dialog';
+import { ChartTypePicker } from './data-chart';
+import { createSlideLayout, slideLayouts, type SlideLayoutId } from '@/lib/slide-layouts';
+import type { DataChartType } from '@/lib/chart-types';
 
 const uid = () => crypto.randomUUID();
 type Gesture = {
@@ -84,6 +87,10 @@ export function PresentationEditor({
   const [panel, setPanel] = useState<'slides' | 'properties'>('slides');
   const [assets, setAssets] = useState<{ id: string; name: string; width: number; height: number }[]>([]);
   const [imageOpen, setImageOpen] = useState(false);
+  const [chartOpen, setChartOpen] = useState(false);
+  const [layoutOpen, setLayoutOpen] = useState(false);
+  const [chartSource, setChartSource] = useState('__timeline');
+  const [chartType, setChartType] = useState<DataChartType>('area');
   const [imagePending, setImagePending] = useState(false);
   const exportNodes = useRef(new Map<string, HTMLDivElement>());
   const slide = document.slides.find((item) => item.id === slideId) ?? document.slides[0];
@@ -178,6 +185,26 @@ export function PresentationEditor({
     commit({ ...current.current, slides: [...current.current.slides, next] });
     setSlideId(next.id);
     selectElement(null);
+  }
+  function insertLayout(layout: SlideLayoutId) {
+    if (current.current.slides.length >= 40) {
+      setError('Maksimal 40 slide per dokumen.');
+      return;
+    }
+    const next = createSlideLayout(layout, survey, current.current.theme, uid);
+    commit({ ...current.current, slides: [...current.current.slides, next] });
+    setSlideId(next.id);
+    selectElement(null);
+    setLayoutOpen(false);
+  }
+  function sourceBinding(source: string, type: DataChartType) {
+    return source === '__timeline'
+      ? { kind: 'timeline' as const, chartType: type === 'line' ? ('line' as const) : ('area' as const) }
+      : {
+          kind: 'chart' as const,
+          questionId: source,
+          chartType: type === 'area' || type === 'line' ? ('bar' as const) : type,
+        };
   }
   function removeSlide() {
     if (document.slides.length === 1) {
@@ -649,7 +676,7 @@ export function PresentationEditor({
         <aside className={`slide-list ${panel === 'slides' ? 'mobile-visible' : ''}`}>
           <div className="slide-list-heading">
             <strong>Slide</strong>
-            <Button variant="ghost" aria-label="Tambah slide" onClick={() => addSlide()}>
+            <Button variant="ghost" aria-label="Tambah slide" onClick={() => setLayoutOpen(true)}>
               <Plus size={17} />
             </Button>
           </div>
@@ -695,25 +722,13 @@ export function PresentationEditor({
               <Square size={16} />
               Bentuk
             </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                const q = survey.questions.find((q) => q.options.length);
-                if (!q) {
-                  setError('Tambahkan pertanyaan pilihan sebelum membuat grafik.');
-                  return;
-                }
-                addElement('chart', {
-                  text: q.label,
-                  w: 740,
-                  h: 390,
-                  fontSize: 22,
-                  binding: { kind: 'chart', questionId: q.id, chartType: 'bar' },
-                });
-              }}
-            >
+            <Button variant="ghost" onClick={() => setChartOpen(true)}>
               <BarChart3 size={16} />
-              Grafik
+              Chart
+            </Button>
+            <Button variant="ghost" onClick={() => setLayoutOpen(true)}>
+              <Plus size={16} />
+              Layout
             </Button>
             <Button variant="ghost" onClick={() => void openImages()}>
               <ImagePlus size={16} />
@@ -934,50 +949,43 @@ export function PresentationEditor({
                       />
                     </label>
                     <label>
-                      Pertanyaan
+                      Sumber data
                       <select
-                        value={selected.binding?.questionId}
+                        value={
+                          selected.binding?.kind === 'timeline'
+                            ? '__timeline'
+                            : (selected.binding?.questionId ?? '')
+                        }
                         onChange={(e) =>
                           patchElement({
                             text:
-                              survey.questions.find((q) => q.id === e.target.value)?.label ?? selected.text,
-                            binding: {
-                              kind: 'chart',
-                              questionId: e.target.value,
-                              chartType: selected.binding?.chartType ?? 'bar',
-                            },
+                              e.target.value === '__timeline'
+                                ? 'Tren respons'
+                                : (survey.questions.find((q) => q.id === e.target.value)?.label ?? ''),
+                            binding: sourceBinding(e.target.value, selected.binding?.chartType ?? 'bar'),
                             data: [],
                             missing: true,
                           })
                         }
                       >
+                        <option value="__timeline">Waktu masuk respons</option>
                         {survey.questions
                           .filter((q) => q.options.length)
                           .map((q) => (
-                            <option value={q.id} key={q.id}>
+                            <option key={q.id} value={q.id}>
                               {q.label}
                             </option>
                           ))}
                       </select>
                     </label>
-                    <label>
-                      Jenis grafik
-                      <select
-                        value={selected.binding?.chartType}
-                        onChange={(e) =>
-                          patchElement({
-                            binding: {
-                              ...selected.binding!,
-                              chartType: e.target.value as 'bar' | 'pie' | 'table',
-                            },
-                          })
-                        }
-                      >
-                        <option value="bar">Batang</option>
-                        <option value="pie">Pie</option>
-                        <option value="table">Tabel</option>
-                      </select>
-                    </label>
+                    <ChartTypePicker
+                      compact
+                      value={selected.binding?.chartType ?? 'bar'}
+                      trend={selected.binding?.kind === 'timeline'}
+                      onChange={(type) =>
+                        patchElement({ binding: { ...selected.binding!, chartType: type } })
+                      }
+                    />
                     <small className="inspector-note">
                       Grafik mengikuti jawaban yang tersimpan. Perbarui data setelah ada respons baru.
                     </small>
@@ -1222,6 +1230,95 @@ export function PresentationEditor({
             {templatePending ? 'Menyimpan…' : 'Simpan template'}
           </Button>
         </form>
+      </Modal>
+      <Modal
+        open={chartOpen}
+        onOpenChange={setChartOpen}
+        title="Tambah chart"
+        description="Pilih sumber data dan tampilan grafik."
+      >
+        <label className="field">
+          Sumber data
+          <select
+            className="input"
+            value={chartSource}
+            onChange={(e) => {
+              setChartSource(e.target.value);
+              setChartType(e.target.value === '__timeline' ? 'area' : 'bar');
+            }}
+          >
+            <option value="__timeline">Waktu masuk respons</option>
+            {survey.questions
+              .filter((q) => q.options.length)
+              .map((q) => (
+                <option key={q.id} value={q.id}>
+                  {q.label}
+                </option>
+              ))}
+          </select>
+        </label>
+        <ChartTypePicker value={chartType} trend={chartSource === '__timeline'} onChange={setChartType} />
+        <p className="hint">
+          Grafik memakai data survei. Simpan atau Perbarui data untuk memuat angka terbaru.
+        </p>
+        <div className="modal-footer">
+          <Button
+            onClick={() => {
+              addElement('chart', {
+                text:
+                  chartSource === '__timeline'
+                    ? 'Tren respons'
+                    : (survey.questions.find((q) => q.id === chartSource)?.label ?? ''),
+                x: 80,
+                y: 180,
+                w: 1000,
+                h: 440,
+                fontSize: 22,
+                binding: sourceBinding(chartSource, chartType),
+              });
+              setChartOpen(false);
+            }}
+          >
+            Tambahkan chart
+          </Button>
+        </div>
+      </Modal>
+      <Modal
+        open={layoutOpen}
+        onOpenChange={setLayoutOpen}
+        title="Pilih layout slide"
+        description="Mulai dari susunan yang siap diedit."
+      >
+        <div className="slide-layout-gallery">
+          {slideLayouts.map((layout) => (
+            <button key={layout.id} type="button" onClick={() => insertLayout(layout.id)}>
+              <SlideThumbnail
+                slide={createSlideLayout(
+                  layout.id,
+                  survey,
+                  document.theme,
+                  (() => {
+                    let i = 0;
+                    return () => 'layout-preview-' + layout.id + '-' + i++;
+                  })(),
+                )}
+              />
+              <strong>{layout.name}</strong>
+              <span>{layout.description}</span>
+            </button>
+          ))}
+        </div>
+        <div className="modal-footer">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              addSlide();
+              setLayoutOpen(false);
+            }}
+          >
+            Slide kosong
+          </Button>
+        </div>
       </Modal>
       <Modal
         open={imageOpen}

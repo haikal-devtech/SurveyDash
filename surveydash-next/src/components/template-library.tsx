@@ -16,7 +16,8 @@ import {
   Loader2,
 } from 'lucide-react';
 import { systemTemplates, templateLabels } from '@/lib/template-model';
-import type { SavedTemplate, Survey, TemplateCategory } from '@/lib/types';
+import type { SavedTemplate, Survey, TemplateCategory, WidgetType } from '@/lib/types';
+import { chartCatalog } from '@/lib/chart-types';
 import { CreateSurvey } from './create-survey';
 import { SaveTemplateDialog } from './save-template-dialog';
 import { ApplyPresentationDialog } from './apply-presentation-dialog';
@@ -25,12 +26,10 @@ import { SlideThumbnail } from './slide-renderer';
 
 const icons = { form: ClipboardList, presentation: LayoutTemplate, survey: Layers3 };
 const widgetLabels = {
-  pie: 'Pie chart',
-  bar: 'Bar chart',
-  table: 'Tabel',
+  ...Object.fromEntries(Object.entries(chartCatalog).map(([key, value]) => [key, value.label])),
   metric: 'Kartu angka',
   text: 'Catatan',
-};
+} as Record<WidgetType, string>;
 function TemplatePreview({ template, onClose }: { template: SavedTemplate; onClose: () => void }) {
   return (
     <Modal

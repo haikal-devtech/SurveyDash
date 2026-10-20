@@ -53,7 +53,7 @@ export async function publishPresentation(
     for (const slide of doc.slides)
       for (const e of slide.elements) {
         if (e.type === 'image') await getAsset(e.assetId!, ownerId);
-        if (e.type === 'chart') {
+        if (e.type === 'chart' && e.binding?.kind !== 'timeline') {
           const q = survey.questions.find((q) => q.id === e.binding?.questionId);
           if (!q?.options.length || !['choice', 'checkbox', 'rating'].includes(q.type))
             throw new AppError(
@@ -71,7 +71,13 @@ export async function publishPresentation(
         ...s,
         elements: s.elements.map((e) => ({
           ...e,
-          binding: e.type === 'chart' ? { kind: 'chart', chartType: e.binding?.chartType } : undefined,
+          binding:
+            e.type === 'chart'
+              ? {
+                  kind: e.binding?.kind === 'timeline' ? 'timeline' : 'chart',
+                  chartType: e.binding?.chartType,
+                }
+              : undefined,
         })),
       })),
     };
