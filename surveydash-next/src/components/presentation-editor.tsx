@@ -38,7 +38,7 @@ import {
 import { ElementContent, SlideRenderer, SlideThumbnail } from './slide-renderer';
 import { Button, Badge, FullscreenDialog, Modal } from './ui';
 import { ShareDialog } from './share-dialog';
-import { ChartTypePicker } from './data-chart';
+import { ChartComposer } from './chart-composer';
 import { createSlideLayout, slideLayouts, type SlideLayoutId } from '@/lib/slide-layouts';
 import type { DataChartType } from '@/lib/chart-types';
 
@@ -89,8 +89,7 @@ export function PresentationEditor({
   const [imageOpen, setImageOpen] = useState(false);
   const [chartOpen, setChartOpen] = useState(false);
   const [layoutOpen, setLayoutOpen] = useState(false);
-  const [chartSource, setChartSource] = useState('__timeline');
-  const [chartType, setChartType] = useState<DataChartType>('area');
+  const [chartEditing, setChartEditing] = useState<string | null>(null);
   const [imagePending, setImagePending] = useState(false);
   const exportNodes = useRef(new Map<string, HTMLDivElement>());
   const slide = document.slides.find((item) => item.id === slideId) ?? document.slides[0];
@@ -722,7 +721,13 @@ export function PresentationEditor({
               <Square size={16} />
               Bentuk
             </Button>
-            <Button variant="ghost" onClick={() => setChartOpen(true)}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setChartEditing(null);
+                setChartOpen(true);
+              }}
+            >
               <BarChart3 size={16} />
               Chart
             </Button>
@@ -970,7 +975,7 @@ export function PresentationEditor({
                       >
                         <option value="__timeline">Waktu masuk respons</option>
                         {survey.questions
-                          .filter((q) => q.options.length)
+                          .filter((q) => !!q.id)
                           .map((q) => (
                             <option key={q.id} value={q.id}>
                               {q.label}
@@ -978,14 +983,16 @@ export function PresentationEditor({
                           ))}
                       </select>
                     </label>
-                    <ChartTypePicker
-                      compact
-                      value={selected.binding?.chartType ?? 'bar'}
-                      trend={selected.binding?.kind === 'timeline'}
-                      onChange={(type) =>
-                        patchElement({ binding: { ...selected.binding!, chartType: type } })
-                      }
-                    />
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setChartEditing(selected.id);
+                        setChartOpen(true);
+                      }}
+                    >
+                      <BarChart3 size={16} />
+                      Ubah tampilan chart
+                    </Button>
                     <small className="inspector-note">
                       Grafik mengikuti jawaban yang tersimpan. Perbarui data setelah ada respons baru.
                     </small>
@@ -1231,58 +1238,49 @@ export function PresentationEditor({
           </Button>
         </form>
       </Modal>
-      <Modal
-        open={chartOpen}
-        onOpenChange={setChartOpen}
-        title="Tambah chart"
-        description="Pilih sumber data dan tampilan grafik."
-      >
-        <label className="field">
-          Sumber data
-          <select
-            className="input"
-            value={chartSource}
-            onChange={(e) => {
-              setChartSource(e.target.value);
-              setChartType(e.target.value === '__timeline' ? 'area' : 'bar');
-            }}
-          >
-            <option value="__timeline">Waktu masuk respons</option>
-            {survey.questions
-              .filter((q) => q.options.length)
-              .map((q) => (
-                <option key={q.id} value={q.id}>
-                  {q.label}
-                </option>
-              ))}
-          </select>
-        </label>
-        <ChartTypePicker value={chartType} trend={chartSource === '__timeline'} onChange={setChartType} />
-        <p className="hint">
-          Grafik memakai data survei. Simpan atau Perbarui data untuk memuat angka terbaru.
-        </p>
-        <div className="modal-footer">
-          <Button
-            onClick={() => {
-              addElement('chart', {
-                text:
-                  chartSource === '__timeline'
-                    ? 'Tren respons'
-                    : (survey.questions.find((q) => q.id === chartSource)?.label ?? ''),
-                x: 80,
-                y: 180,
-                w: 1000,
-                h: 440,
-                fontSize: 22,
-                binding: sourceBinding(chartSource, chartType),
+      {chartOpen && (
+        <ChartComposer
+          survey={survey}
+          editing={!!chartEditing}
+          initial={
+            chartEditing
+              ? (() => {
+                  const element = slide.elements.find((item) => item.id === chartEditing);
+                  return element
+                    ? {
+                        sourceId:
+                          element.binding?.kind === 'timeline'
+                            ? '__timeline'
+                            : (element.binding?.questionId ?? '__timeline'),
+                        type: element.binding?.chartType ?? 'bar',
+                        title: element.text,
+                      }
+                    : undefined;
+                })()
+              : undefined
+          }
+          onClose={() => setChartOpen(false)}
+          onConfirm={(selection) => {
+            const patch = {
+              text: selection.title,
+              binding: sourceBinding(selection.sourceId, selection.type),
+              data: [],
+              missing: true,
+            };
+            if (chartEditing) {
+              editSlide({
+                ...slide,
+                elements: slide.elements.map((element) =>
+                  element.id === chartEditing ? { ...element, ...patch } : element,
+                ),
               });
-              setChartOpen(false);
-            }}
-          >
-            Tambahkan chart
-          </Button>
-        </div>
-      </Modal>
+            } else {
+              addElement('chart', { ...patch, x: 80, y: 180, w: 1000, h: 440, fontSize: 22 });
+            }
+            setChartOpen(false);
+          }}
+        />
+      )}
       <Modal
         open={layoutOpen}
         onOpenChange={setLayoutOpen}

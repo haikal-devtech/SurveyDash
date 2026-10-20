@@ -4,15 +4,12 @@ import ReactGridLayout, { useContainerWidth, type Layout } from 'react-grid-layo
 import { Hash, Type, GripVertical, Plus, Trash2, Pencil, MousePointer2 } from 'lucide-react';
 import type { Question, Survey, SurveyInsights, Widget, WidgetType } from '@/lib/types';
 import { allowedWidgets } from '@/lib/model';
+import { ChartComposer } from './chart-composer';
+import { useChartSource } from './use-chart-source';
+import type { ChartSelection } from '@/lib/chart-composer';
 import { Button, Modal } from './ui';
-import { DataChart, ChartTypePicker } from './data-chart';
-import { chartCatalog, trendChartTypes, type DataChartType } from '@/lib/chart-types';
+import { DataChart } from './data-chart';
 
-const typeLabels: Record<WidgetType, string> = {
-  ...Object.fromEntries(Object.entries(chartCatalog).map(([key, value]) => [key, value.label])),
-  metric: 'Angka',
-  text: 'Catatan',
-} as Record<WidgetType, string>;
 function WidgetView({
   widget,
   survey,
@@ -23,73 +20,39 @@ function WidgetView({
   insights: SurveyInsights;
 }) {
   const { stats } = insights;
-  const q = survey.questions.find((q) => q.id === widget.questionId);
-  const data = q ? (insights.questions[q.id]?.distribution ?? []) : [];
+  const source = useChartSource(
+    survey,
+    widget.type === 'metric' || widget.type === 'text' ? '' : (widget.questionId ?? '__timeline'),
+    insights,
+  );
   if (widget.type === 'metric')
     return (
       <>
         <div className="widget-number">
           {widget.content === 'ikm' ? (stats.ikm?.toFixed(2) ?? '—') : stats.total}
         </div>
-        <p className="widget-caption">
-          {widget.content === 'ikm'
-            ? `${stats.grade} · ${stats.category}`
-            : `Dari target ${survey.target} responden`}
-        </p>
+        <p className="widget-caption">{widget.content === 'ikm' ? stats.category : 'Respons terkumpul'}</p>
       </>
     );
-  if (widget.type === 'text')
-    return <p className="widget-note">{widget.content || 'Tambahkan catatan untuk presentasi Anda.'}</p>;
-  if (widget.type === 'line' || widget.type === 'area')
+  if (widget.type === 'text') return <p className="widget-note">{widget.content || 'Tambahkan catatan.'}</p>;
+  if (source.loading)
     return (
+      <p className="analysis-message" role="status">
+        Memuat chart…
+      </p>
+    );
+  if (source.error || source.unavailable)
+    return <p className="analysis-message">{source.error ?? source.unavailable}</p>;
+  return (
+    <>
       <DataChart
         type={widget.type}
-        data={insights.timeline?.points ?? []}
+        data={source.data}
         title={widget.title}
-        unit="respons"
+        unit={widget.type === 'line' || widget.type === 'area' ? 'respons' : source.unit}
       />
-    );
-  if (!q) return <div className="chart-empty">Pilih pertanyaan untuk komponen ini.</div>;
-  if (!stats.total) return <div className="chart-empty">Grafik muncul setelah ada jawaban.</div>;
-  if (widget.type === 'table')
-    return (
-      <div style={{ height: '100%', overflow: 'auto' }}>
-        <table className="widget-table">
-          {!q.options.length && (
-            <caption className="hint">
-              Sampel 50 jawaban terbaru; jawaban panjang disingkat. Buka Data untuk isi lengkap.
-            </caption>
-          )}
-          <thead>
-            <tr>
-              <th>{q.options.length ? 'Pilihan jawaban' : 'Jawaban'}</th>
-              {q.options.length > 0 && <th style={{ textAlign: 'right' }}>Jumlah</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {q.options.length
-              ? data.map((d) => (
-                  <tr key={d.name}>
-                    <td>{d.name}</td>
-                    <td style={{ textAlign: 'right' }}>{d.count}</td>
-                  </tr>
-                ))
-              : (insights.questions[q.id]?.samples ?? []).map((answer, index) => (
-                  <tr key={index}>
-                    <td>{answer}</td>
-                  </tr>
-                ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  return (
-    <DataChart
-      type={widget.type}
-      data={data}
-      title={widget.title}
-      unit={q.type === 'checkbox' ? 'pilihan' : 'jawaban'}
-    />
+      <p className="analysis-chart-note">{source.note}</p>
+    </>
   );
 }
 export function DashboardCanvas({
@@ -105,6 +68,7 @@ export function DashboardCanvas({
 }) {
   const { width, containerRef, mounted } = useContainerWidth({ measureBeforeMount: true });
   const [selected, setSelected] = useState<Widget | null>(null);
+  const [composer, setComposer] = useState<{ initial?: ChartSelection; id?: string } | null>(null);
   const narrow = width > 0 && width < 580;
   const layout: Layout = survey.widgets.map((w, i) => ({
     i: w.id,
@@ -156,59 +120,36 @@ export function DashboardCanvas({
       update(widgets);
   }
   return (
-    <div className={editing ? 'canvas-layout' : ''}>
+    <div className={editing ? 'dashboard-builder' : ''}>
       {editing && (
-        <aside className="card builder-palette">
-          <h3>Data & komponen</h3>
-          <p className="hint" style={{ marginBottom: 14 }}>
-            Seret ke kanvas atau klik + untuk menambahkan.
-          </p>
-          <div className="palette-list" style={{ display: 'block' }}>
-            {survey.questions.map((q) => (
-              <div
-                key={q.id}
-                className="palette-item"
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('text/plain', q.id);
-                  e.dataTransfer.effectAllowed = 'copy';
-                }}
-                style={{ cursor: 'grab', fontSize: 10 }}
-              >
-                <GripVertical size={12} style={{ flexShrink: 0 }} />
-                <span style={{ flex: 1 }}>{q.label}</span>
-                <button
-                  className="btn btn-ghost"
-                  style={{ padding: 2, minHeight: 22 }}
-                  aria-label={`Tambahkan ${q.label} ke presentasi`}
-                  onClick={() => add(q)}
-                >
-                  <Plus size={13} />
-                </button>
-              </div>
-            ))}
+        <div className="dashboard-builder-toolbar">
+          <div>
+            <h3>Dashboard kamu</h3>
+            <p>Tambahkan chart, lalu geser kartu untuk mengatur susunannya.</p>
           </div>
-          <div className="dashboard-trend-add">
-            {trendChartTypes.map((type) => (
-              <button type="button" key={type} className="palette-item" onClick={() => add(undefined, type)}>
-                Tren · {chartCatalog[type].label}
-                <Plus size={14} />
-              </button>
-            ))}
-          </div>
-          <div style={{ borderTop: '1px solid #ede5f5', paddingTop: 13, marginTop: 15 }}>
-            <button className="palette-item" onClick={() => add(undefined, 'metric')}>
-              <Hash size={14} />
-              Kartu angka
-              <Plus size={12} style={{ marginLeft: 'auto' }} />
-            </button>
-            <button className="palette-item" onClick={() => add(undefined, 'text')}>
-              <Type size={14} />
+          <div className="actions">
+            <Button
+              variant="secondary"
+              onClick={() => add(undefined, 'metric')}
+              disabled={survey.widgets.length >= 50}
+            >
+              <Hash size={16} />
+              Angka
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => add(undefined, 'text')}
+              disabled={survey.widgets.length >= 50}
+            >
+              <Type size={16} />
               Catatan
-              <Plus size={12} style={{ marginLeft: 'auto' }} />
-            </button>
+            </Button>
+            <Button onClick={() => setComposer({})} disabled={survey.widgets.length >= 50}>
+              <Plus size={16} />
+              Tambah chart
+            </Button>
           </div>
-        </aside>
+        </div>
       )}
       <div className="canvas" ref={containerRef}>
         {mounted && (
@@ -240,33 +181,22 @@ export function DashboardCanvas({
                     <strong>{w.title}</strong>
                     {editing && (
                       <>
-                        <select
-                          aria-label={`Jenis tampilan ${w.title}`}
-                          value={w.type}
-                          onChange={(e) =>
-                            update(
-                              survey.widgets.map((p) =>
-                                p.id === w.id ? { ...p, type: e.target.value as WidgetType } : p,
-                              ),
-                            )
-                          }
-                        >
-                          {(w.questionId
-                            ? allowedWidgets(survey.questions.find((q) => q.id === w.questionId)!)
-                            : w.type === 'line' || w.type === 'area'
-                              ? [...trendChartTypes]
-                              : [w.type]
-                          ).map((type) => (
-                            <option key={type} value={type}>
-                              {typeLabels[type]}
-                            </option>
-                          ))}
-                        </select>
                         <button
                           className="btn btn-ghost"
-                          style={{ padding: 2, minHeight: 22 }}
+
                           aria-label={`Atur ${w.title}`}
-                          onClick={() => setSelected({ ...w })}
+                          onClick={() =>
+                            w.type === 'metric' || w.type === 'text'
+                              ? setSelected({ ...w })
+                              : setComposer({
+                                  id: w.id,
+                                  initial: {
+                                    sourceId: w.questionId ?? '__timeline',
+                                    type: w.type,
+                                    title: w.title,
+                                  },
+                                })
+                          }
                         >
                           <Pencil size={11} />
                         </button>
@@ -293,11 +223,47 @@ export function DashboardCanvas({
           <div className="chart-empty" style={{ marginTop: editing ? -220 : 0, pointerEvents: 'none' }}>
             <div>
               <MousePointer2 size={27} style={{ margin: '0 auto 12px' }} />
-              <p>{editing ? 'Tarik pertanyaan pertama ke sini.' : 'Belum ada komponen presentasi.'}</p>
+              <p>
+                {editing ? 'Tambahkan chart pertama ke dashboard kamu.' : 'Belum ada komponen presentasi.'}
+              </p>
             </div>
           </div>
         )}
       </div>
+      {composer && (
+        <ChartComposer
+          survey={survey}
+          insights={insights}
+          initial={composer.initial}
+          editing={!!composer.id}
+          onClose={() => setComposer(null)}
+          onConfirm={(selection) => {
+            const patch = {
+              type: selection.type,
+              title: selection.title,
+              questionId: selection.sourceId === '__timeline' ? undefined : selection.sourceId,
+            };
+            update(
+              composer.id
+                ? survey.widgets.map((widget) =>
+                    widget.id === composer.id ? { ...widget, ...patch } : widget,
+                  )
+                : [
+                    ...survey.widgets,
+                    {
+                      id: crypto.randomUUID(),
+                      ...patch,
+                      x: 0,
+                      y: Math.max(0, ...survey.widgets.map((w) => w.y + w.h)),
+                      w: 6,
+                      h: 9,
+                    },
+                  ],
+            );
+            setComposer(null);
+          }}
+        />
+      )}
       <Modal
         open={!!selected}
         onOpenChange={(open) => {
@@ -317,18 +283,6 @@ export function DashboardCanvas({
                 maxLength={300}
               />
             </div>
-            {selected.type !== 'metric' &&
-              selected.type !== 'text' &&
-              (selected.questionId
-                ? !!survey.questions.find((q) => q.id === selected.questionId)?.options.length
-                : true) && (
-                <ChartTypePicker
-                  compact
-                  value={selected.type as DataChartType}
-                  trend={selected.type === 'line' || selected.type === 'area'}
-                  onChange={(type) => setSelected({ ...selected, type })}
-                />
-              )}
             {selected.type === 'text' && (
               <div className="field">
                 <label htmlFor="widget-note">Isi catatan</label>

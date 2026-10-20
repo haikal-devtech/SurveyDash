@@ -202,9 +202,7 @@ export async function createFromSlideTemplate(
     elements: slide.elements.map((element) => {
       let binding = element.binding;
       if (binding?.kind === 'chart') {
-        const target = survey.questions.find(
-          (q) => q.id === mapping[binding!.questionId!] && q.options.length,
-        );
+        const target = survey.questions.find((q) => q.id === mapping[binding!.questionId!]);
         if (!target) throw new AppError('Pilih sumber pertanyaan yang sesuai untuk semua grafik.');
         binding = { ...binding, questionId: target.id };
       }

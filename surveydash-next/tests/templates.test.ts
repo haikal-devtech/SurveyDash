@@ -4,7 +4,17 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { closeDatabase, getDb } from '../src/lib/db';
-import { createSurvey, saveTemplate, getTemplate, listTemplates, updateTemplate, duplicateTemplate, applyTemplate, getSurvey, listSubmissions } from '../src/lib/repository';
+import {
+  createSurvey,
+  saveTemplate,
+  getTemplate,
+  listTemplates,
+  updateTemplate,
+  duplicateTemplate,
+  applyTemplate,
+  getSurvey,
+  listSubmissions,
+} from '../src/lib/repository';
 import { mapPresentation, suggestBindings } from '../src/lib/template-model';
 const directory = mkdtempSync(join(tmpdir(), 'studio-template-tests-'));
 delete process.env.DATABASE_URL;
@@ -12,8 +22,11 @@ process.env.STUDIO_DB_PATH = join(directory, 'test.sqlite');
 
 test('form, presentation and survey templates preserve configurations without copying responses or publication', async () => {
   const source = await createSurvey('owner', 'Source form', 'experience');
-  source.description = 'Reusable instructions'; source.institution = 'Test institution'; source.target = 800;
-  source.widgets[2].type = 'pie'; source.widgets[2].x = 0;
+  source.description = 'Reusable instructions';
+  source.institution = 'Test institution';
+  source.target = 800;
+  source.widgets[2].type = 'pie';
+  source.widgets[2].x = 0;
   const form = await saveTemplate(source, 'Question template', 'form');
   const presentation = await saveTemplate(source, 'Presentation template', 'presentation');
   const complete = await saveTemplate(source, 'Whole survey template', 'survey');
@@ -21,15 +34,21 @@ test('form, presentation and survey templates preserve configurations without co
   assert.equal(presentation.widgets[2].type, 'pie');
   assert.equal(complete.settings.target, 800);
   const clone = await createSurvey('owner', 'New survey copy', complete.id);
-  assert.equal(clone.status, 'draft'); assert.equal(clone.visibility, 'link');
-  assert.notEqual(clone.token, source.token); assert.notEqual(clone.id, source.id);
-  assert.equal(clone.target, 800); assert.deepEqual(clone.widgets, source.widgets);
+  assert.equal(clone.status, 'draft');
+  assert.equal(clone.visibility, 'link');
+  assert.notEqual(clone.token, source.token);
+  assert.notEqual(clone.id, source.id);
+  assert.equal(clone.target, 800);
+  assert.deepEqual(clone.widgets, source.widgets);
   assert.equal((await listSubmissions(clone.id)).length, 0);
   clone.questions[0].label = 'Modified copy';
   assert.equal((await getTemplate(complete.id, 'owner')).questions[0].label, 'Nama responden');
   await assert.rejects(() => createSurvey('owner', 'Wrong template', presentation.id), /template form/);
   await assert.rejects(() => getTemplate(form.id, 'another-owner'), /tidak ditemukan/);
-  await assert.rejects(() => saveTemplate({ ...source, widgets: [] }, 'Empty presentation', 'presentation'), /komponen/);
+  await assert.rejects(
+    () => saveTemplate({ ...source, widgets: [] }, 'Empty presentation', 'presentation'),
+    /komponen/,
+  );
 });
 test('presentation mapping handles different question IDs, validates chart types, and guards revision/ownership', async () => {
   const source = await createSurvey('owner', 'Presentation source', 'experience');
@@ -40,19 +59,43 @@ test('presentation mapping handles different question IDs, validates chart types
   assert.equal(mapping.satisfaction, 'new-satisfaction');
   const widgets = mapPresentation(template, target, mapping);
   assert.ok(widgets.some((w) => w.questionId === 'new-satisfaction'));
-  assert.throws(() => mapPresentation(template, target, { ...mapping, satisfaction: 'new-name' }), /sesuai/);
+  assert.throws(
+    () => mapPresentation(template, target, { ...mapping, satisfaction: 'missing-question' }),
+    /sesuai/,
+  );
   const original = await createSurvey('owner', 'Stored target', 'experience');
-  const applied = await applyTemplate(template.id, 'owner', original.id, original.version, suggestBindings(template, original));
+  const applied = await applyTemplate(
+    template.id,
+    'owner',
+    original.id,
+    original.version,
+    suggestBindings(template, original),
+  );
   assert.equal(applied.version, original.version + 1);
   assert.deepEqual(applied.questions, original.questions);
-  await assert.rejects(() => applyTemplate(template.id, 'owner', original.id, original.version, {}), /diperbarui/);
-  await assert.rejects(() => applyTemplate(template.id, 'other', original.id, applied.version, {}), /tidak ditemukan/);
+  await assert.rejects(
+    () => applyTemplate(template.id, 'owner', original.id, original.version, {}),
+    /diperbarui/,
+  );
+  await assert.rejects(
+    () => applyTemplate(template.id, 'other', original.id, applied.version, {}),
+    /tidak ditemukan/,
+  );
 });
 test('template archive/restore, duplication, built-in immutability and legacy data remain compatible', async () => {
   const survey = await createSurvey('owner', 'Legacy source', 'blank');
-  await getDb().prepare('INSERT INTO templates VALUES (?, ?, ?, ?, ?)').run('legacy', 'owner', 'Legacy questions', JSON.stringify({ questions: survey.questions, kind: survey.kind }), new Date().toISOString());
+  await getDb()
+    .prepare('INSERT INTO templates VALUES (?, ?, ?, ?, ?)')
+    .run(
+      'legacy',
+      'owner',
+      'Legacy questions',
+      JSON.stringify({ questions: survey.questions, kind: survey.kind }),
+      new Date().toISOString(),
+    );
   const legacy = await getTemplate('legacy', 'owner');
-  assert.equal(legacy.category, 'form'); assert.deepEqual(legacy.widgets, []);
+  assert.equal(legacy.category, 'form');
+  assert.deepEqual(legacy.widgets, []);
   const archived = await updateTemplate('legacy', 'owner', { name: 'Renamed legacy', archived: true });
   assert.ok(archived.archivedAt);
   assert.ok(!(await listTemplates('owner')).some((t) => t.id === 'legacy'));
@@ -60,9 +103,13 @@ test('template archive/restore, duplication, built-in immutability and legacy da
   await assert.rejects(() => createSurvey('owner', 'Archived form', 'legacy'), /Pulihkan/);
   await updateTemplate('legacy', 'owner', { archived: false });
   const copy = await duplicateTemplate('legacy', 'owner', 'Legacy copy');
-  assert.notEqual(copy.id, legacy.id); assert.equal(copy.archivedAt, null);
+  assert.notEqual(copy.id, legacy.id);
+  assert.equal(copy.archivedAt, null);
   await assert.rejects(() => updateTemplate('skm', 'owner', { name: 'Override builtin' }), /tidak dapat/);
   await assert.rejects(() => updateTemplate(copy.id, 'other', { archived: true }), /tidak ditemukan/);
   assert.equal((await getSurvey(survey.id, 'owner')).title, 'Legacy source');
 });
-test.after(async () => { await closeDatabase(); rmSync(directory, { recursive: true, force: true }); });
+test.after(async () => {
+  await closeDatabase();
+  rmSync(directory, { recursive: true, force: true });
+});

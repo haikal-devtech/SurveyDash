@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { calculateStats, distribution } from './model';
 import type { Distribution, Submission, Survey } from './types';
 import { categoryChartTypes, trendChartTypes, type DataChartType } from './chart-types';
-import { responseTimeline } from './analytics-model';
+import { questionBreakdown, responseTimeline } from './analytics-model';
 export const SLIDE_WIDTH = 1280;
 export const SLIDE_HEIGHT = 720;
 export const themes = {
@@ -235,7 +235,11 @@ export function refreshPresentationData(
         const question = survey.questions.find((q) => q.id === binding.questionId);
         return {
           ...element,
-          data: question ? distribution(question, rows) : [],
+          data: question
+            ? question.options.length
+              ? distribution(question, rows)
+              : questionBreakdown(question, rows).rows
+            : [],
           missing: !question || !rows.length,
         };
       }),

@@ -1,13 +1,16 @@
 'use client';
 
 import { createPortal } from 'react-dom';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
+import { publishTourCoach } from './tour-host';
 import { usePathname, useRouter } from 'next/navigation';
 import { ArrowRight, BookOpen, Check, Loader2, X } from 'lucide-react';
 import type { GuideRole } from '@/lib/guides';
 import {
   placeTourCard,
   tourAdvanceIndex,
+  tourClosedIndex,
+  tourBackIndex,
   tourPlan,
   TOUR_CREATED,
   TOUR_OPEN,
@@ -23,13 +26,23 @@ type Snapshot = {
   slot: HTMLElement | null;
   width: number;
   height: number;
+  disabled: boolean;
 };
 const byName = (name: string) => `[data-tour="${name}"]`;
+function activeDialog() {
+  return [...document.querySelectorAll<HTMLElement>('[data-guide-dialog][data-state="open"]')].at(-1) ?? null;
+}
 function visible(selector: string) {
   return (
-    [...document.querySelectorAll<HTMLElement>(selector)].find((element) => {
+    [...(activeDialog() ?? document).querySelectorAll<HTMLElement>(selector)].find((element) => {
       const rect = element.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0 && getComputedStyle(element).visibility !== 'hidden';
+      return (
+        element.isConnected &&
+        !element.closest('[hidden],[inert]') &&
+        rect.width > 0 &&
+        rect.height > 0 &&
+        getComputedStyle(element).visibility !== 'hidden'
+      );
     }) ?? null
   );
 }
@@ -73,10 +86,12 @@ export function RoleGuide({ role }: { role: GuideRole }) {
   const returnFocus = useRef<HTMLElement | null>(null);
   const lastResult = useRef<'completed' | 'skipped'>('skipped');
   const pendingSave = useRef(false);
+  const editorPath = useRef<string | null>(null);
   const phase = plan[index];
   const isHome = pathname === home;
 
   function restart() {
+    activeDialog()?.querySelector<HTMLButtonElement>('.modal-close')?.click();
     setPlan([]);
     setIndex(0);
     setSnapshot(null);
@@ -120,6 +135,13 @@ export function RoleGuide({ role }: { role: GuideRole }) {
     return () => controller.abort();
   }, [isHome, role]);
 
+  useEffect(() => {
+    if (!requested) return;
+    return () => {
+      document.documentElement.style.removeProperty('--tour-viewport');
+      delete document.documentElement.dataset.tourCompact;
+    };
+  }, [requested]);
   async function saveResult(status: 'completed' | 'skipped') {
     if (pendingSave.current) return;
     pendingSave.current = true;
@@ -154,7 +176,26 @@ export function RoleGuide({ role }: { role: GuideRole }) {
     const resize = new ResizeObserver(schedule);
     function refresh() {
       frame = 0;
+      const viewportHeight = Math.min(
+        window.innerHeight,
+        window.visualViewport?.height ?? window.innerHeight,
+      );
+      document.documentElement.style.setProperty('--tour-viewport', viewportHeight + 'px');
+      document.documentElement.dataset.tourCompact = String(viewportHeight < 400);
+      const dialog = activeDialog();
       if (!plan.length) {
+        setSnapshot((previous) =>
+          previous?.slot === (dialog?.querySelector('[data-tour-host]') ?? null)
+            ? previous
+            : {
+                target: null,
+                rect: null,
+                slot: dialog?.querySelector<HTMLElement>('[data-tour-host]') ?? null,
+                width: window.innerWidth,
+                height: window.visualViewport?.height ?? window.innerHeight,
+                disabled: false,
+              },
+        );
         const ready = visible(byName(role === 'manager' ? 'create-survey' : 'surveyor-tasks'));
         if (ready) {
           setPlan(
@@ -169,6 +210,7 @@ export function RoleGuide({ role }: { role: GuideRole }) {
         return;
       }
       const target = phase ? visible(phase.target) : null;
+      const disabled = target instanceof HTMLButtonElement && target.disabled;
       if (observed !== target) {
         if (observed) resize.unobserve(observed);
         if (target) resize.observe(target);
@@ -183,9 +225,7 @@ export function RoleGuide({ role }: { role: GuideRole }) {
             height: Math.round(bounds.height),
           }
         : null;
-      const dialog = target?.closest<HTMLElement>('[role="dialog"]');
-      const slot =
-        phase?.slot && dialog ? dialog.querySelector<HTMLElement>(`[data-tour-slot="${phase.slot}"]`) : null;
+      const slot = dialog?.querySelector<HTMLElement>('[data-tour-host]') ?? null;
       const width = window.innerWidth,
         height = Math.min(window.innerHeight, window.visualViewport?.height ?? window.innerHeight);
       setSnapshot((previous) =>
@@ -194,9 +234,10 @@ export function RoleGuide({ role }: { role: GuideRole }) {
         previous.slot === slot &&
         previous.width === width &&
         previous.height === height &&
+        previous.disabled === disabled &&
         JSON.stringify(previous.rect) === JSON.stringify(rect)
           ? previous
-          : { target, rect, slot, width, height },
+          : { target, rect, slot, width, height, disabled },
       );
     }
     function schedule() {
@@ -210,10 +251,18 @@ export function RoleGuide({ role }: { role: GuideRole }) {
       )
         schedule();
     });
-    changes.observe(document.body, { childList: true, subtree: true });
+    changes.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['hidden', 'disabled', 'data-state', 'aria-hidden'],
+    });
     window.addEventListener('resize', schedule);
     window.addEventListener('scroll', schedule, true);
     window.visualViewport?.addEventListener('resize', schedule);
+    window.visualViewport?.addEventListener('scroll', schedule);
+    document.addEventListener('animationend', schedule, true);
+    document.addEventListener('transitionend', schedule, true);
     schedule();
     return () => {
       cancelAnimationFrame(frame);
@@ -222,6 +271,9 @@ export function RoleGuide({ role }: { role: GuideRole }) {
       window.removeEventListener('resize', schedule);
       window.removeEventListener('scroll', schedule, true);
       window.visualViewport?.removeEventListener('resize', schedule);
+      window.visualViewport?.removeEventListener('scroll', schedule);
+      document.removeEventListener('animationend', schedule, true);
+      document.removeEventListener('transitionend', schedule, true);
     };
   }, [requested, plan, phase, role]);
 
@@ -235,13 +287,21 @@ export function RoleGuide({ role }: { role: GuideRole }) {
       const action = button?.dataset.tourAction ?? button?.dataset.tour;
       if (action) setIndex((current) => tourAdvanceIndex(plan, current, action));
     }
-    function created() {
+    function created(event: Event) {
+      const id = (event as CustomEvent<{ id?: string }>).detail?.id;
+      if (id) editorPath.current = '/studio/' + encodeURIComponent(id);
       if (role === 'manager') setIndex((current) => tourAdvanceIndex(plan, current, 'created'));
     }
     document.addEventListener('click', click);
+    function closed(event: Event) {
+      const target = event.target instanceof Element ? event.target.closest('.modal-close') : null;
+      if (target) setIndex((current) => tourClosedIndex(plan, current));
+    }
+    document.addEventListener('click', closed);
     window.addEventListener(TOUR_CREATED, created);
     return () => {
       document.removeEventListener('click', click);
+      document.removeEventListener('click', closed);
       window.removeEventListener(TOUR_CREATED, created);
     };
   }, [requested, plan, role]);
@@ -267,14 +327,17 @@ export function RoleGuide({ role }: { role: GuideRole }) {
     const frame = requestAnimationFrame(() => {
       target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
       if (phase?.id === 'name') target.focus({ preventScroll: true });
-      else heading.current?.focus({ preventScroll: true });
+      else
+        (snapshot.slot?.querySelector<HTMLElement>('[data-tour-title]') ?? heading.current)?.focus({
+          preventScroll: true,
+        });
     });
     return () => {
       cancelAnimationFrame(frame);
       if (oldDescription === null) target.removeAttribute('aria-describedby');
       else target.setAttribute('aria-describedby', oldDescription);
     };
-  }, [requested, phase?.id, snapshot?.target]);
+  }, [requested, phase?.id, snapshot?.target, snapshot?.slot]);
 
   useEffect(() => {
     if (!requested || !card.current) return;
@@ -287,7 +350,11 @@ export function RoleGuide({ role }: { role: GuideRole }) {
   }, [requested, phase?.id, snapshot?.slot]);
 
   function next() {
-    if (!phase || !snapshot?.target || phase.waitForCreate) return;
+    if (!phase || !snapshot?.target) return;
+    if (phase.waitForCreate) {
+      if (snapshot.target instanceof HTMLButtonElement && !snapshot.target.disabled) snapshot.target.click();
+      return;
+    }
     if (
       phase.id === 'name' &&
       snapshot.target instanceof HTMLInputElement &&
@@ -311,6 +378,51 @@ export function RoleGuide({ role }: { role: GuideRole }) {
     else setIndex(index + 1);
   }
 
+  function recover() {
+    const modal = activeDialog();
+    if (modal) {
+      modal.querySelector<HTMLButtonElement>('.modal-close')?.click();
+      return;
+    }
+    const tabs: Record<string, string> = {
+      questions: 'questions',
+      form: 'form',
+      invite: 'surveyors',
+      data: 'data',
+      analysis: 'analytics',
+    };
+    const tab = tabs[phase?.id ?? ''];
+    if (tab) {
+      const control = document.querySelector<HTMLButtonElement>(byName('editor-tab-' + tab));
+      if (control) {
+        control.click();
+        return;
+      }
+      if (editorPath.current) {
+        router.push(editorPath.current);
+        return;
+      }
+    }
+    restart();
+  }
+  function back() {
+    const previousIndex = tourBackIndex(plan, index);
+    if (previousIndex === index) return;
+    const previous = plan[previousIndex];
+    const tabs: Record<string, string> = {
+      questions: 'questions',
+      form: 'form',
+      invite: 'surveyors',
+      data: 'data',
+      analysis: 'analytics',
+    };
+    if (tabs[previous.id])
+      document.querySelector<HTMLButtonElement>(byName('editor-tab-' + tabs[previous.id]))?.click();
+    if (previous.id === 'preview')
+      document.querySelector<HTMLButtonElement>(byName('surveyor-preview'))?.click();
+    if (previous.id === 'tasks') activeDialog()?.querySelector<HTMLButtonElement>('.modal-close')?.click();
+    setIndex(previousIndex);
+  }
   const inline = !!snapshot?.slot;
   const position = placeTourCard(
     snapshot?.rect ?? null,
@@ -328,11 +440,10 @@ export function RoleGuide({ role }: { role: GuideRole }) {
     <div
       data-tour-layer
       data-role-guide={role}
-      ref={card}
+      ref={inline ? undefined : card}
       className={`tour-coach ${inline ? 'tour-coach-inline' : ''}`}
       style={inline ? undefined : { left: position.left, top: position.top, width: position.width }}
-      role="dialog"
-      aria-modal="false"
+      role="region"
       aria-labelledby="tour-title"
       aria-describedby="tour-instructions"
     >
@@ -342,7 +453,7 @@ export function RoleGuide({ role }: { role: GuideRole }) {
           <X size={16} />
         </button>
       </div>
-      <h2 id="tour-title" ref={heading} tabIndex={-1}>
+      <h2 id="tour-title" data-tour-title="" ref={inline ? undefined : heading} tabIndex={-1}>
         {phase?.title ?? 'Menyiapkan panduan…'}
       </h2>
       <p id="tour-instructions" aria-live="polite">
@@ -351,16 +462,25 @@ export function RoleGuide({ role }: { role: GuideRole }) {
           : 'Menunggu bagian ini terbuka. Anda bisa melewati panduan kapan saja.'}
       </p>
       <div className="tour-coach-actions">
-        <Button variant="ghost" onClick={() => finish('skipped')}>
-          Skip
-        </Button>
+        <div className="tour-secondary-actions">
+          {index > 0 && phase?.id !== 'questions' && (
+            <Button variant="ghost" onClick={back}>
+              Back
+            </Button>
+          )}
+          <Button variant="ghost" onClick={() => finish('skipped')}>
+            Skip
+          </Button>
+        </div>
         {phase && !snapshot?.target ? (
-          <Button variant="secondary" onClick={restart}>
-            Mulai ulang
+          <Button variant="secondary" onClick={recover}>
+            Buka langkah
           </Button>
         ) : (
-          <Button onClick={next} disabled={!snapshot?.target || phase?.waitForCreate}>
-            {index === plan.length - 1 ? (
+          <Button onClick={next} disabled={!snapshot?.target || snapshot.disabled}>
+            {phase?.waitForCreate ? (
+              'Buat survei'
+            ) : index === plan.length - 1 ? (
               <>
                 <Check size={16} />
                 Selesai
@@ -374,9 +494,17 @@ export function RoleGuide({ role }: { role: GuideRole }) {
           </Button>
         )}
       </div>
-      {phase?.waitForCreate && <small>Klik Buat survei untuk lanjut.</small>}
+      {phase?.waitForCreate && <small>Draf dibuat setelah tombol ini ditekan. Survei belum dibagikan.</small>}
     </div>
   );
+
+  const updateHost = useEffectEvent((id: string) => publishTourCoach(id, coach));
+  useLayoutEffect(() => {
+    const id = snapshot?.slot?.dataset.tourHost;
+    if (!requested || !id) return;
+    updateHost(id);
+    return () => publishTourCoach(id, null);
+  }, [requested, snapshot, index, plan, cardHeight, role]);
 
   return (
     <>
@@ -408,7 +536,6 @@ export function RoleGuide({ role }: { role: GuideRole }) {
           </div>,
           document.body,
         )}
-      {requested && snapshot?.slot && createPortal(coach, snapshot.slot)}
       {saveError && (
         <div className="tour-save-error" role="alert">
           {saveError}

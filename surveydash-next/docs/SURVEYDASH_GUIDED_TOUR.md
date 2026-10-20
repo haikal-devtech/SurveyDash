@@ -21,3 +21,7 @@ Saving a guide result uses the existing authenticated, origin-checked account AP
 ## Verification boundary
 
 All 61 repository tests pass, including six new walkthrough tests for creation gating, actual editor actions, empty and assigned Surveyor plans, clipboard/publication boundaries, and coach placement across mobile/desktop viewport sizes. Browser visual and interactive walkthrough execution remain unverified because the saved browser policy restriction still applies. Pure transition tests, source review and HTTP checks do not establish actual focus, scrolling or pointer behavior in a browser. Release continues under the user's prior explicit deferral; no browser or accessibility score is claimed.
+
+## 21 October repair
+
+The current implementation and verification boundary are documented in [Team, charts and guide refinement](SURVEYDASH_TEAM_CHART_GUIDES.md). The original inline portal described above has been replaced by a coach rendered as a real React child of the dialog through TourHost. The submit-step coach now offers an explicitly labelled Buat survei action, still gated on a successful server create event. Back, close-dialog recovery and keyboard viewport handling have been added. This supersedes the earlier lifecycle description; browser execution remains unverified.

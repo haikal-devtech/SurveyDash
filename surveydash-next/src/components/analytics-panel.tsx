@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Users,
   Target,
@@ -9,139 +9,88 @@ import {
   BarChart3,
   SlidersHorizontal,
   Presentation,
+  Pencil,
+  Plus,
   EyeOff,
 } from 'lucide-react';
 import type { Question, Survey, SurveyInsights } from '@/lib/types';
-import type { QuestionBreakdown } from '@/lib/analytics-model';
-import {
-  categoryChartTypes,
-  chartCatalog,
-  chartColors,
-  type CategoryChartType,
-  type DataChartType,
-} from '@/lib/chart-types';
-import { DataChart, ChartTypePicker } from './data-chart';
+import { chartCatalog, type CategoryChartType, type DataChartType } from '@/lib/chart-types';
+import { DataChart } from './data-chart';
 import { Badge, Button, Modal } from './ui';
+import { useChartSource } from './use-chart-source';
+import { ChartComposer } from './chart-composer';
+import { defaultChartType } from '@/lib/chart-composer';
 
 function QuestionChart({
   question,
-  index,
   survey,
   insights,
   onPatch,
 }: {
   question: Question;
-  index: number;
   survey: Survey;
   insights: SurveyInsights;
   onPatch: (patch: Partial<Question>) => void;
 }) {
-  const [result, setResult] = useState<{ key: string; data?: QuestionBreakdown; error?: string }>();
-  const [gallery, setGallery] = useState(false);
-  const key = `${survey.id}:${survey.version}:${question.id}:${insights.stats.total}`;
-  useEffect(() => {
-    if (question.options.length) return;
-    const controller = new AbortController();
-    fetch(`/api/surveys/${survey.id}/insights?questionId=${encodeURIComponent(question.id)}`, {
-      signal: controller.signal,
-      cache: 'no-store',
-    })
-      .then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? 'Grafik belum dapat dimuat.');
-        return data as QuestionBreakdown;
-      })
-      .then((data) => setResult({ key, data }))
-      .catch((error) => {
-        if (!controller.signal.aborted) setResult({ key, error: error.message });
-      });
-    return () => controller.abort();
-  }, [survey.id, question.id, question.options.length, key, insights]);
-  const state = result?.key === key ? result : undefined;
-  const data = question.options.length
-    ? (insights.questions[question.id]?.distribution ?? [])
-    : (state?.data?.rows ?? []);
-  const answered = insights.questions[question.id]?.answered ?? state?.data?.answered ?? 0;
-  const type =
-    question.chartType ?? (question.options.length > 1 && question.options.length < 5 ? 'donut' : 'bar');
-  const unavailable = state?.data?.unavailable;
+  const [composer, setComposer] = useState(false);
+  const source = useChartSource(survey, question.id, insights);
+  const type = question.chartType ?? defaultChartType(question);
   return (
     <section className="analysis-question card">
       <header className="analysis-chart-header">
         <div>
-          <span className="analysis-kicker">PERTANYAAN {index + 1}</span>
           <h3>{question.label}</h3>
           <p>
-            {answered.toLocaleString('id-ID')} dari {insights.stats.total.toLocaleString('id-ID')} responden
-            menjawab
+            {source.answered.toLocaleString('id-ID')} dari {insights.stats.total.toLocaleString('id-ID')}{' '}
+            responden menjawab
           </p>
         </div>
-        <button
-          className="btn btn-ghost chart-hide"
-          type="button"
-          aria-label={`Sembunyikan chart ${question.label}`}
-          title="Sembunyikan chart"
-          onClick={() => onPatch({ chartVisible: false })}
-        >
-          <EyeOff size={16} />
-        </button>
-      </header>
-      <div className="analysis-chart-controls">
-        <label>
-          Jenis chart
-          <select
-            className="input"
-            value={type}
-            onChange={(event) => onPatch({ chartType: event.target.value as CategoryChartType })}
+        <div className="chart-card-actions">
+          <Button
+            variant="ghost"
+            onClick={() => setComposer(true)}
+            aria-label={'Ubah chart ' + question.label}
           >
-            {categoryChartTypes.map((value) => (
-              <option key={value} value={value}>
-                {chartCatalog[value].label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          aria-expanded={gallery}
-          onClick={() => setGallery(!gallery)}
-        >
-          Pilihan chart
-        </button>
-      </div>
-      {gallery && (
-        <ChartTypePicker
-          compact
-          value={type}
-          onChange={(value) => {
-            onPatch({ chartType: value as CategoryChartType });
-            setGallery(false);
+            <Pencil size={16} />
+          </Button>
+          <Button
+            variant="ghost"
+            aria-label={'Sembunyikan chart ' + question.label}
+            onClick={() => onPatch({ chartVisible: false })}
+          >
+            <EyeOff size={16} />
+          </Button>
+        </div>
+      </header>
+      {source.loading ? (
+        <p className="analysis-message" role="status">
+          Memuat chart…
+        </p>
+      ) : source.error || source.unavailable ? (
+        <p className="analysis-message" role="status">
+          {source.error ?? source.unavailable}
+        </p>
+      ) : (
+        <DataChart type={type} data={source.data} title={question.label} unit={source.unit} />
+      )}
+      <footer className="chart-card-footer">
+        <span>{chartCatalog[type].label}</span>
+        <p>{source.note}</p>
+      </footer>
+      {composer && (
+        <ChartComposer
+          survey={survey}
+          insights={insights}
+          initial={{ sourceId: question.id, type, title: question.label }}
+          fixedSource
+          editing
+          onClose={() => setComposer(false)}
+          onConfirm={(selection) => {
+            onPatch({ chartType: selection.type as CategoryChartType });
+            setComposer(false);
           }}
         />
       )}
-      {!question.options.length && !state ? (
-        <p className="analysis-message" role="status">
-          Memuat distribusi jawaban…
-        </p>
-      ) : state?.error || unavailable ? (
-        <p className="analysis-message" role="status">
-          {state?.error ?? unavailable}
-        </p>
-      ) : (
-        <DataChart
-          type={type}
-          data={data}
-          title={question.label}
-          accent={chartColors[index % chartColors.length]}
-          unit={question.type === 'checkbox' ? 'pilihan' : 'jawaban'}
-        />
-      )}
-      <p className="analysis-chart-note">
-        {question.type === 'checkbox'
-          ? 'Persentase dihitung dari total pilihan; satu responden dapat memilih beberapa.'
-          : state?.data?.note || 'Persentase dihitung dari jawaban yang terisi.'}
-      </p>
     </section>
   );
 }
@@ -159,6 +108,7 @@ export function AnalyticsPanel({
   onGenerate: () => void;
 }) {
   const [manage, setManage] = useState(false);
+  const [addChart, setAddChart] = useState(false);
   const [search, setSearch] = useState('');
   const [trend, setTrend] = useState<DataChartType>('area');
   const { stats } = insights;
@@ -344,19 +294,24 @@ export function AnalyticsPanel({
           </h2>
           <p>Pilih pertanyaan yang ingin kamu lihat di dashboard.</p>
         </div>
-        <Button variant="secondary" onClick={() => setManage(true)}>
-          <SlidersHorizontal size={16} />
-          Atur chart
-        </Button>
+        <div className="actions">
+          <Button variant="secondary" onClick={() => setManage(true)}>
+            <SlidersHorizontal size={16} />
+            Atur chart
+          </Button>
+          <Button onClick={() => setAddChart(true)}>
+            <Plus size={16} />
+            Tambah chart
+          </Button>
+        </div>
       </div>
       {displayed.length ? (
         <div className="analysis-chart-grid">
-          {survey.questions.map((question, index) =>
+          {survey.questions.map((question) =>
             visible(question) ? (
               <QuestionChart
                 key={question.id}
                 question={question}
-                index={index}
                 survey={survey}
                 insights={insights}
                 onPatch={(values) => patch(question.id, values)}
@@ -371,6 +326,23 @@ export function AnalyticsPanel({
           <p>Klik Atur chart, lalu aktifkan pertanyaan yang ingin ditampilkan.</p>
           <Button onClick={() => setManage(true)}>Atur chart</Button>
         </section>
+      )}
+      {addChart && (
+        <ChartComposer
+          editableTitle={false}
+          survey={survey}
+          insights={insights}
+          onClose={() => setAddChart(false)}
+          onConfirm={(selection) => {
+            if (selection.sourceId === '__timeline') setTrend(selection.type);
+            else
+              patch(selection.sourceId, {
+                chartVisible: true,
+                chartType: selection.type as CategoryChartType,
+              });
+            setAddChart(false);
+          }}
+        />
       )}
       <Modal
         open={manage}

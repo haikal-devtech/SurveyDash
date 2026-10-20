@@ -87,11 +87,12 @@ test('schema changes preserve existing responses and reject incompatible graphs'
     assertSchemaCompatible(survey, { questions: [...survey.questions].reverse() }, true),
   );
   const text = skmQuestions[0];
-  assert.deepEqual(allowedWidgets(text), ['table']);
+  assert.ok(allowedWidgets(text).includes('bar'));
+  assert.ok(allowedWidgets(text).includes('table'));
   assert.throws(() =>
     surveyInputSchema.parse({
       ...survey,
-      widgets: [{ ...survey.widgets[3], questionId: 'name', type: 'pie' }],
+      widgets: [{ ...survey.widgets[3], questionId: 'name', type: 'area' }],
     }),
   );
 });

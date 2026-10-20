@@ -183,3 +183,11 @@ export function tourAdvanceIndex(plan: TourStep[], current: number, action: stri
   if (plan[current]?.advanceOn === action) return Math.min(current + 1, plan.length - 1);
   return current;
 }
+export function tourClosedIndex(plan: TourStep[], current: number) {
+  return plan[current]?.slot === 'preview' || ['name', 'template', 'submit'].includes(plan[current]?.id ?? '')
+    ? 0
+    : current;
+}
+export function tourBackIndex(plan: TourStep[], current: number) {
+  return current <= 0 || plan[current]?.id === 'questions' ? current : current - 1;
+}

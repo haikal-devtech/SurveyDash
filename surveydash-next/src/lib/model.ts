@@ -79,7 +79,7 @@ export const surveyInputSchema = z
   });
 
 export function allowedWidgets(q: Question): WidgetType[] {
-  return ['choice', 'checkbox', 'rating'].includes(q.type) ? [...categoryChartTypes] : ['table'];
+  return q ? [...categoryChartTypes] : [];
 }
 
 export function validateAnswers(questions: Question[], input: unknown): Record<string, Answer> {

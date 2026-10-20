@@ -77,7 +77,7 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
   const saving = useRef(false);
   const responseCount = survey.responseCount ?? 0;
   const needsInsights = tab === 'analytics' || (tab === 'presentation' && dashboardOpen) || presenting;
-  const includeSamples = dashboardOpen || presenting;
+  const includeSamples = false;
   const insightsSource = JSON.stringify([
     survey.kind,
     survey.target,

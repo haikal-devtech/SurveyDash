@@ -5,6 +5,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { useDashboardMotion } from './dashboard-motion-context';
+import { TourHost } from './tour-host';
 export const cn = (...values: Parameters<typeof clsx>) => twMerge(clsx(values));
 export function Button({
   className,
@@ -48,6 +49,7 @@ export function Modal({
         <Dialog.Overlay className="modal-overlay" data-dashboard-motion={dashboardMotion ? '' : undefined} />
         <Dialog.Content
           className={cn('modal', wide && 'modal-wide', className)}
+          data-guide-dialog=""
           data-dashboard-motion={dashboardMotion ? '' : undefined}
           onCloseAutoFocus={onCloseAutoFocus}
         >
@@ -58,7 +60,8 @@ export function Modal({
           <Dialog.Close className="modal-close" aria-label="Tutup dialog">
             <X size={18} />
           </Dialog.Close>
-          {children}
+          <div className="modal-body">{children}</div>
+          <TourHost />
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
