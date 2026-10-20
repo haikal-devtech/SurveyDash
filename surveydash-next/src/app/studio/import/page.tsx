@@ -7,8 +7,8 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
     <>
       <div className="page-heading">
         <div>
-          <h1>Impor instrumen survei.</h1>
-          <p>Tinjau pertanyaan sebelum membuat salinan di workspace.</p>
+          <h1>Impor Google Form</h1>
+          <p>Bawa pertanyaan dan jawaban lama ke survei baru.</p>
         </div>
       </div>
       <FormsImport googleFailed={parameters.google === 'failed'} />

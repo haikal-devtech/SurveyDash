@@ -1,0 +1,213 @@
+.import-workflow {
+  max-width: 900px;
+  margin-inline: auto;
+  display: grid;
+  gap: 20px;
+}
+.import-steps {
+  display: flex;
+  gap: 24px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: var(--muted);
+}
+.import-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.import-steps span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #eee9fb;
+  color: #6745c6;
+  font-weight: 700;
+}
+.import-file,
+.import-preview {
+  padding: 24px;
+}
+.import-file summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.import-workflow summary,
+.bulk-options summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding-block: 10px;
+}
+.import-workflow .checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-block: 18px;
+}
+.import-workflow .actions {
+  flex-wrap: wrap;
+}
+.import-workflow .actions .btn {
+  min-height: 44px;
+}
+.import-preview h2 {
+  margin-top: 16px;
+}
+.import-preview ol,
+.import-preview ul {
+  padding-left: 22px;
+}
+.import-preview li {
+  margin-block: 8px;
+}
+.import-preview > .hint {
+  margin-top: 15px;
+}
+.import-counts {
+  display: flex;
+  gap: 48px;
+  margin-block: 24px;
+}
+.import-counts strong {
+  font-size: 30px;
+  line-height: 1.2;
+}
+.import-counts small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 8px;
+}
+.download-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-block: 24px;
+}
+.simple-question .question-edit-toggle {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  color: inherit;
+  cursor: pointer;
+}
+.simple-question .question-edit-toggle strong {
+  white-space: normal;
+  max-width: none;
+  overflow-wrap: anywhere;
+}
+.simple-question.is-editing {
+  border-color: #b7a0ef;
+}
+.simple-question.is-editing .question-edit-toggle > svg {
+  transform: rotate(180deg);
+}
+.simple-question .question-edit-toggle > svg {
+  flex-shrink: 0;
+}
+.simple-question .question-body[hidden] {
+  display: none !important;
+}
+.simple-question .question-edit-toolbar {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  padding-bottom: 18px;
+}
+.simple-question .question-type-label {
+  display: grid;
+  gap: 7px;
+  margin-right: auto;
+  font-size: 12px;
+}
+.simple-question .question-type-select {
+  margin: 0;
+  min-height: 42px;
+  font-size: 13px;
+  max-width: 100%;
+}
+.simple-question .question-edit-toolbar .btn {
+  min-width: 44px;
+  min-height: 44px !important;
+}
+.simple-question .question-controls {
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.simple-question .question-controls .btn {
+  min-height: 44px;
+}
+.builder-add-bottom {
+  width: 100%;
+  min-height: 48px;
+  border-style: dashed;
+}
+.bulk-options {
+  margin-block: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.bulk-options textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+.builder-palette .palette-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@media (max-width: 600px) {
+  .import-steps {
+    gap: 10px;
+  }
+  .import-steps li {
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 1;
+    font-size: 11px;
+  }
+  .import-file,
+  .import-preview {
+    padding: 18px;
+  }
+  .import-workflow .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .import-counts {
+    gap: 28px;
+  }
+  .simple-question .question-card-title {
+    flex-wrap: nowrap;
+    gap: 5px;
+  }
+  .simple-question .question-card-title > .badge {
+    display: none;
+  }
+  .simple-question .question-edit-toggle strong {
+    font-size: 13px;
+  }
+  .simple-question .question-body {
+    padding-inline: 14px;
+  }
+  .simple-question .question-controls > div {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .download-options {
+    grid-template-columns: 1fr;
+  }
+}

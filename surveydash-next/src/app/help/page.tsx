@@ -24,7 +24,7 @@ const extraHelp = [
   ],
   [
     'Bagaimana mengelola jawaban?',
-    'Di editor survei, buka tab Data. Anda bisa mencari, mengurutkan, memilih kolom, dan mengunduh CSV. Menu Cleaning data membantu meninjau dugaan duplikat; penandaan tidak menghapus jawaban atau mengubah IKM.',
+    'Di editor survei, buka tab Data → Unduh data, lalu pilih Excel (.xlsx) atau CSV. Unduhan berisi seluruh hasil pencarian, termasuk halaman lain, dan bisa diunggah ke Google Sheets. Menu Cleaning data membantu meninjau dugaan duplikat tanpa menghapus jawaban atau mengubah IKM.',
   ],
   [
     'Bagaimana membuat presentasi?',
@@ -40,7 +40,11 @@ const extraHelp = [
   ],
   [
     'Bagaimana mengimpor Google Forms?',
-    'Jika sambungan Google tersedia, pilih Impor Google Forms, sambungkan akun, lalu masukkan link editor atau ID form. Tinjau pertanyaan sebelum membuat salinan. Impor JSON juga tersedia; form sumber dan jawaban di Google tidak diubah.',
+    'Di beranda workspace, pilih Impor Google Form. Jika sambungan Google aktif, sambungkan akun dan masukkan link editor form. Centang Sertakan jawaban responden, tinjau jumlah dan catatannya, lalu impor sebagai survei baru. Hasilnya draft privat; form sumber tetap di Google. Impor JSON juga tersedia. Ini salinan sekali impor, bukan sinkronisasi otomatis.',
+  ],
+  [
+    'Bagaimana menambah pertanyaan dengan cepat?',
+    'Buka tab Pertanyaan, klik Tambah pertanyaan, lalu isi teks dan pilih jenisnya. Klik judul pertanyaan untuk membuka atau menutup editor. Gunakan Duplikat untuk menyalin pertanyaan, atau Tempel daftar pilihan untuk memasukkan banyak pilihan sekaligus, satu pilihan per baris.',
   ],
 ];
 export default function HelpPage() {

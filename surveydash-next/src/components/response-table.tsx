@@ -145,6 +145,7 @@ export function ResponseTable({
   const [loadError, setLoadError] = useState('');
   const [reload, setReload] = useState(0);
   const [exporting, setExporting] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const [visibility, setVisibility] = useState<VisibilityState>({});
   const [history, setHistory] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -291,25 +292,46 @@ export function ResponseTable({
     manualFiltering: true,
     rowCount: pageData?.filtered ?? 0,
   });
-  async function exportCsv() {
+  async function exportData(format: 'csv' | 'xlsx') {
     setExporting(true);
     try {
-      const response = await fetch('/api/surveys/' + survey.id + '/responses?' + query + '&format=csv');
+      const response = await fetch('/api/surveys/' + survey.id + '/responses?' + query + '&format=' + format);
       if (!response.ok) throw new Error((await response.json()).error);
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement('a');
       link.href = url;
-      link.download = (survey.title.replace(/[^a-zA-Z0-9_-]/g, '_') || 'survei') + '.csv';
+      link.download = (survey.title.replace(/[^a-zA-Z0-9_-]/g, '_') || 'survei') + '.' + format;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setDownloadOpen(false);
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'CSV gagal dibuat.');
+      onError(error instanceof Error ? error.message : 'Unduhan gagal dibuat.');
     } finally {
       setExporting(false);
     }
   }
   return (
     <>
+      <Modal
+        open={downloadOpen}
+        onOpenChange={setDownloadOpen}
+        title="Unduh data"
+        description="Unduh seluruh hasil pencarian, termasuk halaman lainnya."
+      >
+        <div className="download-options">
+          <Button disabled={exporting} onClick={() => void exportData('xlsx')}>
+            <Download size={17} />
+            {exporting ? 'Menyiapkan…' : 'Excel (.xlsx)'}
+          </Button>
+          <Button variant="secondary" disabled={exporting} onClick={() => void exportData('csv')}>
+            CSV (.csv)
+          </Button>
+        </div>
+        <p className="hint">
+          Excel dan CSV bisa diunggah ke Google Sheets. Data asli impor yang belum masuk grafik juga
+          disertakan.
+        </p>
+      </Modal>
       <div className="panel-intro">
         <div>
           <h2>Semua jawaban, satu tempat.</h2>
@@ -380,11 +402,11 @@ export function ResponseTable({
             </Button>
             <Button
               variant="secondary"
-              onClick={() => void exportCsv()}
+              onClick={() => setDownloadOpen(true)}
               disabled={exporting || !pageData?.filtered}
             >
               {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-              {exporting ? 'Menyiapkan…' : 'CSV'}
+              {exporting ? 'Menyiapkan…' : 'Unduh data'}
             </Button>
             <Button
               variant="ghost"
@@ -506,7 +528,7 @@ export function ResponseTable({
         )}
       </section>
       <p className="hint" style={{ marginTop: 13 }}>
-        CSV memuat seluruh hasil pencarian, termasuk jawaban pada halaman lain. Skor dihitung dari pilihan
+        Unduhan memuat seluruh hasil pencarian, termasuk jawaban pada halaman lain. Skor dihitung dari pilihan
         jawaban yang tervalidasi. Jawaban kosong ditampilkan sebagai “—”, bukan skor 1.
       </p>
       <Modal

@@ -30,6 +30,8 @@ const order = [
   'account_guides',
   'platform_admins',
   'google_form_connections',
+  'form_import_batches',
+  'submission_import_sources',
   'surveyor_profiles',
   'surveyor_assignments',
   'surveyor_invitations',

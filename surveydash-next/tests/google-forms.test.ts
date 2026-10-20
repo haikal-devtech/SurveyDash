@@ -8,6 +8,7 @@ import {
   sealGooglePayload,
   validateGoogleState,
   GOOGLE_FORMS_SCOPE,
+  GOOGLE_FORMS_RESPONSES_SCOPE,
 } from '../src/lib/google-forms';
 
 process.env.BETTER_AUTH_SECRET = randomBytes(48).toString('base64url');
@@ -18,7 +19,10 @@ test('Google connector uses read-only form scope, PKCE and owner-bound expiring 
   const connection = await beginGoogleConnection('owner');
   const url = new URL(connection.url);
   assert.equal(url.origin, 'https://accounts.google.com');
-  assert.equal(url.searchParams.get('scope'), GOOGLE_FORMS_SCOPE);
+  assert.deepEqual(url.searchParams.get('scope')?.split(' '), [
+    GOOGLE_FORMS_SCOPE,
+    GOOGLE_FORMS_RESPONSES_SCOPE,
+  ]);
   assert.equal(url.searchParams.get('code_challenge_method'), 'S256');
   assert.ok(url.searchParams.get('code_challenge'));
   assert.ok(!connection.url.includes(process.env.GOOGLE_FORMS_CLIENT_SECRET!));

@@ -76,6 +76,17 @@ const schema = `
     CREATE TABLE IF NOT EXISTS google_form_connections (
       user_id TEXT PRIMARY KEY, ciphertext TEXT NOT NULL, updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS form_import_batches (
+      id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, actor_id TEXT NOT NULL,
+      ciphertext TEXT NOT NULL, expires_at TEXT NOT NULL, survey_id TEXT
+    );
+    CREATE TABLE IF NOT EXISTS submission_import_sources (
+      submission_id TEXT PRIMARY KEY REFERENCES submissions(id), survey_id TEXT NOT NULL REFERENCES surveys(id),
+      provider TEXT NOT NULL, source_form_id TEXT NOT NULL, response_id TEXT NOT NULL,
+      raw_answers TEXT NOT NULL, imported_at TEXT NOT NULL, imported_by TEXT NOT NULL,
+      UNIQUE(survey_id, provider, response_id)
+    );
+    CREATE INDEX IF NOT EXISTS import_sources_survey ON submission_import_sources(survey_id);
     CREATE TABLE IF NOT EXISTS surveyor_profiles (
       user_id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE, full_name TEXT NOT NULL,
       payout_ciphertext TEXT NOT NULL, consent_version TEXT NOT NULL, consent_at TEXT NOT NULL, updated_at TEXT NOT NULL

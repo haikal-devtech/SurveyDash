@@ -84,6 +84,9 @@ export function Overview({
               <Plus size={17} />
               Buat survei
             </Button>
+            <Link href="/studio/import" className="btn btn-secondary">
+              Impor Google Form
+            </Link>
             {!listOnly && <GuideButton role="manager" />}
           </div>
         </div>

@@ -5,8 +5,10 @@ import { getDb } from './db';
 import { AppError } from './repository';
 import { authBaseUrl } from './origins';
 import { parseFormsImport } from './forms-import';
+import { MAX_IMPORT_BYTES, MAX_IMPORT_RESPONSES } from './form-responses-import';
 
 export const GOOGLE_FORMS_SCOPE = 'https://www.googleapis.com/auth/forms.body.readonly';
+export const GOOGLE_FORMS_RESPONSES_SCOPE = 'https://www.googleapis.com/auth/forms.responses.readonly';
 export const GOOGLE_FORMS_STATE_COOKIE = 'surveydash_google_forms_state';
 export const GOOGLE_FORMS_CALLBACK_PATH = '/api/integrations/google-forms/callback';
 export function googleFormsConfigured() {
@@ -24,7 +26,11 @@ function encryptionKey() {
     .update('surveydash-google-forms:' + secret)
     .digest();
 }
-export function sealGooglePayload(userId: string, purpose: 'state' | 'credentials', value: unknown) {
+export function sealGooglePayload(
+  userId: string,
+  purpose: 'state' | 'credentials' | 'import',
+  value: unknown,
+) {
   const iv = randomBytes(12);
   const cipher = createCipheriv('aes-256-gcm', encryptionKey(), iv);
   cipher.setAAD(Buffer.from(purpose + ':' + userId));
@@ -36,9 +42,13 @@ export function sealGooglePayload(userId: string, purpose: 'state' | 'credential
     ciphertext.toString('base64url'),
   ].join('.');
 }
-export function openGooglePayload(userId: string, purpose: 'state' | 'credentials', sealed: string): unknown {
+export function openGooglePayload(
+  userId: string,
+  purpose: 'state' | 'credentials' | 'import',
+  sealed: string,
+): unknown {
   try {
-    if (sealed.length > 20000) throw new Error('Invalid payload');
+    if (sealed.length > (purpose === 'import' ? 20000000 : 20000)) throw new Error('Invalid payload');
     const [version, iv, tag, ciphertext, extra] = sealed.split('.');
     if (version !== 'v1' || !iv || !tag || !ciphertext || extra) throw new Error('Invalid payload');
     const decipher = createDecipheriv('aes-256-gcm', encryptionKey(), Buffer.from(iv, 'base64url'));
@@ -86,7 +96,7 @@ export async function beginGoogleConnection(userId: string) {
       expiresAt: Date.now() + 600000,
     }),
     url: client.generateAuthUrl({
-      scope: GOOGLE_FORMS_SCOPE,
+      scope: [GOOGLE_FORMS_SCOPE, GOOGLE_FORMS_RESPONSES_SCOPE],
       access_type: 'offline',
       prompt: 'consent',
       include_granted_scopes: false,
@@ -131,9 +141,20 @@ export async function googleConnectionStatus(userId: string) {
   const configured = googleFormsConfigured();
   if (!configured) return { configured: false, connected: false };
   const connection = await getDb()
-    .prepare('SELECT user_id FROM google_form_connections WHERE user_id = ?')
+    .prepare('SELECT ciphertext FROM google_form_connections WHERE user_id = ?')
     .get(userId);
-  return { configured, connected: !!connection };
+  let canReadResponses = false;
+  if (connection) {
+    try {
+      const saved = credentialsSchema.parse(
+        openGooglePayload(userId, 'credentials', String(connection.ciphertext)),
+      );
+      canReadResponses = saved.scope.split(' ').includes(GOOGLE_FORMS_RESPONSES_SCOPE);
+    } catch {
+      /* The next connection attempt offers reconnection. */
+    }
+  }
+  return { configured, connected: !!connection, canReadResponses };
 }
 export async function disconnectGoogleConnection(userId: string) {
   await getDb().prepare('DELETE FROM google_form_connections WHERE user_id = ?').run(userId);
@@ -152,13 +173,20 @@ export function normalizeGoogleFormId(input: string) {
     throw new AppError('Gunakan ID form atau link editor Google Forms, bukan link responden.', 400);
   }
 }
-export async function fetchConnectedGoogleForm(userId: string, input: string) {
+export async function fetchConnectedGoogleForm(
+  userId: string,
+  input: string,
+  includeResponses = true,
+  signal?: AbortSignal,
+) {
   const formId = normalizeGoogleFormId(input);
   const record = await getDb()
     .prepare('SELECT ciphertext FROM google_form_connections WHERE user_id = ?')
     .get(userId);
   if (!record) throw new AppError('Sambungkan akun Google sebelum mengambil form.', 400);
   const stored = credentialsSchema.parse(openGooglePayload(userId, 'credentials', String(record.ciphertext)));
+  if (includeResponses && !stored.scope.split(' ').includes(GOOGLE_FORMS_RESPONSES_SCOPE))
+    throw new AppError('Perbarui izin Google untuk membaca jawaban responden.', 403);
   const client = googleClient();
   client.setCredentials(stored);
   let token: string;
@@ -170,36 +198,79 @@ export async function fetchConnectedGoogleForm(userId: string, input: string) {
   } catch {
     throw new AppError('Izin Google perlu diperbarui. Sambungkan ulang akun Anda.', 401);
   }
-  const response = await fetch('https://forms.googleapis.com/v1/forms/' + encodeURIComponent(formId), {
-    headers: { Authorization: 'Bearer ' + token },
-    signal: AbortSignal.timeout(20000),
-  });
-  if (!response.ok)
-    throw new AppError(
-      response.status === 403 || response.status === 404
-        ? 'Form tidak ditemukan atau akun Google Anda tidak memiliki izin untuk membacanya.'
-        : 'Google Forms belum dapat dihubungi. Coba lagi.',
-      400,
-    );
-  const reader = response.body?.getReader();
-  if (!reader) throw new AppError('Form tidak dapat dibaca.');
-  const chunks: Uint8Array[] = [];
+  return fetchGoogleFormData(token, formId, includeResponses, signal);
+}
+
+/** Fixed Google API endpoints only. Fetch every page or fail; never import a truncated history. */
+export async function fetchGoogleFormData(
+  token: string,
+  formId: string,
+  includeResponses: boolean,
+  signal?: AbortSignal,
+  fetcher: typeof fetch = fetch,
+) {
   let size = 0;
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > 500000) {
-        await reader.cancel();
-        throw new AppError('Form terlalu besar untuk diimpor.', 413);
+  const deadline = AbortSignal.timeout(50_000);
+  const combinedSignal = signal ? AbortSignal.any([signal, deadline]) : deadline;
+  async function read(url: string) {
+    const response = await fetcher(url, {
+      headers: { Authorization: 'Bearer ' + token },
+      signal: combinedSignal,
+      cache: 'no-store',
+      redirect: 'error',
+    });
+    if (!response.ok)
+      throw new AppError(
+        response.status === 403 || response.status === 404
+          ? 'Form tidak ditemukan atau izin membaca pertanyaan/jawaban belum diberikan.'
+          : 'Google Forms belum dapat dihubungi. Coba lagi.',
+        400,
+      );
+    const reader = response.body?.getReader();
+    if (!reader) throw new AppError('Data Google tidak dapat dibaca.');
+    const chunks: Uint8Array[] = [];
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > MAX_IMPORT_BYTES) {
+          await reader.cancel();
+          throw new AppError('Data melebihi 10 MB. Tidak ada data yang diimpor.', 413);
+        }
+        chunks.push(value);
       }
-      chunks.push(value);
+    } finally {
+      reader.releaseLock();
     }
-  } finally {
-    reader.releaseLock();
+    return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown;
   }
-  const source: unknown = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-  parseFormsImport(source);
-  return { source };
+  const endpoint =
+    'https://forms.googleapis.com/v1/forms/' + encodeURIComponent(normalizeGoogleFormId(formId));
+  const form = await read(endpoint);
+  parseFormsImport(form);
+  const responses: unknown[] = [];
+  if (includeResponses) {
+    let pageToken = '';
+    const seen = new Set<string>();
+    do {
+      const url = new URL(endpoint + '/responses');
+      url.searchParams.set('pageSize', '500');
+      if (pageToken) url.searchParams.set('pageToken', pageToken);
+      const page = z
+        .object({
+          responses: z.array(z.unknown()).max(MAX_IMPORT_RESPONSES).default([]),
+          nextPageToken: z.string().max(4000).optional(),
+        })
+        .parse(await read(url.toString()));
+      responses.push(...page.responses);
+      if (responses.length > MAX_IMPORT_RESPONSES)
+        throw new AppError('Impor maksimal 10.000 respons. Tidak ada data yang diimpor.', 413);
+      pageToken = page.nextPageToken ?? '';
+      if (pageToken && (seen.has(pageToken) || seen.size >= 100))
+        throw new AppError('Halaman jawaban Google tidak lengkap. Coba lagi.');
+      seen.add(pageToken);
+    } while (pageToken);
+  }
+  return { form, responses };
 }

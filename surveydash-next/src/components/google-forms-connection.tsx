@@ -2,15 +2,24 @@
 import { useEffect, useState } from 'react';
 import { Link2, Loader2, Unplug } from 'lucide-react';
 import { Button, Badge } from './ui';
+import type { FormImportPreview } from '@/lib/form-responses-import';
 
 export function GoogleFormsConnection({
-  onSource,
+  onPreview,
+  onInvalidate,
+  disabled = false,
   failed,
 }: {
-  onSource: (source: unknown) => void;
+  onPreview: (preview: FormImportPreview) => void;
+  onInvalidate: () => void;
+  disabled?: boolean;
   failed?: boolean;
 }) {
-  const [connection, setConnection] = useState<{ configured: boolean; connected: boolean } | null>(null);
+  const [connection, setConnection] = useState<{
+    configured: boolean;
+    connected: boolean;
+    canReadResponses?: boolean;
+  } | null>(null);
   const [statusError, setStatusError] = useState('');
   const [error, setError] = useState(
     failed ? 'Sambungan Google belum selesai. Tinjau izin lalu coba lagi.' : '',
@@ -18,6 +27,7 @@ export function GoogleFormsConnection({
   const [epoch, setEpoch] = useState(0);
   const [formId, setFormId] = useState('');
   const [pending, setPending] = useState(false);
+  const [includeResponses, setIncludeResponses] = useState(true);
   useEffect(() => {
     const controller = new AbortController();
     fetch('/api/integrations/google-forms', { signal: controller.signal })
@@ -36,6 +46,8 @@ export function GoogleFormsConnection({
     return () => controller.abort();
   }, [epoch]);
   async function action(kind: 'connect' | 'preview' | 'disconnect') {
+    if (pending || disabled) return;
+    onInvalidate();
     setPending(true);
     setError('');
     try {
@@ -45,7 +57,7 @@ export function GoogleFormsConnection({
         body:
           kind === 'disconnect'
             ? undefined
-            : JSON.stringify({ action: kind, ...(kind === 'preview' ? { formId } : {}) }),
+            : JSON.stringify({ action: kind, ...(kind === 'preview' ? { formId, includeResponses } : {}) }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
@@ -54,7 +66,7 @@ export function GoogleFormsConnection({
         if (url.origin !== 'https://accounts.google.com') throw new Error('Alamat sambungan tidak valid.');
         window.location.assign(url.toString());
       } else if (kind === 'preview') {
-        onSource(data.source);
+        onPreview(data);
       } else {
         setConnection((previous) => (previous ? { ...previous, connected: false } : previous));
       }
@@ -69,11 +81,8 @@ export function GoogleFormsConnection({
       <Badge tone={connection?.connected ? 'green' : 'neutral'}>
         {connection?.connected ? 'Google tersambung' : 'Impor Google Forms'}
       </Badge>
-      <h2 style={{ marginTop: 16 }}>Ambil form dari akun Google.</h2>
-      <p>
-        Berikan izin membaca pertanyaan, lalu pilih form melalui link editor atau ID-nya. Form sumber dan
-        jawaban lama tetap tersimpan di Google.
-      </p>
+      <h2 style={{ marginTop: 16 }}>Pindahkan Google Form Anda.</h2>
+      <p>Bawa pertanyaan dan jawaban lama. Form sumber tetap tersimpan di Google.</p>
       {statusError ? (
         <div role="alert">
           <p>{statusError}</p>
@@ -85,10 +94,10 @@ export function GoogleFormsConnection({
         <p role="status">Memeriksa sambungan…</p>
       ) : !connection.configured ? (
         <p className="hint">
-          Sambungan Google belum diaktifkan pengelola. Anda dapat memakai impor file JSON di bawah.
+          Sambungan Google belum diaktifkan pengelola. Impor file JSON tersedia di bawah.
         </p>
       ) : !connection.connected ? (
-        <Button disabled={pending} onClick={() => void action('connect')}>
+        <Button disabled={pending || disabled} onClick={() => void action('connect')}>
           {pending ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />}Sambungkan Google
         </Button>
       ) : (
@@ -103,22 +112,44 @@ export function GoogleFormsConnection({
             <input
               id="google-form-id"
               className="input"
+              disabled={pending || disabled}
               required
               minLength={10}
               maxLength={1000}
               value={formId}
-              onChange={(event) => setFormId(event.target.value)}
+              onChange={(event) => {
+                setFormId(event.target.value);
+                onInvalidate();
+              }}
               placeholder="https://docs.google.com/forms/d/…/edit"
             />
           </div>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={includeResponses}
+              disabled={pending || disabled}
+              onChange={(event) => {
+                setIncludeResponses(event.target.checked);
+                onInvalidate();
+              }}
+            />
+            Sertakan jawaban responden
+          </label>
+          {includeResponses && !connection.canReadResponses && (
+            <p className="hint">Klik “Perbarui izin” untuk mengizinkan pembacaan jawaban.</p>
+          )}
           <div className="actions">
-            <Button type="submit" disabled={pending}>
-              {pending && <Loader2 size={16} className="animate-spin" />}Tinjau pertanyaan
+            <Button
+              type="submit"
+              disabled={pending || disabled || (includeResponses && !connection.canReadResponses)}
+            >
+              {pending && <Loader2 size={16} className="animate-spin" />}Tinjau data
             </Button>
-            <Button variant="secondary" disabled={pending} onClick={() => void action('connect')}>
+            <Button variant="secondary" disabled={pending || disabled} onClick={() => void action('connect')}>
               Perbarui izin
             </Button>
-            <Button variant="ghost" disabled={pending} onClick={() => void action('disconnect')}>
+            <Button variant="ghost" disabled={pending || disabled} onClick={() => void action('disconnect')}>
               <Unplug size={16} />
               Putuskan sambungan
             </Button>

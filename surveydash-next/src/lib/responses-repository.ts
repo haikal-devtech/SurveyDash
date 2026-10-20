@@ -92,6 +92,49 @@ function parseRow(row: Record<string, string | number | null>): Submission {
     surveyor: parseAttribution(row),
   };
 }
+const exportSourceColumns =
+  ', i.provider AS import_provider, i.response_id AS import_response_id, i.raw_answers AS import_raw';
+const exportFrom = from + ' LEFT JOIN submission_import_sources i ON i.submission_id = s.id ';
+export async function countResponseExport(id: string, ownerId: string, input: unknown) {
+  const query = responseQuerySchema.parse(input);
+  const survey = await getSurvey(id, ownerId);
+  const { where } = buildQuery(survey, ownerId, query);
+  const count = await getDb()
+    .prepare('SELECT count(*) AS total' + from + 'WHERE ' + where.sql)
+    .get(...where.values);
+  return Number(count.total);
+}
+export async function* responseExportRows(id: string, ownerId: string, input: unknown, signal: AbortSignal) {
+  const query = responseQuerySchema.parse(input);
+  const survey = await getSurvey(id, ownerId);
+  const { where, order, sortValues } = buildQuery(survey, ownerId, query);
+  let offset = 0;
+  while (true) {
+    signal.throwIfAborted();
+    const rows = await getDb()
+      .prepare(
+        'SELECT s.*' +
+          attributionColumns +
+          exportSourceColumns +
+          exportFrom +
+          'WHERE ' +
+          where.sql +
+          ' ORDER BY ' +
+          order +
+          ' LIMIT 100 OFFSET ?',
+      )
+      .all(...where.values, ...sortValues, offset);
+    if (!rows.length) return;
+    for (const raw of rows)
+      yield {
+        ...parseRow(raw),
+        importProvider: String(raw.import_provider ?? ''),
+        importResponseId: String(raw.import_response_id ?? ''),
+        importRaw: String(raw.import_raw ?? ''),
+      };
+    offset += rows.length;
+  }
+}
 export async function getResponsePage(id: string, ownerId: string, input: unknown): Promise<ResponsePage> {
   const query = responseQuerySchema.parse(input);
   const survey = await getSurvey(id, ownerId);
@@ -158,9 +201,8 @@ export async function getSurveyInsights(
 export async function exportResponseCsv(id: string, ownerId: string, input: unknown, signal: AbortSignal) {
   const query = responseQuerySchema.parse(input);
   const survey = await getSurvey(id, ownerId);
-  const { where, order, sortValues } = buildQuery(survey, ownerId, query);
+  const rows = responseExportRows(id, ownerId, query, signal);
   const encoder = new TextEncoder();
-  let offset = 0;
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       controller.enqueue(
@@ -173,6 +215,9 @@ export async function exportResponseCsv(id: string, ownerId: string, input: unkn
               'Username surveyor',
               'ID penugasan',
               ...survey.questions.map((q) => q.label),
+              'Sumber impor',
+              'ID respons sumber',
+              'Data asli impor (JSON)',
             ]
               .map(csvCell)
               .join(',') +
@@ -185,25 +230,18 @@ export async function exportResponseCsv(id: string, ownerId: string, input: unkn
         controller.close();
         return;
       }
-      const result = await getDb()
-        .prepare(
-          'SELECT s.*' +
-            attributionColumns +
-            from +
-            'WHERE ' +
-            where.sql +
-            ' ORDER BY ' +
-            order +
-            ' LIMIT 100 OFFSET ?',
-        )
-        .all(...where.values, ...sortValues, offset);
+      const result = [];
+      for (let i = 0; i < 100; i++) {
+        const next = await rows.next();
+        if (next.done) break;
+        result.push(next.value);
+      }
       if (!result.length) {
         controller.close();
         return;
       }
       const lines =
         result
-          .map(parseRow)
           .map((row) =>
             [
               row.id,
@@ -212,13 +250,18 @@ export async function exportResponseCsv(id: string, ownerId: string, input: unkn
               row.surveyor?.username ?? '',
               row.surveyor?.assignmentId ?? '',
               ...survey.questions.map((q) => answerLabel(q, row.answers[q.id])),
+              row.importProvider,
+              row.importResponseId,
+              row.importRaw,
             ]
               .map(csvCell)
               .join(','),
           )
           .join('\r\n') + '\r\n';
       controller.enqueue(encoder.encode(lines));
-      offset += result.length;
+    },
+    async cancel() {
+      await rows.return();
     },
   });
   return new Response(stream, {

@@ -54,7 +54,7 @@ export default function PrivacyPage() {
         ],
         [
           'Sambungan Google Forms',
-          'Jika sambungan Google diaktifkan dan Anda memberikan izin, aplikasi membaca pertanyaan dari form yang Anda pilih melalui Google Forms API. Jawaban lama tidak diminta dan form sumber tidak diubah. Token sambungan disimpan terenkripsi, terikat pada akun login, dan tidak dikirim ke browser. Memutuskan sambungan menghapus token yang disimpan di SurveyDash. Izin pada akun Google dapat dikelola melalui pengaturan akun Google Anda.',
+          'Jika sambungan Google diaktifkan dan Anda memberikan izin, aplikasi membaca pertanyaan serta, bila dipilih, jawaban lama dari form yang Anda pilih. Salinan termasuk waktu, email yang dikumpulkan form sumber, dan jawaban yang belum didukung disimpan privat untuk Pengelola Survei dan ekspornya. Berkas lampiran tetap di Google; nama dan ID berkas dapat tersimpan pada data asli. Form sumber tidak diubah. Pratinjau berisi data terenkripsi, berlaku 15 menit dan dibersihkan saat proses impor berikutnya. Setelah impor, data historis mengikuti retensi survei dan cadangannya. Token sambungan terenkripsi, terikat akun login, dan tidak dikirim ke browser. Memutuskan sambungan menghapus token lokal; survei dan jawaban yang telah diimpor tetap tersimpan. Izin Google dapat dicabut melalui pengaturan akun Google Anda.',
         ],
         [
           'Pemulihan akses melalui email',

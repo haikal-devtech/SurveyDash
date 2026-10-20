@@ -13,7 +13,7 @@ export default function FeaturesPage() {
         ],
         [
           '02 · Data',
-          'Jawaban masuk sebagai baris dalam tabel. Cari, urutkan, pilih kolom, lihat detail, koreksi dengan riwayat, dan ekspor CSV.',
+          'Jawaban masuk sebagai baris dalam tabel. Cari, urutkan, pilih kolom, lihat detail, koreksi dengan riwayat, lalu unduh Excel atau CSV untuk diolah di spreadsheet.',
         ],
         [
           '03 · Insight',

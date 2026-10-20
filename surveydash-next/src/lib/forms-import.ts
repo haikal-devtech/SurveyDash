@@ -18,6 +18,7 @@ const choice = z.object({
 });
 const question = z
   .object({
+    questionId: z.string().max(200).optional(),
     required: z.boolean().optional(),
     choiceQuestion: choice.optional(),
     textQuestion: z.object({ paragraph: z.boolean().optional() }).optional(),
@@ -58,6 +59,7 @@ export function parseFormsImport(input: unknown) {
   const form = formSchema.parse(input);
   const questions: Question[] = [];
   const warnings: string[] = [];
+  const mapping: { sourceId: string; questionId: string }[] = [];
   if (form.settings?.quizSettings?.isQuiz)
     warnings.push('Penilaian kuis dan kunci jawaban tidak dipindahkan.');
   if (form.settings?.emailCollectionType && form.settings.emailCollectionType !== 'DO_NOT_COLLECT')
@@ -123,7 +125,8 @@ export function parseFormsImport(input: unknown) {
     }
     questionSchema.parse(base);
     questions.push(base);
+    if (q.questionId) mapping.push({ sourceId: q.questionId, questionId: base.id });
   });
   if (!questions.length) throw new Error('Tidak ada pertanyaan yang dapat diimpor dari JSON ini.');
-  return { title: form.info.title, description: form.info.description ?? '', questions, warnings };
+  return { title: form.info.title, description: form.info.description ?? '', questions, warnings, mapping };
 }

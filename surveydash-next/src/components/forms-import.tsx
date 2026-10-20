@@ -1,178 +1,184 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { parseFormsImport } from '@/lib/forms-import';
+import { FileUp, ArrowRight } from 'lucide-react';
+import type { FormImportPreview } from '@/lib/form-responses-import';
 import { Button, Badge } from './ui';
 import { GoogleFormsConnection } from './google-forms-connection';
 export function FormsImport({ googleFailed = false }: { googleFailed?: boolean }) {
   const router = useRouter();
-  const [source, setSource] = useState('');
-  const [preview, setPreview] = useState<ReturnType<typeof parseFormsImport> | null>(null);
+  const [preview, setPreview] = useState<FormImportPreview | null>(null);
   const [acknowledge, setAcknowledge] = useState(false);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
-  const [sourceKind, setSourceKind] = useState<'json' | 'google'>('json');
-  function inspect() {
-    setError('');
-    setPreview(null);
+  function showPreview(value: FormImportPreview) {
+    setPreview(value);
     setAcknowledge(false);
-    try {
-      setPreview(parseFormsImport(JSON.parse(source)));
-    } catch {
-      setError(
-        'File tidak dapat dibaca. Gunakan JSON resource Form dari Google Forms API, dengan info dan items yang valid.',
-      );
-    }
+    setError('');
   }
   async function upload(file: File) {
-    if (file.size > 500000) {
-      setError('File JSON maksimal 500 KB.');
+    setPreview(null);
+    setError('');
+    if (file.size > 3_000_000) {
+      setError('File JSON maksimal 3 MB. Untuk data lebih besar, sambungkan Google.');
       return;
     }
-    setSource(await file.text());
-    setPreview(null);
+    setPending(true);
+    try {
+      const source: unknown = JSON.parse(await file.text());
+      const response = await fetch('/api/import/forms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'preview', source }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      showPreview(data);
+    } catch (failure) {
+      setError(
+        failure instanceof SyntaxError
+          ? 'File JSON tidak valid.'
+          : failure instanceof Error
+            ? failure.message
+            : 'File belum dapat dibaca.',
+      );
+    } finally {
+      setPending(false);
+    }
   }
   async function create() {
+    if (!preview) return;
     setPending(true);
     setError('');
     try {
       const response = await fetch('/api/import/forms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source: JSON.parse(source), acknowledge }),
+        body: JSON.stringify({ action: 'import', batchId: preview.batchId, acknowledge }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      router.push(`/studio/${data.id}`);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Impor gagal.');
+      router.push('/studio/' + data.id);
+      router.refresh();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Impor gagal.');
     } finally {
       setPending(false);
     }
   }
   return (
-    <>
+    <div className="import-workflow">
+      <ol className="import-steps" aria-label="Langkah impor">
+        <li>
+          <span>1</span>Sambungkan Google
+        </li>
+        <li>
+          <span>2</span>Tinjau data
+        </li>
+        <li>
+          <span>3</span>Buat survei
+        </li>
+      </ol>
       <GoogleFormsConnection
         failed={googleFailed}
-        onSource={(value) => {
-          try {
-            setSource(JSON.stringify(value));
-            setPreview(parseFormsImport(value));
-            setAcknowledge(false);
-            setSourceKind('google');
-            setError('');
-          } catch {
-            setError('Form belum dapat dibaca. Periksa sumber dan coba lagi.');
-          }
-        }}
+        onPreview={showPreview}
+        onInvalidate={() => setPreview(null)}
+        disabled={pending}
       />
-      <div className="card membership-card">
-        <Badge>{sourceKind === 'google' ? 'Form dari Google' : 'Impor JSON'}</Badge>
-        <h2 style={{ marginTop: 20 }}>Pindahkan pertanyaan Google Forms.</h2>
+      <details className="card import-file">
+        <summary>
+          <FileUp size={18} />
+          Punya file JSON dari Google Forms API?
+        </summary>
         <p>
-          {sourceKind === 'google'
-            ? 'Tinjau pertanyaan dari form yang Anda pilih.'
-            : 'Unggah JSON resource Form yang diperoleh dari Google Forms API.'}{' '}
-          Ini membuat survei draft baru; jawaban lama, lampiran, dan setelan berbagi Google tidak ikut
-          disalin.
+          Unggah resource Form, atau gabungan pertanyaan dan jawaban dengan format{' '}
+          <code>{'{ "form": {...}, "responses": [...] }'}</code>.
         </p>
-        {sourceKind === 'json' && (
-          <>
-            <a
-              className="text-link"
-              href="https://developers.google.com/workspace/forms/api/reference/rest/v1/forms/get"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Panduan mengambil resource Form
-            </a>
-            <label className="field" style={{ marginTop: 25 }}>
-              File JSON
-              <input
-                type="file"
-                accept="application/json,.json"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) void upload(file);
-                }}
-              />
-            </label>
-            <label className="field">
-              Atau tempel JSON
-              <textarea
-                style={{ height: 180, fontFamily: 'monospace' }}
-                value={source}
-                maxLength={500000}
-                onChange={(event) => {
-                  setSource(event.target.value);
-                  setPreview(null);
-                }}
-              />
-            </label>
-            <Button variant="secondary" disabled={!source || pending} onClick={inspect}>
-              Tinjau pertanyaan
-            </Button>
-          </>
-        )}
-        {sourceKind === 'google' && (
-          <Button
-            variant="secondary"
+        <label className="field">
+          File JSON (maksimal 3 MB)
+          <input
+            type="file"
+            accept="application/json,.json"
             disabled={pending}
-            onClick={() => {
-              setSourceKind('json');
-              setSource('');
-              setPreview(null);
-              setAcknowledge(false);
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void upload(file);
+              event.target.value = '';
             }}
-          >
-            Gunakan file JSON
-          </Button>
-        )}
-        {error && (
-          <div role="alert" className="banner banner-error">
-            {error}
+          />
+        </label>
+        <a
+          className="text-link"
+          href="https://developers.google.com/workspace/forms/api/reference/rest/v1/forms.responses/list"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Panduan format data Google
+        </a>
+      </details>
+      {pending && <p role="status">Menyiapkan data…</p>}
+      {error && (
+        <div role="alert" className="banner banner-error">
+          {error}
+        </div>
+      )}
+      {preview && (
+        <section className="card import-preview" aria-label="Pratinjau impor" aria-live="polite">
+          <Badge tone="purple">Siap ditinjau</Badge>
+          <h2>{preview.title}</h2>
+          <div className="import-counts">
+            <strong>
+              {preview.questions.length}
+              <small>Pertanyaan</small>
+            </strong>
+            <strong>
+              {preview.responseCount.toLocaleString('id-ID')}
+              <small>Jawaban responden</small>
+            </strong>
           </div>
-        )}
-        {preview && (
-          <div className="import-preview">
-            <h3>{preview.title}</h3>
-            <p>{preview.questions.length} pertanyaan akan dibuat sebagai survei khusus.</p>
-            <ul>
+          <p>Survei baru akan disimpan sebagai draft privat. Waktu jawaban lama tetap dipertahankan.</p>
+          <details>
+            <summary>Lihat pertanyaan</summary>
+            <ol>
               {preview.questions.map((q) => (
-                <li key={q.id}>
-                  {q.label} <Badge>{q.type}</Badge>
-                </li>
+                <li key={q.id}>{q.label}</li>
               ))}
-            </ul>
-            {preview.warnings.length > 0 && (
-              <>
-                <div className="banner">
-                  <strong>Catatan sebelum impor</strong>
+            </ol>
+          </details>
+          {!!preview.warnings.length && (
+            <>
+              <div className="banner">
+                <div>
+                  <strong>Catatan impor</strong>
                   <ul>
-                    {preview.warnings.map((warning) => (
-                      <li key={warning}>{warning}</li>
+                    {preview.warnings.map((warning, index) => (
+                      <li key={index}>{warning}</li>
                     ))}
                   </ul>
                 </div>
-                <label className="checkbox">
-                  <input
-                    type="checkbox"
-                    checked={acknowledge}
-                    onChange={(event) => setAcknowledge(event.target.checked)}
-                  />
-                  Saya sudah meninjau pertanyaan dan item yang tidak dipindahkan.
-                </label>
-              </>
-            )}
-            <Button
-              disabled={pending || (!!preview.warnings.length && !acknowledge)}
-              onClick={() => void create()}
-            >
-              {pending ? 'Mengimpor…' : 'Buat survei draft'}
-            </Button>
-          </div>
-        )}
-      </div>
-    </>
+              </div>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={acknowledge}
+                  onChange={(event) => setAcknowledge(event.target.checked)}
+                />
+                Saya sudah membaca catatan impor.
+              </label>
+            </>
+          )}
+          <Button
+            disabled={pending || (!!preview.warnings.length && !acknowledge)}
+            onClick={() => void create()}
+          >
+            {pending ? 'Mengimpor…' : 'Impor sebagai survei baru'}
+            <ArrowRight size={16} />
+          </Button>
+          <p className="hint">
+            Salinan sekali impor. Jawaban berikutnya di Google tidak tersinkron otomatis.
+          </p>
+        </section>
+      )}
+    </div>
   );
 }
