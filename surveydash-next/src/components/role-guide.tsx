@@ -3,6 +3,7 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 import { publishTourCoach } from './tour-host';
+import { MOTION_SETTLED } from '@/lib/dashboard-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { ArrowRight, BookOpen, Check, Loader2, X } from 'lucide-react';
 import type { GuideRole } from '@/lib/guides';
@@ -259,6 +260,7 @@ export function RoleGuide({ role }: { role: GuideRole }) {
     });
     window.addEventListener('resize', schedule);
     window.addEventListener('scroll', schedule, true);
+    window.addEventListener(MOTION_SETTLED, schedule);
     window.visualViewport?.addEventListener('resize', schedule);
     window.visualViewport?.addEventListener('scroll', schedule);
     document.addEventListener('animationend', schedule, true);
@@ -270,6 +272,7 @@ export function RoleGuide({ role }: { role: GuideRole }) {
       resize.disconnect();
       window.removeEventListener('resize', schedule);
       window.removeEventListener('scroll', schedule, true);
+      window.removeEventListener(MOTION_SETTLED, schedule);
       window.visualViewport?.removeEventListener('resize', schedule);
       window.visualViewport?.removeEventListener('scroll', schedule);
       document.removeEventListener('animationend', schedule, true);

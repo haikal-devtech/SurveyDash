@@ -1,11 +1,75 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { listMotionFrames, type MotionBox } from '@/lib/dashboard-motion';
+import { listMotionFrames, sceneMotion, MOTION_SETTLED, type MotionBox } from '@/lib/dashboard-motion';
 import { useDashboardMotion } from './dashboard-motion-context';
 
 const preference = '(prefers-reduced-motion: reduce)';
 const items = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>('[data-motion-key]')];
+
+/** Animate only marked surfaces. No hidden CSS state or remount of the user's form. */
+export function MotionScene({
+  children,
+  motionKey,
+  className,
+}: {
+  children: ReactNode;
+  motionKey: string;
+  className?: string;
+}) {
+  const enabled = useDashboardMotion();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = ref.current;
+    if (!enabled || !root) return;
+    const media = window.matchMedia(preference);
+    const animations: Animation[] = [];
+    const cancel = () => {
+      for (const animation of animations) animation.cancel();
+      window.dispatchEvent(new Event(MOTION_SETTLED));
+    };
+    if (!media.matches && !document.hidden) {
+      const surfaces = [...root.querySelectorAll<HTMLElement>('[data-motion-enter]')]
+        .filter((item) => item.closest('[data-motion-scene]') === root)
+        .filter((item) => {
+          const box = item.getBoundingClientRect();
+          return box.width > 0 && box.height > 0 && box.top < window.innerHeight && box.bottom > 0;
+        })
+        .slice(0, 12);
+      // All layout reads above finish before any animation starts.
+      surfaces.forEach((item, index) => {
+        const plan = sceneMotion(index, window.innerWidth <= 600);
+        if (!plan || typeof item.animate !== 'function') return;
+        try {
+          const animation = item.animate(plan.frames, plan.options);
+          animations.push(animation);
+          animation.onfinish = () => {
+            animation.cancel();
+            window.dispatchEvent(new Event(MOTION_SETTLED));
+          };
+        } catch {
+          /* A decorative arrival must never block normal use. */
+        }
+      });
+    }
+    media.addEventListener('change', cancel);
+    document.addEventListener('visibilitychange', cancel);
+    window.addEventListener('resize', cancel, { passive: true });
+    window.addEventListener('beforeprint', cancel);
+    return () => {
+      cancel();
+      media.removeEventListener('change', cancel);
+      document.removeEventListener('visibilitychange', cancel);
+      window.removeEventListener('resize', cancel);
+      window.removeEventListener('beforeprint', cancel);
+    };
+  }, [enabled, motionKey]);
+  return (
+    <div ref={ref} className={className} data-motion-scene="">
+      {children}
+    </div>
+  );
+}
 
 /** Capture only explicit list actions; typing and initial rendering remain instant. */
 export function useListMotion() {
@@ -50,6 +114,7 @@ export function useListMotion() {
         animation.onfinish = () => {
           if (running.current.get(item) === animation) running.current.delete(item);
           animation.cancel();
+          window.dispatchEvent(new Event(MOTION_SETTLED));
         };
       } catch {
         // Optional motion must never prevent a filter, sort, or view change.
@@ -78,14 +143,18 @@ export function SelectionRail({
   activeKey,
   className,
   label,
+  surface = false,
 }: {
   children: ReactNode;
   activeKey: string;
   className: string;
   label: string;
+  surface?: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
-  const [position, setPosition] = useState<{ x: number; width: number } | null>(null);
+  const [position, setPosition] = useState<{ x: number; y: number; width: number; height: number } | null>(
+    null,
+  );
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
@@ -98,9 +167,19 @@ export function SelectionRail({
       }
       const bounds = root!.getBoundingClientRect(),
         target = selected.getBoundingClientRect();
-      const next = { x: target.left - bounds.left + root!.scrollLeft, width: target.width };
+      const next = {
+        x: target.left - bounds.left + root!.scrollLeft,
+        y: target.top - bounds.top + root!.scrollTop,
+        width: target.width,
+        height: target.height,
+      };
       setPosition((old) =>
-        old && Math.abs(old.x - next.x) < 0.5 && Math.abs(old.width - next.width) < 0.5 ? old : next,
+        old &&
+        Object.keys(next).every(
+          (key) => Math.abs(old[key as keyof typeof next] - next[key as keyof typeof next]) < 0.5,
+        )
+          ? old
+          : next,
       );
     }
     function schedule() {
@@ -119,12 +198,25 @@ export function SelectionRail({
     };
   }, [activeKey]);
   return (
-    <nav ref={ref} className={`${className} dashboard-selection-rail`} aria-label={label}>
+    <nav
+      ref={ref}
+      className={`${className} dashboard-selection-rail ${surface ? 'dashboard-selection-surface' : ''}`}
+      data-rail-ready={!!position}
+      aria-label={label}
+    >
       {position && (
         <span
-          className="dashboard-selection-line"
+          className={surface ? 'dashboard-selection-pill' : 'dashboard-selection-line'}
           aria-hidden="true"
-          style={{ transform: `translateX(${position.x}px) scaleX(${position.width})` }}
+          style={
+            surface
+              ? {
+                  transform: `translate(${position.x}px, ${position.y}px)`,
+                  width: position.width,
+                  height: position.height,
+                }
+              : { transform: `translateX(${position.x}px) scaleX(${position.width})` }
+          }
         />
       )}
       {children}

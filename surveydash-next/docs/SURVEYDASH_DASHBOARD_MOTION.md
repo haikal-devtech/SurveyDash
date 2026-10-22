@@ -1,5 +1,7 @@
 # Dashboard motion and respondent experience
 
+The later [motion/artwork refinement](SURVEYDASH_MOTION_ARTWORK.md) adds bounded dashboard arrivals, moving selection surfaces, real chart entrances and restored artwork following the user's request. Its budget and verification notes supersede the original no-arrival decision below.
+
 ## Scope and research
 
 The requested motion applies to authenticated manager and surveyor dashboards. The later request also includes the respondent directory and public form. Respondents still have no login, onboarding, or tutorial.

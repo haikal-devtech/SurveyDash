@@ -1,8 +1,28 @@
+export const MOTION_SETTLED = 'surveydash:motion-settled';
+
 export interface MotionBox {
   left: number;
   top: number;
   width: number;
   height: number;
+}
+
+/** One small arrival, bounded even when a dashboard contains many cards. */
+export function sceneMotion(index: number, compact = false, reduced = false) {
+  if (reduced) return null;
+  const order = Number.isFinite(index) ? Math.max(0, Math.min(6, Math.floor(index))) : 0;
+  return {
+    frames: [
+      { opacity: 0.4, transform: `translateY(${compact ? 6 : 12}px)` },
+      { opacity: 1, transform: 'translateY(0)' },
+    ],
+    options: {
+      duration: compact ? 260 : 360,
+      delay: order * (compact ? 12 : 22),
+      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+      fill: 'backwards' as const,
+    },
+  };
 }
 
 function valid(box: MotionBox) {

@@ -34,6 +34,7 @@ import { AnalyticsPanel } from './analytics-panel';
 import { PresentationHub } from './presentation-hub';
 import { SurveyorAssignments } from './surveyor-assignments';
 import { CleaningPanel } from './cleaning-panel';
+import { MotionScene, SelectionRail } from './dashboard-motion';
 const DashboardCanvas = dynamic(() => import('./dashboard-canvas').then((m) => m.DashboardCanvas), {
   ssr: false,
   loading: () => (
@@ -322,7 +323,7 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
             </Button>
           </div>
         </div>
-        <nav className="editor-tabs" aria-label="Bagian survei">
+        <SelectionRail className="editor-tabs" label="Bagian survei" activeKey={tab} surface>
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -338,136 +339,140 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
               {t.label}
             </button>
           ))}
-        </nav>
+        </SelectionRail>
       </div>
       {error && (
         <div role="alert" className="banner banner-error">
           {error}
         </div>
       )}
-      {tab === 'questions' && (
-        <FormBuilder survey={survey} hasResponses={responseCount > 0} onChange={change} />
-      )}
-      {tab === 'form' && (
-        <>
-          <div className="panel-intro" data-tour="form-actions">
-            <div>
-              <h2>Form yang siap menemui responden.</h2>
-              <p>Preview interaktif · Jawaban di preview tidak dikirim ke database.</p>
-            </div>
-            <div className="actions">
-              <Button
-                variant="secondary"
-                onClick={copyLink}
-                disabled={survey.status === 'draft' || survey.visibility === 'private'}
-              >
-                <Copy size={13} />
-                Salin link
-              </Button>
-              {survey.status === 'draft' ? (
-                <Button onClick={() => void save({ ...survey, status: 'open' })} disabled={pending}>
-                  Buka form
-                  <ExternalLink size={13} />
-                </Button>
-              ) : survey.visibility !== 'private' ? (
-                <Link className="btn btn-primary" href={`/f/${survey.token}`} target="_blank">
-                  Buka form
-                  <ExternalLink size={13} />
-                </Link>
-              ) : (
-                <Badge>Form privat</Badge>
-              )}
-            </div>
-          </div>
-          <div className="form-preview">
-            <div className="card form-cover">
-              <p className="eyebrow">{survey.institution || 'SURVEYDASH STUDIO'}</p>
-              <h1>{survey.title}</h1>
-              <p>{survey.description}</p>
-            </div>
-            {survey.questions.map((q) => (
-              <QuestionInput
-                key={q.id}
-                question={q}
-                value={previewValues[q.id]}
-                onChange={(value) => setPreviewValues((v) => ({ ...v, [q.id]: value }))}
+      <MotionScene motionKey={tab} className="editor-panel-motion">
+        <div className="editor-panel-content" data-motion-enter="">
+          {tab === 'questions' && (
+            <FormBuilder survey={survey} hasResponses={responseCount > 0} onChange={change} />
+          )}
+          {tab === 'form' && (
+            <>
+              <div className="panel-intro" data-tour="form-actions">
+                <div>
+                  <h2>Form yang siap menemui responden.</h2>
+                  <p>Preview interaktif · Jawaban di preview tidak dikirim ke database.</p>
+                </div>
+                <div className="actions">
+                  <Button
+                    variant="secondary"
+                    onClick={copyLink}
+                    disabled={survey.status === 'draft' || survey.visibility === 'private'}
+                  >
+                    <Copy size={13} />
+                    Salin link
+                  </Button>
+                  {survey.status === 'draft' ? (
+                    <Button onClick={() => void save({ ...survey, status: 'open' })} disabled={pending}>
+                      Buka form
+                      <ExternalLink size={13} />
+                    </Button>
+                  ) : survey.visibility !== 'private' ? (
+                    <Link className="btn btn-primary" href={`/f/${survey.token}`} target="_blank">
+                      Buka form
+                      <ExternalLink size={13} />
+                    </Link>
+                  ) : (
+                    <Badge>Form privat</Badge>
+                  )}
+                </div>
+              </div>
+              <div className="form-preview">
+                <div className="card form-cover">
+                  <p className="eyebrow">{survey.institution || 'SURVEYDASH STUDIO'}</p>
+                  <h1>{survey.title}</h1>
+                  <p>{survey.description}</p>
+                </div>
+                {survey.questions.map((q) => (
+                  <QuestionInput
+                    key={q.id}
+                    question={q}
+                    value={previewValues[q.id]}
+                    onChange={(value) => setPreviewValues((v) => ({ ...v, [q.id]: value }))}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+          {tab === 'data' && (
+            <ResponseTable
+              survey={survey}
+              onRefresh={refresh}
+              onEdited={() => {
+                setInsightsEpoch((value) => value + 1);
+                notify('Jawaban diperbarui. Riwayat koreksi tersimpan.');
+              }}
+              onError={setError}
+            />
+          )}
+          {tab === 'surveyors' && <SurveyorAssignments surveyId={survey.id} />}
+          {tab === 'cleaning' && <CleaningPanel survey={survey} />}
+          {tab === 'analytics' &&
+            (insightsLoading || !insights || insightsError ? (
+              insightsStatus
+            ) : (
+              <AnalyticsPanel
+                survey={survey}
+                insights={insights}
+                onChange={change}
+                onRefresh={refresh}
+                onGenerate={async () => {
+                  if (dirty && !(await save())) return;
+                  setGenerateFromAnalysis(true);
+                  setTab('presentation');
+                }}
               />
             ))}
-          </div>
-        </>
-      )}
-      {tab === 'data' && (
-        <ResponseTable
-          survey={survey}
-          onRefresh={refresh}
-          onEdited={() => {
-            setInsightsEpoch((value) => value + 1);
-            notify('Jawaban diperbarui. Riwayat koreksi tersimpan.');
-          }}
-          onError={setError}
-        />
-      )}
-      {tab === 'surveyors' && <SurveyorAssignments surveyId={survey.id} />}
-      {tab === 'cleaning' && <CleaningPanel survey={survey} />}
-      {tab === 'analytics' &&
-        (insightsLoading || !insights || insightsError ? (
-          insightsStatus
-        ) : (
-          <AnalyticsPanel
-            survey={survey}
-            insights={insights}
-            onChange={change}
-            onRefresh={refresh}
-            onGenerate={async () => {
-              if (dirty && !(await save())) return;
-              setGenerateFromAnalysis(true);
-              setTab('presentation');
-            }}
-          />
-        ))}
-      {tab === 'presentation' && (
-        <>
-          <PresentationHub survey={survey} initialGenerate={generateFromAnalysis} />
-          <details
-            className="dashboard-layout-details"
-            onToggle={(event) => setDashboardOpen(event.currentTarget.open)}
-          >
-            <summary>Kanvas dashboard satu halaman</summary>
-            <div className="panel-intro">
-              <div>
-                <h2>Susun cerita di balik data.</h2>
-                <p>Seret pertanyaan ke kanvas. Atur jenis grafik, posisi, dan ukuran.</p>
-              </div>
-              <div className="actions">
-                <Button variant="secondary" onClick={() => setTemplatePicker(true)}>
-                  <Bookmark size={13} />
-                  Pakai template
-                </Button>
-                <Button variant="secondary" onClick={() => setPresenting(true)}>
-                  <Play size={13} />
-                  Mode presentasi
-                </Button>
-              </div>
-            </div>
-            {dashboardOpen &&
-              (insightsLoading || !insights || insightsError ? (
-                insightsStatus
-              ) : (
-                <DashboardCanvas survey={survey} insights={insights} onChange={change} editing />
-              ))}
-          </details>
-        </>
-      )}
-      {tab === 'settings' && (
-        <SettingsPanel
-          survey={survey}
-          onChange={change}
-          onSave={save}
-          onTemplate={() => setTemplateCategory('survey')}
-          onCopy={copyLink}
-          pending={pending}
-        />
-      )}
+          {tab === 'presentation' && (
+            <>
+              <PresentationHub survey={survey} initialGenerate={generateFromAnalysis} />
+              <details
+                className="dashboard-layout-details"
+                onToggle={(event) => setDashboardOpen(event.currentTarget.open)}
+              >
+                <summary>Kanvas dashboard satu halaman</summary>
+                <div className="panel-intro">
+                  <div>
+                    <h2>Susun cerita di balik data.</h2>
+                    <p>Seret pertanyaan ke kanvas. Atur jenis grafik, posisi, dan ukuran.</p>
+                  </div>
+                  <div className="actions">
+                    <Button variant="secondary" onClick={() => setTemplatePicker(true)}>
+                      <Bookmark size={13} />
+                      Pakai template
+                    </Button>
+                    <Button variant="secondary" onClick={() => setPresenting(true)}>
+                      <Play size={13} />
+                      Mode presentasi
+                    </Button>
+                  </div>
+                </div>
+                {dashboardOpen &&
+                  (insightsLoading || !insights || insightsError ? (
+                    insightsStatus
+                  ) : (
+                    <DashboardCanvas survey={survey} insights={insights} onChange={change} editing />
+                  ))}
+              </details>
+            </>
+          )}
+          {tab === 'settings' && (
+            <SettingsPanel
+              survey={survey}
+              onChange={change}
+              onSave={save}
+              onTemplate={() => setTemplateCategory('survey')}
+              onCopy={copyLink}
+              pending={pending}
+            />
+          )}
+        </div>
+      </MotionScene>
       <FullscreenDialog open={presenting} onOpenChange={setPresenting} title="Presentasi hasil survei">
         <div className="editor-heading">
           <div>

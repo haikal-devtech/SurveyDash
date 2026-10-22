@@ -1,5 +1,6 @@
 'use client';
-import { useId } from 'react';
+import { useId, type CSSProperties } from 'react';
+import { useDashboardMotion } from './dashboard-motion-context';
 import type { Distribution } from '@/lib/types';
 import { chartSeries } from '@/lib/analytics-model';
 import { chartColors, type DataChartType } from '@/lib/chart-types';
@@ -28,6 +29,7 @@ export function DataChart({
   maxValue?: number;
   decimals?: boolean;
 }) {
+  const motion = useDashboardMotion() && variant === 'dashboard';
   const muted = variant === 'slide' ? '#777582' : 'var(--muted)';
   const grid = variant === 'slide' ? '#e9e7ee' : 'var(--border)';
   const track = variant === 'slide' ? '#f1eef7' : 'var(--surface-soft)';
@@ -212,9 +214,15 @@ export function DataChart({
           </g>
         ))}
         {type === 'area' && (
-          <path d={line + ` L${x(rows.length - 1)} 222 L${x(0)} 222 Z`} fill={'url(#area-' + id + ')'} />
+          <path
+            className="chart-motion-area"
+            d={line + ` L${x(rows.length - 1)} 222 L${x(0)} 222 Z`}
+            fill={'url(#area-' + id + ')'}
+          />
         )}
         <path
+          className="chart-motion-line"
+          pathLength={1}
           d={line}
           fill="none"
           stroke={accent}
@@ -267,6 +275,8 @@ export function DataChart({
         {rows.map((row, index) => (
           <g key={index}>
             <rect
+              className="chart-motion-column"
+              style={{ '--chart-order': Math.min(index, 7) } as CSSProperties}
               x={56 + index * slot + (slot - width) / 2}
               y={230 - (row.count / maximum) * 184}
               width={width}
@@ -302,7 +312,11 @@ export function DataChart({
         aria-label={title + '. ' + rows.map(label).join('; ')}
       >
         {rows.map((row, index) => (
-          <div className="chart-bar-row" key={index}>
+          <div
+            className="chart-bar-row"
+            key={index}
+            style={{ '--chart-order': Math.min(index, 7) } as CSSProperties}
+          >
             <div className="chart-bar-caption">
               <span title={row.name}>{row.name}</span>
               <b>{displayed(row.count)}</b>
@@ -318,7 +332,12 @@ export function DataChart({
     );
   }
   return (
-    <div className={'data-chart data-chart--' + variant} style={{ color: ink }}>
+    <div
+      key={type}
+      className={'data-chart data-chart--' + variant}
+      data-chart-motion={motion ? '' : undefined}
+      style={{ color: ink }}
+    >
       {view}
       {!trend && series.grouped && type !== 'table' && (
         <p className="data-chart-footnote">

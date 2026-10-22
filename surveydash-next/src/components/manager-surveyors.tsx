@@ -99,7 +99,7 @@ export function ManagerSurveyors({
   }
   return (
     <div className="team-directory">
-      <div className="page-heading">
+      <div className="page-heading" data-motion-enter="">
         <div>
           <h1>Surveyor</h1>
           <p>Cari anggota tim dan atur penugasannya.</p>
@@ -157,7 +157,7 @@ export function ManagerSurveyors({
                 Icon: UserMinus,
               },
             ].map(({ label, value, Icon }) => (
-              <section className="card" key={label}>
+              <section className="card" key={label} data-motion-enter="">
                 <Icon size={19} />
                 <span>{label}</span>
                 <strong>{value}</strong>
@@ -195,7 +195,7 @@ export function ManagerSurveyors({
               {notice}
             </div>
           )}
-          <section className="card team-roster">
+          <section className="card team-roster" data-motion-enter="">
             <div className="team-search-bar">
               <label className="team-search">
                 <Search size={18} />

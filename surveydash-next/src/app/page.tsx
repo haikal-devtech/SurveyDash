@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, ClipboardList, UsersRound, FilePenLine } from 'lucide-react';
 import { PublicFrame } from '@/components/public-frame';
+import { BrandArtwork } from '@/components/brand-artwork';
 import './role-entry.css';
 
 const roles = [
@@ -31,7 +32,7 @@ export default function Page() {
             </h1>
             <p>Buat survei, bagikan bersama tim, lalu pahami setiap jawaban.</p>
           </div>
-          <div className="entry-hero-art" aria-hidden="true" />
+          <BrandArtwork asset="hero" className="entry-hero-art" eager />
         </section>
         <section id="pilih-peran" aria-labelledby="role-entry-title">
           <div className="entry-section-heading">

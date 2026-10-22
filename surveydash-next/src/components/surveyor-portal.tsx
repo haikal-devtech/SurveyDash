@@ -24,7 +24,8 @@ import { Brand } from './brand';
 import { Badge, Button, EmptyState, Modal } from './ui';
 import { GuideButton, RoleGuide } from './role-guide';
 import { DashboardMotionProvider } from './dashboard-motion-context';
-import { SelectionRail } from './dashboard-motion';
+import { MotionScene, SelectionRail } from './dashboard-motion';
+import { BrandArtwork } from './brand-artwork';
 import '@/app/workspace-experience.css';
 
 interface PortalData {
@@ -59,7 +60,7 @@ export function SurveyorShell({ children, name }: { children: React.ReactNode; n
           <Link href="/surveyor" aria-label="Beranda surveyor SurveyDash">
             <Brand />
           </Link>
-          <SelectionRail label="Menu surveyor" className="surveyor-nav" activeKey={pathname}>
+          <SelectionRail label="Menu surveyor" className="surveyor-nav" activeKey={pathname} surface>
             <Link href="/surveyor" aria-current={pathname === '/surveyor' ? 'page' : undefined}>
               <ClipboardList size={17} />
               Tugas survei
@@ -441,8 +442,8 @@ export function SurveyorPortal({
   const responseCount = data.assignments.reduce((total, task) => total + task.responseCount, 0);
 
   return (
-    <>
-      <div className="page-heading surveyor-page-heading">
+    <MotionScene motionKey={profileOnly ? 'profile' : 'tasks'} className="surveyor-scene">
+      <div className="page-heading surveyor-page-heading" data-motion-enter="">
         <div>
           <h1>
             {profileOnly
@@ -455,6 +456,7 @@ export function SurveyorPortal({
               : 'Tugas dan link survei Anda ada di sini.'}
           </p>
         </div>
+        {!profileOnly && <BrandArtwork asset="share" className="surveyor-heading-art" eager />}
         {!profileOnly && data.profile && (
           <Link href="/surveyor/profile" className="btn btn-secondary">
             <UserRound size={16} />
@@ -500,17 +502,17 @@ export function SurveyorPortal({
       ) : (
         <>
           <div className="surveyor-summary">
-            <div className="card">
+            <div className="card" data-motion-enter="">
               <ClipboardList size={21} />
               <strong>{activeTasks.length}</strong>
               <span>Tugas terbuka</span>
             </div>
-            <div className="card" data-tour="surveyor-progress">
+            <div className="card" data-tour="surveyor-progress" data-motion-enter="">
               <Check size={21} />
               <strong>{responseCount.toLocaleString('id-ID')}</strong>
               <span>Respons melalui link Anda</span>
             </div>
-            <div className="card">
+            <div className="card" data-motion-enter="">
               <UserRound size={21} />
               <strong>@{data.profile.username}</strong>
               <span>Identitas yang terlihat responden</span>
@@ -525,7 +527,7 @@ export function SurveyorPortal({
           </div>
           {data.assignments.length === 0 ? (
             <section className="surveyor-welcome-card">
-              <div className="surveyor-welcome-art" aria-hidden="true" />
+              <BrandArtwork asset="invite" className="surveyor-welcome-art" />
               <div>
                 <h3>Belum ada tugas survei</h3>
                 <p>Minta link undangan dari Pengelola, lalu buka dan pilih Bergabung.</p>
@@ -540,7 +542,7 @@ export function SurveyorPortal({
               {data.assignments.map((task) => {
                 const shareable = task.active && task.status === 'open';
                 return (
-                  <article className="card surveyor-task" key={task.id}>
+                  <article className="card surveyor-task" key={task.id} data-motion-enter="">
                     <div className="surveyor-task-meta">
                       <span>{task.institution || 'Survei dari pengelola'}</span>
                       <Badge tone={shareable ? 'green' : 'neutral'}>
@@ -636,6 +638,6 @@ export function SurveyorPortal({
           ))}
         </ol>
       </Modal>
-    </>
+    </MotionScene>
   );
 }

@@ -23,6 +23,7 @@ import { UserAvatar } from './user-avatar';
 import { ReturnWorkspace } from './admin-workspaces';
 import { GuideButton, RoleGuide } from './role-guide';
 import { DashboardMotionProvider } from './dashboard-motion-context';
+import { MotionScene, SelectionRail } from './dashboard-motion';
 import '@/app/workspace-experience.css';
 export function Shell({
   children,
@@ -83,7 +84,7 @@ export function Shell({
           <small>{workspace.description || 'Ruang kerja pribadi'}</small>
         </div>
       </Link>
-      <nav className="workspace-nav" aria-label="Menu workspace">
+      <SelectionRail className="workspace-nav" label="Menu workspace" activeKey={pathname} surface>
         {links.map((item) => (
           <Link
             key={item.href}
@@ -102,7 +103,7 @@ export function Shell({
             {item.href === '/surveys' && <ArrowUpRight size={12} style={{ marginLeft: 'auto' }} />}
           </Link>
         ))}
-      </nav>
+      </SelectionRail>
       <div className="sidebar-bottom">
         <div className="workspace-help">
           <GuideButton role="manager" /> <Link href="/help">Bantuan lainnya</Link>
@@ -193,10 +194,10 @@ export function Shell({
               </Link>
             </header>
           )}
-          <div className="content">
+          <MotionScene className="content" motionKey={pathname}>
             {managingOther && <ReturnWorkspace userId={userId} />}
             {children}
-          </div>
+          </MotionScene>
         </main>
         {!focused && !canvas && (
           <nav className="workspace-bottom-nav" aria-label="Navigasi utama">

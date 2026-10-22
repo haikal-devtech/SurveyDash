@@ -1,0 +1,319 @@
+/* SurveyDash motion: a moving selection, a short arrival, then a quiet working surface. */
+.clay-ui [data-dashboard-motion] {
+  --motion-arrive: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.surveyor-scene,
+.editor-panel-motion {
+  display: contents;
+}
+.dashboard-selection-surface {
+  isolation: isolate;
+}
+.dashboard-selection-pill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 9px;
+  background: var(--purple-soft);
+  border: 1px solid color-mix(in srgb, var(--purple) 15%, transparent);
+  pointer-events: none;
+  z-index: -1;
+  transition:
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.clay-ui [data-dashboard-motion] .dashboard-selection-surface {
+  padding-bottom: 0;
+}
+.clay-ui
+  [data-dashboard-motion]
+  .dashboard-selection-surface[data-rail-ready='true']
+  :is(.nav-item.active, button.active, [aria-current='page']) {
+  background: transparent;
+  box-shadow: none;
+}
+.clay-ui .editor-tabs.dashboard-selection-surface[data-rail-ready='true'] button.active {
+  border-bottom-color: transparent;
+}
+.clay-ui [data-dashboard-motion] .btn {
+  transition:
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 160ms ease-out,
+    border-color 160ms ease-out;
+}
+.clay-ui [data-dashboard-motion] .btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.975);
+}
+@media (hover: hover) and (pointer: fine) {
+  .clay-ui [data-dashboard-motion] :is(.workspace-metrics > a, .workspace-shortcuts > a, .starter-tile) {
+    transition:
+      transform 240ms var(--motion-arrive),
+      border-color 160ms ease-out;
+  }
+  .clay-ui
+    [data-dashboard-motion]
+    :is(.workspace-metrics > a, .workspace-shortcuts > a, .starter-tile):hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--purple) 45%, var(--border));
+  }
+  .clay-ui [data-dashboard-motion] .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+}
+/* Existing webp illustrations stay small; all movement is on their image wrapper. */
+.brand-artwork {
+  position: relative;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  min-width: 0;
+}
+.brand-artwork-halo {
+  position: absolute;
+  inset: 18%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--purple) 13%, transparent), transparent 70%);
+}
+.brand-artwork-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 290px;
+  object-fit: contain;
+  animation: studio-art-settle 680ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.clay-ui .workspace-welcome {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 30%);
+  align-items: center;
+  gap: 20px;
+  padding: 24px 28px;
+  min-height: 216px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+}
+.clay-ui .workspace-welcome > div:not(.brand-artwork) {
+  display: block;
+  padding: 0;
+}
+.clay-ui .workspace-welcome > .brand-artwork {
+  display: grid;
+  padding: 0;
+  height: 176px;
+  align-self: center;
+}
+.clay-ui .workspace-welcome > div > p {
+  margin-top: 10px;
+}
+.clay-ui .workspace-welcome-actions {
+  margin-top: 20px;
+}
+.role-entry .entry-hero-art {
+  display: grid;
+  background: none;
+  height: 270px;
+}
+.surveyor-page-heading .surveyor-heading-art {
+  width: 120px;
+  height: 108px;
+  margin: -20px 0 -20px auto;
+  flex-shrink: 0;
+}
+.surveyor-page-heading > .btn {
+  flex-shrink: 0;
+}
+.surveyor-welcome-card .surveyor-welcome-art {
+  display: grid;
+  height: 220px;
+  min-height: 0;
+  background: none;
+}
+.surveyor-welcome-art .brand-artwork-image {
+  max-width: 250px;
+}
+html[data-theme='dark'] .brand-artwork-halo {
+  background: radial-gradient(ellipse, #7956c52b, transparent 70%);
+}
+@media (hover: hover) and (pointer: fine) {
+  .brand-artwork:hover .brand-artwork-image {
+    transform: translateY(-5px) rotate(1deg);
+  }
+}
+@keyframes studio-art-settle {
+  from {
+    opacity: 0.3;
+    translate: 0 14px;
+    rotate: -2deg;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    rotate: 0deg;
+  }
+}
+/* Chart geometry, labels and final values are always real. Slide/export charts stay static. */
+.data-chart[data-chart-motion] .chart-motion-line {
+  stroke-dasharray: 1;
+  animation: studio-chart-draw 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.data-chart[data-chart-motion] .chart-motion-area {
+  animation: studio-chart-fill 480ms ease-out 60ms backwards;
+}
+.data-chart[data-chart-motion] .chart-motion-column {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: studio-chart-rise 460ms cubic-bezier(0.22, 1, 0.36, 1) calc(var(--chart-order, 0) * 24ms)
+    backwards;
+}
+.data-chart[data-chart-motion] .chart-bar-track > span {
+  transform-origin: left center;
+  animation: studio-chart-grow 460ms cubic-bezier(0.22, 1, 0.36, 1) calc(var(--chart-order, 0) * 24ms)
+    backwards;
+}
+.data-chart[data-chart-motion] .data-chart-round > svg {
+  animation: studio-chart-round 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: center;
+}
+.data-chart[data-chart-motion] .data-chart-proportion {
+  animation: studio-chart-fill 400ms ease-out;
+}
+@keyframes studio-chart-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes studio-chart-fill {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes studio-chart-rise {
+  from {
+    transform: scaleY(0.05);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes studio-chart-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes studio-chart-round {
+  from {
+    opacity: 0.2;
+    transform: rotate(-7deg) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 700px) {
+  .role-entry .entry-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 120px;
+    align-items: center;
+    gap: 8px;
+  }
+  .role-entry .entry-hero-art {
+    height: 145px;
+  }
+  .role-entry .entry-hero-copy > p {
+    font-size: 14px;
+  }
+  .clay-ui .workspace-welcome {
+    position: relative;
+    grid-template-columns: 1fr;
+    padding: 22px 20px;
+    min-height: 0;
+  }
+  .clay-ui .workspace-welcome > .brand-artwork {
+    position: absolute;
+    right: 8px;
+    top: 14px;
+    width: 112px;
+    height: 100px;
+    pointer-events: none;
+  }
+  .clay-ui .workspace-welcome :is(h1, p) {
+    max-width: calc(100% - 105px);
+  }
+  .clay-ui .workspace-welcome-actions {
+    margin-top: 22px;
+    width: 100%;
+  }
+  .surveyor-page-heading {
+    position: relative;
+    padding-right: 96px;
+  }
+  .surveyor-page-heading .surveyor-heading-art {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 88px;
+    height: 88px;
+    margin: 0;
+    pointer-events: none;
+  }
+  .surveyor-welcome-card .surveyor-welcome-art {
+    height: 145px;
+  }
+  .data-chart[data-chart-motion] .chart-motion-line {
+    animation-duration: 440ms;
+  }
+  .data-chart[data-chart-motion] .chart-bar-track > span,
+  .data-chart[data-chart-motion] .chart-motion-column {
+    animation-duration: 320ms;
+    animation-delay: 0ms;
+  }
+}
+@media (max-width: 390px) {
+  .role-entry .entry-hero {
+    grid-template-columns: minmax(0, 1fr) 96px;
+  }
+  .role-entry .entry-hero-art {
+    height: 120px;
+  }
+  .role-entry .entry-hero h1 {
+    font-size: 34px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-artwork-image,
+  .data-chart[data-chart-motion] *,
+  .clay-ui [data-dashboard-motion] .btn {
+    animation: none !important;
+    transition: none !important;
+  }
+  .dashboard-selection-pill {
+    transition: none;
+  }
+  .brand-artwork:hover .brand-artwork-image,
+  .clay-ui [data-dashboard-motion] :is(.workspace-metrics > a, .workspace-shortcuts > a, .starter-tile):hover,
+  .clay-ui [data-dashboard-motion] .btn:active:not(:disabled),
+  .clay-ui [data-dashboard-motion] .btn-primary:hover:not(:disabled) {
+    transform: none;
+  }
+}
+@media print {
+  .brand-artwork-image,
+  .data-chart[data-chart-motion] * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

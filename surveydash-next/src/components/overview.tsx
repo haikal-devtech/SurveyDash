@@ -18,6 +18,7 @@ import { CreateSurvey } from './create-survey';
 import { SurveyExplorer } from './survey-explorer';
 import { Button } from './ui';
 import { GuideButton } from './role-guide';
+import { BrandArtwork } from './brand-artwork';
 import { useRouter } from 'next/navigation';
 import '@/app/manager-surveyors.css';
 const starters = [
@@ -71,7 +72,7 @@ export function Overview({
   }
   return (
     <>
-      <div className={listOnly ? 'page-heading home-heading' : 'workspace-welcome'}>
+      <div className={listOnly ? 'page-heading home-heading' : 'workspace-welcome'} data-motion-enter="">
         <div>
           <h1>{listOnly ? 'Semua survei Anda' : `Halo, ${name.split(' ')[0]}.`}</h1>
           <p>
@@ -90,18 +91,19 @@ export function Overview({
             {!listOnly && <GuideButton role="manager" />}
           </div>
         </div>
+        {!listOnly && <BrandArtwork asset="hero" className="workspace-welcome-art" eager />}
       </div>
       {!listOnly && (
         <>
           <section className="workspace-metrics" aria-label="Ringkasan survei">
-            <Link href="/studio/surveys">
+            <Link href="/studio/surveys" data-motion-enter="">
               <span>
                 <FileText size={19} />
                 Survei Anda
               </span>
               <strong>{currentSurveys.length.toLocaleString('id-ID')}</strong>
             </Link>
-            <Link href="/studio/surveys">
+            <Link href="/studio/surveys" data-motion-enter="">
               <span>
                 <ClipboardCheck size={19} />
                 Survei terbuka
@@ -110,7 +112,7 @@ export function Overview({
                 {currentSurveys.filter((survey) => survey.status === 'open').length.toLocaleString('id-ID')}
               </strong>
             </Link>
-            <Link href="/studio/surveys">
+            <Link href="/studio/surveys" data-motion-enter="">
               <span>
                 <MessageSquare size={19} />
                 Total respons
@@ -123,7 +125,7 @@ export function Overview({
             </Link>
           </section>
           <div className="workspace-shortcuts">
-            <Link href="/studio/surveyors">
+            <Link href="/studio/surveyors" data-motion-enter="">
               <span className="shortcut-icon">
                 <UsersRound size={22} />
               </span>
@@ -133,7 +135,7 @@ export function Overview({
               </span>
               <ArrowRight size={17} />
             </Link>
-            <Link href="/studio/cleaning">
+            <Link href="/studio/cleaning" data-motion-enter="">
               <span className="shortcut-icon">
                 <ListChecks size={22} />
               </span>
@@ -147,7 +149,7 @@ export function Overview({
         </>
       )}
       {!listOnly && (
-        <section className="starter-section">
+        <section className="starter-section" data-motion-enter="">
           <div className="explorer-heading">
             <h2>Mulai dari template</h2>
             <Link href="/studio/templates" className="text-link">

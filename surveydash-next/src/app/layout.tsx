@@ -15,6 +15,7 @@ import './analytics-studio.css';
 import './dark-surfaces.css';
 import './theme.css';
 import './studio-refinement.css';
+import './motion-studio.css';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { themeBootstrap } from '@/lib/theme';
 export const metadata: Metadata = {
