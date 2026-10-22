@@ -26,7 +26,7 @@ export default function PrivacyPage() {
         ],
         [
           'Wilayah tugas surveyor',
-          'Pengelola dapat menetapkan provinsi untuk setiap penugasan surveyor. Wilayah ini tampil pada tugas milik surveyor dan peta tim di workspace pengelola yang berwenang. Peta menghitung penugasan berdasarkan wilayah yang ditetapkan. Aplikasi tidak meminta GPS untuk fitur ini, dan wilayah penugasan tidak digunakan sebagai domisili responden. Peta tidak dipublikasikan bersama form atau presentasi.',
+          'Pengelola dapat menetapkan provinsi untuk setiap penugasan surveyor dan target responden per survei dan provinsi. Peta pribadi workspace menghitung surveyor aktif dan jumlah jawaban dari link penugasan menurut wilayah tugas saat ini. Mengubah wilayah tugas memindahkan kelompok hitungan jawaban link itu, tanpa mengubah isi jawaban. Jawaban tanpa link surveyor atau tugas tanpa provinsi ditandai belum terpetakan. Aplikasi tidak meminta GPS untuk fitur ini, dan wilayah penugasan bukan domisili responden. Surveyor hanya melihat tugas yang diberikan kepadanya dan jumlah jawaban dari link pribadinya untuk masing-masing survei. Peta tidak dipublikasikan bersama form atau presentasi.',
         ],
         [
           'Undangan surveyor',

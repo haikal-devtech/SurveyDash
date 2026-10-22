@@ -8,7 +8,7 @@ export const metadata = { title: 'Bantuan — SurveyDash Studio', alternates: { 
 const extraHelp = [
   [
     'Bagaimana melihat peta wilayah tugas surveyor?',
-    'Buka menu Surveyor, lalu pilih Peta. Pada baris surveyor, klik wilayah untuk menetapkan provinsinya. Klik provinsi pada peta untuk melihat tim di sana. Gunakan filter survei dan status untuk membatasi tampilan. Penugasan lama yang belum diberi provinsi masuk Belum diatur. Peta mengikuti wilayah tugas yang ditetapkan pengelola; jumlah respons di daftar berasal dari link penugasan.',
+    'Buka Surveyor → Peta. Klik Atur pada tugas surveyor untuk memilih provinsi. Jawaban dari link surveyor otomatis dihitung ke wilayah tugasnya saat ini. Arahkan kursor, fokus dengan keyboard, atau ketuk provinsi untuk melihat jumlah responden, surveyor aktif, dan target. Pilih Atur target untuk menetapkan target per survei dan provinsi; jawaban tetap diterima setelah target terlewati. Angka peta mengikuti pilihan survei dan diperbarui setiap 30 detik saat halaman aktif. Pencarian dan status menyaring daftar tim. Respons tanpa link surveyor atau tugas tanpa provinsi ditandai belum terpetakan.',
   ],
   [
     'Bagaimana cara mengundang Surveyor?',

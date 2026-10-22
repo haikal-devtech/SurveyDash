@@ -220,6 +220,36 @@
   line-height: 1.7;
   color: #6e607c;
 }
+.surveyor-task-progress {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  margin: 12px 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+.surveyor-task-progress > strong {
+  font-size: 30px;
+  font-weight: 650;
+  line-height: 1.1;
+  color: var(--purple);
+}
+.surveyor-task-progress > div {
+  display: grid;
+  gap: 5px;
+}
+.surveyor-task-progress span {
+  font-size: 12px;
+  font-weight: 600;
+}
+.surveyor-task-progress small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
 .surveyor-preview-button {
   margin: 14px 0;
 }

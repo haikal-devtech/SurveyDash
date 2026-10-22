@@ -27,6 +27,7 @@ import { DashboardMotionProvider } from './dashboard-motion-context';
 import { MotionScene, SelectionRail } from './dashboard-motion';
 import { BrandArtwork } from './brand-artwork';
 import { provinceName } from '@/lib/provinces';
+import { SurveyorTaskProgress } from './surveyor-task-progress';
 import '@/app/workspace-experience.css';
 
 interface PortalData {
@@ -390,10 +391,14 @@ export function SurveyorPortal({
   const [selected, setSelected] = useState<SurveyorAssignment | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  const previewTask = data?.assignments.find((task) => task.id === selected?.id) ?? null;
 
   useEffect(() => {
     const controller = new AbortController();
+    let running = false;
     async function load() {
+      if (running || controller.signal.aborted || document.visibilityState === 'hidden') return;
+      running = true;
       try {
         const response = await fetch('/api/surveyor', { signal: controller.signal, cache: 'no-store' });
         const result = await response.json();
@@ -403,11 +408,20 @@ export function SurveyorPortal({
       } catch (failure) {
         if (!controller.signal.aborted)
           setError(failure instanceof Error ? failure.message : 'Koneksi gagal.');
+      } finally {
+        running = false;
       }
     }
     void load();
-    return () => controller.abort();
-  }, [attempt]);
+    const visible = () => void load();
+    const timer = profileOnly ? undefined : setInterval(() => void load(), 30000);
+    if (!profileOnly) document.addEventListener('visibilitychange', visible);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', visible);
+    };
+  }, [attempt, profileOnly]);
 
   function profileSaved(profile: SurveyorProfile) {
     setData((previous) => ({ profile, assignments: previous?.assignments ?? [] }));
@@ -440,7 +454,6 @@ export function SurveyorPortal({
     );
 
   const activeTasks = data.assignments.filter((task) => task.active && task.status === 'open');
-  const responseCount = data.assignments.reduce((total, task) => total + task.responseCount, 0);
 
   return (
     <MotionScene motionKey={profileOnly ? 'profile' : 'tasks'} className="surveyor-scene">
@@ -508,10 +521,10 @@ export function SurveyorPortal({
               <strong>{activeTasks.length}</strong>
               <span>Tugas terbuka</span>
             </div>
-            <div className="card" data-tour="surveyor-progress" data-motion-enter="">
-              <Check size={21} />
-              <strong>{responseCount.toLocaleString('id-ID')}</strong>
-              <span>Respons melalui link Anda</span>
+            <div className="card" data-motion-enter="">
+              <FileQuestion size={21} />
+              <strong>{data.assignments.length}</strong>
+              <span>Survei ditugaskan</span>
             </div>
             <div className="card" data-motion-enter="">
               <UserRound size={21} />
@@ -562,9 +575,9 @@ export function SurveyorPortal({
                     )}
                     <p className="surveyor-task-count">
                       <FileQuestion size={15} />
-                      {task.questions.length} pertanyaan<span>·</span>
-                      {task.responseCount.toLocaleString('id-ID')} respons melalui link Anda
+                      {task.questions.length} pertanyaan
                     </p>
+                    <SurveyorTaskProgress responseCount={task.responseCount} />
                     <Button
                       variant="ghost"
                       data-tour="surveyor-preview"
@@ -603,9 +616,9 @@ export function SurveyorPortal({
         </>
       )}
       <Modal
-        open={previewOpen}
+        open={previewOpen && !!previewTask}
         onOpenChange={setPreviewOpen}
-        title={selected?.title ?? 'Pertanyaan survei'}
+        title={previewTask?.title ?? 'Pertanyaan survei'}
         description="Tinjau instrumen sebelum membagikan link ke responden. Pertanyaan dikelola oleh pengelola survei."
         wide
       >
@@ -615,7 +628,7 @@ export function SurveyorPortal({
           kartu tugas.
         </p>
         <ol className="surveyor-question-list">
-          {selected?.questions.map((question, index) => (
+          {previewTask?.questions.map((question, index) => (
             <li key={question.id}>
               <div className="surveyor-question-label">
                 <span>{index + 1}</span>

@@ -35,6 +35,7 @@ const order = [
   'surveyor_profiles',
   'surveyor_assignments',
   'surveyor_assignment_regions',
+  'survey_province_targets',
   'surveyor_invitations',
   'submission_attribution',
   'cleaning_settings',

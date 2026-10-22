@@ -7,7 +7,13 @@ import { authBaseUrl } from './origins';
 import { canAccessForm } from './model';
 import { isProvinceId } from './provinces';
 import type { Survey } from './types';
-import type { SurveyorAssignment, ManagedSurveyorAssignment, SurveyorAttribution } from './surveyor-types';
+import type {
+  SurveyorAssignment,
+  ManagedSurveyorAssignment,
+  SurveyorAttribution,
+  ProvinceTarget,
+  SurveyorTeamGroup,
+} from './surveyor-types';
 
 const shareUrl = (token: string) => new URL('/r/' + token, authBaseUrl()).toString();
 type Row = Record<string, string | number | null>;
@@ -36,10 +42,16 @@ export async function listManagedSurveyors(surveyId: string, ownerId: string) {
       .all(surveyId, ownerId)
   ).map(managed);
 }
-export async function listWorkspaceSurveyors(ownerId: string) {
+export async function listWorkspaceSurveyors(ownerId: string): Promise<SurveyorTeamGroup[]> {
+  // This repository is also called inside transactions using one PostgreSQL client.
   const surveys = await listSurveys(ownerId);
   const rows = await getDb()
     .prepare(assignmentSelect + 'WHERE a.owner_id = ? ORDER BY a.created_at DESC')
+    .all(ownerId);
+  const targetRows = await getDb()
+    .prepare(
+      'SELECT t.survey_id, t.province_id, t.target FROM survey_province_targets t JOIN surveys s ON s.id = t.survey_id WHERE s.owner_id = ?',
+    )
     .all(ownerId);
   const bySurvey = new Map<string, ManagedSurveyorAssignment[]>();
   for (const row of rows) {
@@ -48,11 +60,57 @@ export async function listWorkspaceSurveyors(ownerId: string) {
     assignments.push(managed(row));
     bySurvey.set(id, assignments);
   }
+  const targets = new Map<string, ProvinceTarget[]>();
+  for (const row of targetRows) {
+    const id = String(row.survey_id);
+    const entries = targets.get(id) ?? [];
+    entries.push({ provinceId: String(row.province_id), target: Number(row.target) });
+    targets.set(id, entries);
+  }
   return surveys.map((survey) => ({
     surveyId: survey.id,
     title: survey.title,
+    responseCount: survey.responseCount ?? 0,
+    provinceTargets: targets.get(survey.id) ?? [],
     assignments: bySurvey.get(survey.id) ?? [],
   }));
+}
+export async function listProvinceTargets(surveyId: string, ownerId: string): Promise<ProvinceTarget[]> {
+  await getSurvey(surveyId, ownerId);
+  return (
+    await getDb()
+      .prepare('SELECT province_id, target FROM survey_province_targets WHERE survey_id = ?')
+      .all(surveyId)
+  ).map((row) => ({ provinceId: String(row.province_id), target: Number(row.target) }));
+}
+export async function setProvinceTarget(
+  surveyId: string,
+  ownerId: string,
+  provinceId: string,
+  target: number | null,
+  actor: string,
+) {
+  if (!isProvinceId(provinceId)) throw new AppError('Pilih provinsi yang tersedia.');
+  if (target !== null && (!Number.isSafeInteger(target) || target < 1 || target > 10000000))
+    throw new AppError('Target harus berupa angka bulat antara 1 dan 10.000.000.');
+  return getDb().transaction(async () => {
+    const survey = await getSurvey(surveyId, ownerId);
+    if (survey.deletedAt || survey.archivedAt) throw new AppError('Survei tidak tersedia.', 404);
+    if (target === null) {
+      await getDb()
+        .prepare('DELETE FROM survey_province_targets WHERE survey_id = ? AND province_id = ?')
+        .run(surveyId, provinceId);
+    } else {
+      await getDb()
+        .prepare(
+          `INSERT INTO survey_province_targets (survey_id, province_id, target, updated_by, updated_at)
+        VALUES (?, ?, ?, ?, ?) ON CONFLICT (survey_id, province_id) DO UPDATE SET
+        target = excluded.target, updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
+        )
+        .run(surveyId, provinceId, target, actor, new Date().toISOString());
+    }
+    return listProvinceTargets(surveyId, ownerId);
+  });
 }
 export async function assignSurveyor(surveyId: string, ownerId: string, username: string, actor: string) {
   const name = z

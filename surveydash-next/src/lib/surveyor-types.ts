@@ -37,3 +37,14 @@ export interface SurveyorAttribution {
   username: string;
   fullName: string;
 }
+export interface ProvinceTarget {
+  provinceId: string;
+  target: number;
+}
+export interface SurveyorTeamGroup {
+  surveyId: string;
+  title: string;
+  responseCount: number;
+  provinceTargets: ProvinceTarget[];
+  assignments: ManagedSurveyorAssignment[];
+}

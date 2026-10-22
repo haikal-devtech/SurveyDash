@@ -127,10 +127,11 @@ export function tourPlan(role: GuideRole, hasTasks = false, canShare = false): T
       : []),
     {
       id: 'progress',
-      target: selector('surveyor-progress'),
-      title: 'Pantau respons di sini',
-      description:
-        'Angka ini menunjukkan respons melalui link Anda. Gunakan Perbarui untuk mengambil jumlah terbaru.',
+      target: selector(hasTasks ? 'surveyor-progress' : 'surveyor-tasks'),
+      title: hasTasks ? 'Pantau respons per survei' : 'Tunggu penugasan pengelola',
+      description: hasTasks
+        ? 'Angka pada setiap kartu hanya menghitung pengisi link Anda untuk survei tersebut. Diperbarui otomatis, atau klik Perbarui.'
+        : 'Hanya survei yang ditugaskan pengelola yang muncul di sini. Minta link undangan untuk mulai.',
     },
     {
       id: 'profile',

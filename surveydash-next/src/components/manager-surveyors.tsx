@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { useDeferredValue, useState } from 'react';
+import { useDeferredValue, useEffect, useEffectEvent, useRef, useState } from 'react';
 import {
   ArrowUpRight,
   Plus,
@@ -15,11 +15,12 @@ import {
   Map,
   List,
 } from 'lucide-react';
-import type { ManagedSurveyorAssignment } from '@/lib/surveyor-types';
+import type { ManagedSurveyorAssignment, SurveyorTeamGroup } from '@/lib/surveyor-types';
 import { matchesSurveyor, type SurveyorStatusFilter } from '@/lib/surveyor-search';
 import { Badge, Button, EmptyState, Modal } from './ui';
 import { SurveyorAssignments } from './surveyor-assignments';
 import { AssignmentProvinceDialog } from './assignment-province-dialog';
+import { ProvinceTargetDialog } from './province-target-dialog';
 import { provinces, provinceName, isProvinceId } from '@/lib/provinces';
 import '@/app/manager-surveyors.css';
 const AssignmentMap = dynamic(() => import('./assignment-map').then((module) => module.AssignmentMap), {
@@ -29,11 +30,6 @@ const AssignmentMap = dynamic(() => import('./assignment-map').then((module) => 
     </p>
   ),
 });
-interface SurveyGroup {
-  surveyId: string;
-  title: string;
-  assignments: ManagedSurveyorAssignment[];
-}
 type TeamRow = { surveyId: string; title: string; assignment: ManagedSurveyorAssignment };
 function matchingRows(rows: TeamRow[], surveyId: string, query: string, status: SurveyorStatusFilter) {
   return rows.filter(
@@ -72,7 +68,7 @@ export function ManagerSurveyors({
   initialSurveyId,
   initialView = 'list',
 }: Readonly<{
-  surveys: SurveyGroup[];
+  surveys: SurveyorTeamGroup[];
   initialSurveyId?: string;
   initialView?: 'list' | 'map';
 }>) {
@@ -83,9 +79,12 @@ export function ManagerSurveyors({
   const [inviteOpen, setInviteOpen] = useState(false);
   const [query, setQuery] = useState('');
   const search = useDeferredValue(query);
-  const [status, setStatus] = useState<SurveyorStatusFilter>(initialView === 'map' ? 'active' : 'all');
+  const [status, setStatus] = useState<SurveyorStatusFilter>('all');
   const [view, setView] = useState(initialView);
   const [provinceFilter, setProvinceFilter] = useState('all');
+  const [targetDialog, setTargetDialog] = useState<{ provinceId?: string } | null>(null);
+  const [lastUpdated, setLastUpdated] = useState('');
+  const refreshVersion = useRef(0);
   const [regionTarget, setRegionTarget] = useState<{
     surveyId: string;
     assignment: ManagedSurveyorAssignment;
@@ -105,21 +104,69 @@ export function ManagerSurveyors({
   const matching = matchingRows(rows, surveyFilter, search, status);
   const visible = matching.filter((row) => matchesProvince(row, provinceFilter));
   const people = new Set(rows.map((row) => row.assignment.username)).size;
-  async function refreshTeam() {
-    setRefreshing(true);
-    setError('');
+  const mapGroups = groups.filter((group) => surveyFilter === 'all' || group.surveyId === surveyFilter);
+  const mapAssignments = mapGroups.flatMap((group) => group.assignments);
+  const mapTargets = mapGroups.flatMap((group) => group.provinceTargets);
+  const unattributedResponses = mapGroups.reduce(
+    (total, group) =>
+      total +
+      Math.max(
+        0,
+        group.responseCount -
+          group.assignments.reduce((sum, assignment) => sum + assignment.responseCount, 0),
+      ),
+    0,
+  );
+  async function refreshTeam(quiet = false, signal?: AbortSignal) {
+    const version = ++refreshVersion.current;
+    if (!quiet) {
+      setRefreshing(true);
+      setError('');
+    }
     try {
-      const response = await fetch('/api/workspace/surveyors', { cache: 'no-store' });
+      const response = await fetch('/api/workspace/surveyors', { cache: 'no-store', signal });
       const data = await response.json();
       if (!response.ok) throw Error(data.error ?? 'Tim belum dapat dimuat.');
+      if (signal?.aborted || version !== refreshVersion.current) return;
       setGroups(data.surveys);
+      setLastUpdated(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
+      setError('');
     } catch (error) {
+      if (signal?.aborted || version !== refreshVersion.current) return;
       setError(error instanceof Error ? error.message : 'Koneksi gagal.');
     } finally {
-      setRefreshing(false);
+      if (!quiet) setRefreshing(false);
     }
   }
+  const syncMap = useEffectEvent((signal: AbortSignal) => refreshTeam(true, signal));
+  useEffect(() => {
+    if (view !== 'map') return;
+    const controller = new AbortController();
+    let inFlight = false;
+    const sync = async () => {
+      if (document.visibilityState !== 'visible' || inFlight) return;
+      inFlight = true;
+      try {
+        await syncMap(controller.signal);
+      } finally {
+        inFlight = false;
+      }
+    };
+    const timer = setInterval(() => void sync(), 30000);
+    const visible = () => {
+      if (document.visibilityState === 'visible') void sync();
+    };
+    document.addEventListener('visibilitychange', visible);
+    window.addEventListener('focus', visible);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', visible);
+      window.removeEventListener('focus', visible);
+    };
+  }, [view]);
   function update(surveyId: string, assignments: ManagedSurveyorAssignment[]) {
+    refreshVersion.current++;
     setGroups((current) =>
       current.map((group) => (group.surveyId === surveyId ? { ...group, assignments } : group)),
     );
@@ -165,7 +212,6 @@ export function ManagerSurveyors({
               aria-pressed={view === 'map'}
               onClick={() => {
                 setView('map');
-                setStatus('active');
               }}
             >
               <Map size={16} />
@@ -315,11 +361,19 @@ export function ManagerSurveyors({
               </select>
             </div>
             {view === 'map' && (
-              <AssignmentMap
-                assignments={matching.map((row) => row.assignment)}
-                selected={provinceFilter}
-                onSelect={setProvinceFilter}
-              />
+              <>
+                <AssignmentMap
+                  assignments={mapAssignments}
+                  targets={mapTargets}
+                  unattributedResponses={unattributedResponses}
+                  selected={provinceFilter}
+                  onSelect={setProvinceFilter}
+                  onEditTarget={(provinceId) => setTargetDialog({ provinceId })}
+                />
+                <p className="assignment-map-sync" role="status">
+                  Pembaruan otomatis setiap 30 detik{lastUpdated ? ` · Diperbarui ${lastUpdated}` : ''}
+                </p>
+              </>
             )}
             <p className="team-result-count" role="status">
               {rosterCaption(visible.length, provinceFilter)}
@@ -409,6 +463,21 @@ export function ManagerSurveyors({
           onSaved={(assignments) => {
             update(regionTarget.surveyId, assignments);
             setNotice(`Wilayah tugas @${regionTarget.assignment.username} diperbarui.`);
+          }}
+        />
+      )}
+      {targetDialog && (
+        <ProvinceTargetDialog
+          surveys={groups}
+          initialSurveyId={surveyFilter === 'all' ? undefined : surveyFilter}
+          initialProvinceId={targetDialog.provinceId}
+          onClose={() => setTargetDialog(null)}
+          onSaved={(surveyId, provinceTargets) => {
+            refreshVersion.current++;
+            setGroups((current) =>
+              current.map((group) => (group.surveyId === surveyId ? { ...group, provinceTargets } : group)),
+            );
+            setNotice('Target provinsi diperbarui.');
           }}
         />
       )}

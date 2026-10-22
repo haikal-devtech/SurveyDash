@@ -102,6 +102,12 @@ const schema = `
       assignment_id TEXT PRIMARY KEY REFERENCES surveyor_assignments(id),
       province_id TEXT NOT NULL, updated_by TEXT NOT NULL, updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS survey_province_targets (
+      survey_id TEXT NOT NULL REFERENCES surveys(id), province_id TEXT NOT NULL,
+      target INTEGER NOT NULL CHECK (target > 0 AND target <= 10000000),
+      updated_by TEXT NOT NULL, updated_at TEXT NOT NULL,
+      PRIMARY KEY (survey_id, province_id)
+    );
     CREATE TABLE IF NOT EXISTS surveyor_invitations (
       survey_id TEXT PRIMARY KEY REFERENCES surveys(id), owner_id TEXT NOT NULL,
       token TEXT NOT NULL UNIQUE, active INTEGER NOT NULL DEFAULT 1,
