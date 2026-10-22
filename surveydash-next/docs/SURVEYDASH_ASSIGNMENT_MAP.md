@@ -18,6 +18,8 @@ The static SVG geometry is generated from [denyherianto's 38-province dataset](h
 
 The derived geometry is about 40 KB and the map component is loaded on demand. No map library, tile service, API key or new image asset is added. A geography-only PNG render was inspected for the island/province outline; it is not browser/UI verification. Browser map interaction, real keyboard/pointer operation, zoom, mobile layout and visual QA remain unverified because the saved automatic browser approval policy denies access.
 
+The small province-name catalog is a JSON data file separate from geometry. The shared helper derives canonical slugs from it, so assignment controls load only names while the map loads paths on demand. Map shapes carry those IDs and use the same catalog for labels. This avoids repeated executable object literals and prevents name catalogs from drifting between the map and controls. Team filters and empty-list captions are separate helpers to keep the stateful manager component readable.
+
 ## Framework patch
 
 The first build surfaced npm security advisories for installed Next.js 16.4.0: [Server Actions denial of service](https://github.com/advisories/GHSA-p3m5-59mp-jv5r), [SVG image optimization](https://github.com/advisories/GHSA-2464-fhr4-w9xw) and [`use cache` typed arrays](https://github.com/advisories/GHSA-673q-mjm6-r5xr). npm reports the affected range through 16.4.0. Next.js and eslint-config-next are pinned to the compatible 16.4.2 patch; React and application APIs are unchanged. Final validation is repeated on that version before release.

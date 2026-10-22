@@ -11,11 +11,11 @@ export function AssignmentMap({
   assignments,
   selected,
   onSelect,
-}: {
+}: Readonly<{
   assignments: ManagedSurveyorAssignment[];
   selected: string;
   onSelect: (provinceId: string) => void;
-}) {
+}>) {
   const [zoom, setZoom] = useState(1);
   const summary = assignmentMap(assignments);
   const maximum = Math.max(0, ...summary.rows.map((row) => row.tasks));
@@ -92,7 +92,7 @@ export function AssignmentMap({
           {geography.shapes.map((province) => {
             const row = byId.get(province.id);
             const tasks = row?.tasks ?? 0;
-            const label = `${province.name}: ${tasks} penugasan, ${row?.people ?? 0} surveyor`;
+            const label = `${row?.name ?? provinceName(province.id)}: ${tasks} penugasan, ${row?.people ?? 0} surveyor`;
             return (
               <path
                 key={province.id}

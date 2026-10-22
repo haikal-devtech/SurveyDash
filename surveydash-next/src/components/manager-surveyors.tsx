@@ -34,24 +34,52 @@ interface SurveyGroup {
   title: string;
   assignments: ManagedSurveyorAssignment[];
 }
+type TeamRow = { surveyId: string; title: string; assignment: ManagedSurveyorAssignment };
+function matchingRows(rows: TeamRow[], surveyId: string, query: string, status: SurveyorStatusFilter) {
+  return rows.filter(
+    (row) =>
+      (surveyId === 'all' || row.surveyId === surveyId) &&
+      matchesSurveyor(
+        row.assignment,
+        query,
+        status,
+        row.title + ' ' + provinceName(row.assignment.provinceId),
+      ),
+  );
+}
+function matchesProvince(row: TeamRow, provinceId: string) {
+  if (provinceId === 'all') return true;
+  if (provinceId === 'unset') return !row.assignment.provinceId || !isProvinceId(row.assignment.provinceId);
+  return row.assignment.provinceId === provinceId;
+}
+function rosterCaption(count: number, provinceId: string) {
+  const caption = `${count} penugasan ditemukan`;
+  if (provinceId === 'all') return caption;
+  const label = provinceId === 'unset' ? 'Wilayah belum diatur' : provinceName(provinceId);
+  return `${caption} · ${label}`;
+}
+function RosterEmptyState({ hasRows, provinceId }: Readonly<{ hasRows: boolean; provinceId: string }>) {
+  let title = 'Tim survei masih kosong';
+  let description = 'Undang surveyor untuk mulai membagikan survei.';
+  if (hasRows) {
+    title = provinceId === 'all' ? 'Surveyor tidak ditemukan' : 'Belum ada penugasan di wilayah ini';
+    description = 'Coba nama lain atau ubah filternya.';
+  }
+  return <EmptyState icon={<Search size={25} />} title={title} description={description} />;
+}
 export function ManagerSurveyors({
   surveys,
   initialSurveyId,
   initialView = 'list',
-}: {
+}: Readonly<{
   surveys: SurveyGroup[];
   initialSurveyId?: string;
   initialView?: 'list' | 'map';
-}) {
+}>) {
   const [groups, setGroups] = useState(surveys);
-  const [surveyFilter, setSurveyFilter] = useState(
-    surveys.some((s) => s.surveyId === initialSurveyId) ? initialSurveyId! : 'all',
-  );
-  const [inviteId, setInviteId] = useState(
-    surveys.some((survey) => survey.surveyId === initialSurveyId)
-      ? initialSurveyId!
-      : (surveys[0]?.surveyId ?? ''),
-  );
+  const requested = surveys.find((survey) => survey.surveyId === initialSurveyId)?.surveyId;
+  const [surveyFilter, setSurveyFilter] = useState(requested ?? 'all');
+  const [inviteId, setInviteId] = useState(requested ?? surveys[0]?.surveyId ?? '');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [query, setQuery] = useState('');
   const search = useDeferredValue(query);
@@ -74,23 +102,8 @@ export function ManagerSurveyors({
   const rows = groups.flatMap((group) =>
     group.assignments.map((assignment) => ({ surveyId: group.surveyId, title: group.title, assignment })),
   );
-  const matching = rows.filter(
-    (row) =>
-      (surveyFilter === 'all' || row.surveyId === surveyFilter) &&
-      matchesSurveyor(
-        row.assignment,
-        search,
-        status,
-        row.title + ' ' + provinceName(row.assignment.provinceId),
-      ),
-  );
-  const visible = matching.filter(
-    (row) =>
-      provinceFilter === 'all' ||
-      (provinceFilter === 'unset'
-        ? !row.assignment.provinceId || !isProvinceId(row.assignment.provinceId)
-        : row.assignment.provinceId === provinceFilter),
-  );
+  const matching = matchingRows(rows, surveyFilter, search, status);
+  const visible = matching.filter((row) => matchesProvince(row, provinceFilter));
   const people = new Set(rows.map((row) => row.assignment.username)).size;
   async function refreshTeam() {
     setRefreshing(true);
@@ -309,10 +322,7 @@ export function ManagerSurveyors({
               />
             )}
             <p className="team-result-count" role="status">
-              {visible.length} penugasan ditemukan
-              {provinceFilter !== 'all'
-                ? ` · ${provinceFilter === 'unset' ? 'Wilayah belum diatur' : provinceName(provinceFilter)}`
-                : ''}
+              {rosterCaption(visible.length, provinceFilter)}
             </p>
             {visible.length ? (
               <div className="team-table-scroll">
@@ -385,21 +395,7 @@ export function ManagerSurveyors({
                 </table>
               </div>
             ) : (
-              <EmptyState
-                icon={<Search size={25} />}
-                title={
-                  rows.length
-                    ? provinceFilter === 'all'
-                      ? 'Surveyor tidak ditemukan'
-                      : 'Belum ada penugasan di wilayah ini'
-                    : 'Tim survei masih kosong'
-                }
-                description={
-                  rows.length
-                    ? 'Coba nama lain atau ubah filternya.'
-                    : 'Undang surveyor untuk mulai membagikan survei.'
-                }
-              />
+              <RosterEmptyState hasRows={rows.length > 0} provinceId={provinceFilter} />
             )}
           </section>
         </>

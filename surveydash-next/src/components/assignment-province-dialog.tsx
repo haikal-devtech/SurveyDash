@@ -10,12 +10,12 @@ export function AssignmentProvinceDialog({
   assignment,
   onClose,
   onSaved,
-}: {
+}: Readonly<{
   surveyId: string;
   assignment: ManagedSurveyorAssignment;
   onClose: () => void;
   onSaved: (assignments: ManagedSurveyorAssignment[]) => void;
-}) {
+}>) {
   const [provinceId, setProvinceId] = useState(assignment.provinceId ?? '');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
@@ -30,7 +30,7 @@ export function AssignmentProvinceDialog({
         body: JSON.stringify({ assignmentId: assignment.id, provinceId: provinceId || null }),
       });
       const data = await response.json();
-      if (!response.ok) throw Error(data.error ?? 'Wilayah belum berhasil disimpan.');
+      if (!response.ok) throw new Error(data.error ?? 'Wilayah belum berhasil disimpan.');
       onSaved(data.assignments);
       onClose();
     } catch (error) {
@@ -49,9 +49,10 @@ export function AssignmentProvinceDialog({
       description={`@${assignment.username} · Berlaku untuk survei ini.`}
     >
       <form onSubmit={save}>
-        <label className="field">
-          Provinsi
+        <div className="field">
+          <label htmlFor="assignment-province">Provinsi</label>
           <select
+            id="assignment-province"
             className="input"
             value={provinceId}
             onChange={(event) => setProvinceId(event.target.value)}
@@ -64,7 +65,7 @@ export function AssignmentProvinceDialog({
               </option>
             ))}
           </select>
-        </label>
+        </div>
         {error && (
           <p className="banner banner-error" role="alert">
             {error}
