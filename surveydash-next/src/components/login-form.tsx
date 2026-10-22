@@ -7,6 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import { Brand } from './brand';
 import { Button } from './ui';
+import { ProvinceField } from './province-field';
 import '@/app/auth-entry.css';
 
 type AccountRole = 'manager' | 'surveyor';
@@ -17,12 +18,14 @@ export function LoginForm({
   supportEmail,
   role = 'manager',
   invitationToken,
+  workspaceInvitationToken,
 }: {
   initialRegister?: boolean;
   recoveryAvailable?: boolean;
   supportEmail: string;
   role?: AccountRole;
   invitationToken?: string;
+  workspaceInvitationToken?: string;
 }) {
   const router = useRouter();
   const register = initialRegister;
@@ -31,6 +34,7 @@ export function LoginForm({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [provinceId, setProvinceId] = useState('');
   const [bankName, setBankName] = useState('');
   const [accountName, setAccountName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
@@ -46,6 +50,7 @@ export function LoginForm({
     const query = new URLSearchParams({ role: nextRole });
     if (nextRegister) query.set('mode', 'signup');
     if (invitationToken) query.set('invite', invitationToken);
+    if (workspaceInvitationToken) query.set('workspaceInvite', workspaceInvitationToken);
     return '/login?' + query.toString();
   }
   function changeStep(next: 1 | 2) {
@@ -84,6 +89,7 @@ export function LoginForm({
             surveyorProfile: {
               username: username.trim(),
               fullName: name.trim(),
+              provinceId,
               bankName: bankName.trim(),
               accountName: accountName.trim(),
               accountNumber,
@@ -125,11 +131,13 @@ export function LoginForm({
       setAccountNumber('');
       setPassword('');
       router.replace(
-        invitationToken
-          ? '/invite/surveyor/' + encodeURIComponent(invitationToken)
-          : context.role === 'surveyor'
-            ? '/surveyor'
-            : '/studio',
+        workspaceInvitationToken
+          ? '/invite/workspace/' + encodeURIComponent(workspaceInvitationToken)
+          : invitationToken
+            ? '/invite/surveyor/' + encodeURIComponent(invitationToken)
+            : context.role === 'surveyor'
+              ? '/surveyor'
+              : '/studio',
       );
       router.refresh();
     } catch (failure) {
@@ -151,19 +159,21 @@ export function LoginForm({
               <h1 id="auth-entry-title">{register ? 'Daftar' : 'Masuk'}</h1>
               <p>{isSurveyor ? 'Surveyor' : 'Pengelola Survei'}</p>
               <nav className="auth-entry-role-tabs" aria-label="Pilih peran">
-                {(['manager', 'surveyor'] as const).map((item) => (
-                  <Link
-                    key={item}
-                    href={loginHref(item, register)}
-                    aria-current={role === item ? 'page' : undefined}
-                    aria-disabled={pending || undefined}
-                    onClick={(event) => {
-                      if (pending) event.preventDefault();
-                    }}
-                  >
-                    {item === 'manager' ? 'Pengelola' : 'Surveyor'}
-                  </Link>
-                ))}
+                {(workspaceInvitationToken ? ['manager' as const] : (['manager', 'surveyor'] as const)).map(
+                  (item) => (
+                    <Link
+                      key={item}
+                      href={loginHref(item, register)}
+                      aria-current={role === item ? 'page' : undefined}
+                      aria-disabled={pending || undefined}
+                      onClick={(event) => {
+                        if (pending) event.preventDefault();
+                      }}
+                    >
+                      {item === 'manager' ? 'Pengelola' : 'Surveyor'}
+                    </Link>
+                  ),
+                )}
               </nav>
             </header>
             {surveyorRegistration && (
@@ -220,7 +230,7 @@ export function LoginForm({
                       />
                     </div>
                     <p className="auth-entry-note">
-                      Rekening disimpan privat untuk administrasi. Nama dan username Anda tampil di form
+                      Rekening disimpan privat. Provinsi untuk peta admin. Nama dan username tampil di form
                       responden.
                     </p>
                     <label className="auth-entry-consent">
@@ -281,6 +291,9 @@ export function LoginForm({
                           Huruf, angka, atau _. Tidak dapat diganti.
                         </p>
                       </div>
+                    )}
+                    {surveyorRegistration && (
+                      <ProvinceField id="registration-province" value={provinceId} onChange={setProvinceId} />
                     )}
                     <div className="field">
                       <label htmlFor="email">

@@ -7,6 +7,14 @@ import './help-center.css';
 export const metadata = { title: 'Bantuan — SurveyDash Studio', alternates: { canonical: '/help' } };
 const extraHelp = [
   [
+    'Bagaimana mengundang sesama Pengelola ke satu workspace?',
+    'Buka Pengaturan → Workspace → Pengelola workspace. Pemilik membuat link undangan yang berlaku tujuh hari, lalu menyalinnya untuk dikirim sendiri. Rekan masuk atau daftar sebagai Pengelola dan menekan Bergabung. Anggota dapat membuat dan mengedit survei, melihat jawaban, serta mengelola presentasi bersama. Ganti workspace melalui menu samping. Pemilik dapat mematikan link atau mencabut akses anggota; mematikan link tidak mengeluarkan anggota yang sudah bergabung.',
+  ],
+  [
+    'Di mana provinsi surveyor dicatat?',
+    'Surveyor baru wajib memilih Provinsi pada langkah Akun saat registrasi. Provinsi profil dapat diperbarui melalui Profil. Admin platform membuka Admin workspace → Peta surveyor untuk melihat seluruh akun surveyor, termasuk yang belum ditugaskan. Data profil ini terpisah dari wilayah tugas pada setiap survei; akun lama tanpa provinsi ditandai Belum diisi.',
+  ],
+  [
     'Bagaimana melihat peta wilayah tugas surveyor?',
     'Buka Surveyor → Peta. Klik Atur pada tugas surveyor untuk memilih provinsi. Jawaban dari link surveyor otomatis dihitung ke wilayah tugasnya saat ini. Arahkan kursor, fokus dengan keyboard, atau ketuk provinsi untuk melihat jumlah responden, surveyor aktif, dan target. Pilih Atur target untuk menetapkan target per survei dan provinsi; jawaban tetap diterima setelah target terlewati. Angka peta mengikuti pilihan survei dan diperbarui setiap 30 detik saat halaman aktif. Pencarian dan status menyaring daftar tim. Respons tanpa link surveyor atau tugas tanpa provinsi ditandai belum terpetakan.',
   ],

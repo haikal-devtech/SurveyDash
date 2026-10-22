@@ -14,7 +14,11 @@ export default function PrivacyPage() {
         ],
         [
           'Profil surveyor dan rekening pribadi',
-          'Untuk melengkapi profil surveyor, aplikasi meminta nama lengkap, username unik, bank atau penyedia rekening, nama pemilik rekening, dan nomor rekening. Nama lengkap boleh sama dengan orang lain; username membedakan akun. Rekening dicatat untuk administrasi surveyor dan kebutuhan pembayaran di luar aplikasi bila ada kesepakatan terpisah. Isian rekening disimpan terenkripsi, dan nomor ditampilkan tersamarkan pada profil. Rekening tidak ditampilkan di form responden, link pribadi, tabel jawaban, atau daftar penugasan Pengelola Survei. Aplikasi belum menjalankan transfer atau verifikasi rekening.',
+          'Pendaftaran surveyor meminta nama lengkap, username, provinsi, bank atau penyedia rekening, nama pemilik rekening, dan nomor rekening. Provinsi profil dipakai pada peta seluruh surveyor yang hanya dapat dibuka admin platform; data ini terpisah dari wilayah tugas tiap survei dan tidak tampil di form responden. Akun lama tanpa provinsi tetap dapat masuk dan dapat melengkapinya pada Profil. Nama lengkap boleh sama; username membedakan akun. Rekening untuk administrasi surveyor disimpan terenkripsi dan ditampilkan tersamarkan. Rekening tidak tampil di form responden, link pribadi, tabel jawaban, daftar penugasan pengelola, atau peta admin. Aplikasi belum menjalankan transfer atau verifikasi rekening.',
+        ],
+        [
+          'Anggota dan undangan workspace',
+          'Pemilik workspace dapat membuat link undangan Pengelola yang berlaku tujuh hari. Penerima yang masuk sebagai Pengelola dan memilih Bergabung mendapat akses membuat serta mengedit survei, membaca jawaban, dan mengelola presentasi dalam workspace itu. Anggota tidak mendapat hak admin platform atau akses rekening pribadi surveyor. Pemilik dapat melihat nama dan email anggota, mematikan link, atau mencabut akses anggota tanpa menghapus survei dan jawaban. Mematikan link tidak mencabut keanggotaan yang sudah aktif. Link perlu dibagikan hanya kepada rekan yang memang diberi kewenangan mengelola data. Keanggotaan menyimpan akun penerima, pemilik workspace, pengundang, dan waktu perubahan; koreksi jawaban tetap mencatat akun pelakunya.',
         ],
         [
           'Persetujuan profil surveyor',

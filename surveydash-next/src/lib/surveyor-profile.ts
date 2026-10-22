@@ -1,7 +1,8 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
+import { isProvinceId } from './provinces';
 
-export const SURVEYOR_PRIVACY_VERSION = '2026-10-19-surveyor-v1';
+export const SURVEYOR_PRIVACY_VERSION = '2026-10-23-surveyor-v2';
 const reserved = new Set([
   'admin',
   'administrator',
@@ -23,6 +24,10 @@ export const surveyorProfileSchema = z.object({
     .regex(/^[a-z0-9][a-z0-9_]*$/, 'Username memakai huruf, angka, atau underscore.')
     .refine((value) => !reserved.has(value), 'Username ini tidak tersedia.'),
   fullName: z.string().trim().min(2).max(100),
+  provinceId: z
+    .string({ error: 'Pilih provinsi Anda.' })
+    .max(70)
+    .refine(isProvinceId, 'Pilih provinsi Anda.'),
   bankName: z.string().trim().min(2).max(80),
   accountName: z.string().trim().min(2).max(100),
   accountNumber: z

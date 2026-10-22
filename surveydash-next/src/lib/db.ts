@@ -91,6 +91,22 @@ const schema = `
       user_id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE, full_name TEXT NOT NULL,
       payout_ciphertext TEXT NOT NULL, consent_version TEXT NOT NULL, consent_at TEXT NOT NULL, updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS surveyor_home_provinces (
+      user_id TEXT PRIMARY KEY REFERENCES surveyor_profiles(user_id),
+      province_id TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS workspace_members (
+      owner_id TEXT NOT NULL, user_id TEXT NOT NULL,
+      active INTEGER NOT NULL DEFAULT 1, invited_by TEXT NOT NULL, updated_by TEXT NOT NULL,
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      PRIMARY KEY (owner_id, user_id)
+    );
+    CREATE INDEX IF NOT EXISTS workspace_members_user ON workspace_members(user_id, active);
+    CREATE TABLE IF NOT EXISTS workspace_invitations (
+      owner_id TEXT PRIMARY KEY, token TEXT NOT NULL UNIQUE,
+      active INTEGER NOT NULL DEFAULT 1, created_by TEXT NOT NULL,
+      expires_at TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS surveyor_assignments (
       id TEXT PRIMARY KEY, survey_id TEXT NOT NULL REFERENCES surveys(id), owner_id TEXT NOT NULL,
       surveyor_id TEXT NOT NULL REFERENCES surveyor_profiles(user_id), token TEXT NOT NULL UNIQUE,
@@ -191,13 +207,15 @@ export function getDb() {
           release = resolveQueue;
         });
         await previous;
+        let started = false;
         try {
           database.exec('BEGIN IMMEDIATE');
+          started = true;
           const result = await transactions.run(database, work);
           database.exec('COMMIT');
           return result;
         } catch (error) {
-          database.exec('ROLLBACK');
+          if (started) database.exec('ROLLBACK');
           throw error;
         } finally {
           release();

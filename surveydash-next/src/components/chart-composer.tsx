@@ -207,7 +207,7 @@ export function ChartComposer({
               </label>
             )}
             {source.question && !source.question.options.length && (
-              <p className="hint">Chart ini hanya tersedia di ruang kerja pribadi.</p>
+              <p className="hint">Chart ini hanya tersedia bagi Pengelola yang memiliki akses workspace.</p>
             )}
           </div>
         </div>

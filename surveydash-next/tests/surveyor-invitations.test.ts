@@ -54,7 +54,13 @@ async function createUser(id: string) {
   await getDb().prepare('INSERT INTO "user" VALUES (?, ?, ?)').run(id, 'Nama fixture', `${id}@example.test`);
 }
 async function registerSurveyor(id: string, username: string) {
-  await createSurveyorProfile(id, { username, fullName: 'Nama Surveyor Fixture', ...payout, consent: true });
+  await createSurveyorProfile(id, {
+    username,
+    fullName: 'Nama Surveyor Fixture',
+    provinceId: 'jawa-barat',
+    ...payout,
+    consent: true,
+  });
   await createUser(id);
 }
 async function openSurvey(ownerId: string) {
@@ -161,6 +167,7 @@ test('only completed authenticated surveyor accounts can accept and receive the 
   await createSurveyorProfile('orphan-registration', {
     username: 'orphan_registration',
     fullName: 'Incomplete registration',
+    provinceId: 'jawa-barat',
     ...payout,
     consent: true,
   });

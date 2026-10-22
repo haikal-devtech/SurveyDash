@@ -1,13 +1,8 @@
 'use client';
-import { useRef, useState, type CSSProperties } from 'react';
-import { MapPin, RotateCcw, Target, ZoomIn, ZoomOut, X } from 'lucide-react';
-import geography from '@/data/indonesia-provinces.json';
-import {
-  assignmentMap,
-  mapTooltipPosition,
-  provinceMapLabel,
-  type ProvinceMapRow,
-} from '@/lib/assignment-map';
+import { useState } from 'react';
+import { MapPin, Target, X } from 'lucide-react';
+import { ProvinceMapCanvas, MapAttribution } from './province-map-canvas';
+import { assignmentMap, provinceMapLabel, type ProvinceMapRow } from '@/lib/assignment-map';
 import type { ManagedSurveyorAssignment, ProvinceTarget } from '@/lib/surveyor-types';
 import { Button } from './ui';
 
@@ -68,31 +63,14 @@ export function AssignmentMap({
   onSelect: (provinceId: string) => void;
   onEditTarget?: (provinceId?: string) => void;
 }>) {
-  const [zoom, setZoom] = useState(1);
   const [metric, setMetric] = useState<'respondents' | 'surveyors'>('respondents');
-  const [hovered, setHovered] = useState<string | null>(null);
-  const frame = useRef<HTMLDivElement>(null);
-  const tooltip = useRef<HTMLDivElement>(null);
   const summary = assignmentMap(assignments, targets, unattributedResponses);
   const value = (row: ProvinceMapRow) => (metric === 'respondents' ? row.respondents : row.activePeople);
   const maximum = Math.max(0, ...summary.rows.map(value));
   const byId = new Map(summary.rows.map((row) => [row.id, row]));
-  const hoveredRow = hovered ? byId.get(hovered) : undefined;
   const selectedRow = byId.get(selected);
   function select(id: string) {
     onSelect(id === selected ? 'all' : id);
-  }
-  function positionTooltip(clientX: number, clientY: number) {
-    const host = frame.current;
-    if (!host) return;
-    const bounds = host.getBoundingClientRect();
-    const size = tooltip.current?.getBoundingClientRect() ?? {
-      width: Math.min(248, bounds.width - 16),
-      height: 172,
-    };
-    const point = mapTooltipPosition(clientX - bounds.left, clientY - bounds.top, bounds, size);
-    host.style.setProperty('--map-tooltip-x', `${point.x}px`);
-    host.style.setProperty('--map-tooltip-y', `${point.y}px`);
   }
   return (
     <section className="assignment-map" aria-labelledby="assignment-map-title">
@@ -137,127 +115,48 @@ export function AssignmentMap({
           {number(unattributedResponses)} respons tanpa link surveyor belum dapat dipetakan.
         </p>
       )}
-      <div className="assignment-map-toolbar">
-        <div className="team-view-switch" role="group" aria-label="Warna peta berdasarkan">
-          <Button
-            variant="ghost"
-            aria-pressed={metric === 'respondents'}
-            onClick={() => setMetric('respondents')}
-          >
-            Responden
-          </Button>
-          <Button
-            variant="ghost"
-            aria-pressed={metric === 'surveyors'}
-            onClick={() => setMetric('surveyors')}
-          >
-            Surveyor
-          </Button>
-        </div>
-        <div className="actions">
-          {onEditTarget && (
-            <Button variant="secondary" onClick={() => onEditTarget(selectedRow?.id)}>
-              <Target size={15} />
-              Atur target
-            </Button>
-          )}
-          <div className="actions" role="group" aria-label="Perbesaran peta">
-            <Button
-              variant="ghost"
-              disabled={zoom <= 1}
-              onClick={() => setZoom((v) => Math.max(1, v - 0.5))}
-              aria-label="Perkecil peta"
-            >
-              <ZoomOut size={17} />
-            </Button>
-            <Button
-              variant="ghost"
-              disabled={zoom >= 3}
-              onClick={() => setZoom((v) => Math.min(3, v + 0.5))}
-              aria-label="Perbesar peta"
-            >
-              <ZoomIn size={17} />
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setZoom(1);
-                setHovered(null);
-              }}
-              aria-label="Reset perbesaran peta"
-            >
-              <RotateCcw size={16} />
-            </Button>
-          </div>
-        </div>
-      </div>
-      <div className="assignment-map-stage" ref={frame}>
-        <div
-          className="assignment-map-viewport"
-          tabIndex={0}
-          aria-label="Peta Indonesia. Geser untuk melihat wilayah saat diperbesar."
-          onScroll={() => setHovered(null)}
-        >
-          <svg
-            viewBox={geography.viewBox}
-            style={{ width: `${zoom * 100}%` }}
-            role="group"
-            aria-label="Pilih provinsi penugasan"
-            onPointerLeave={() => setHovered(null)}
-          >
-            {geography.shapes.map((province) => {
-              const row = byId.get(province.id)!;
-              const amount = value(row);
-              return (
-                <path
-                  key={province.id}
-                  d={province.path}
-                  fillRule="evenodd"
-                  vectorEffect="non-scaling-stroke"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={provinceMapLabel(row)}
-                  aria-pressed={selected === province.id}
-                  data-has-value={amount > 0}
-                  data-hovered={hovered === province.id}
-                  style={
-                    {
-                      '--map-intensity': `${Math.round(25 + (75 * Math.log1p(amount)) / Math.log1p(Math.max(1, maximum)))}%`,
-                    } as CSSProperties
-                  }
-                  onPointerEnter={(event) => {
-                    positionTooltip(event.clientX, event.clientY);
-                    setHovered(province.id);
-                  }}
-                  onPointerMove={(event) => positionTooltip(event.clientX, event.clientY)}
-                  onPointerLeave={() => setHovered(null)}
-                  onFocus={(event) => {
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    positionTooltip(rect.left + rect.width / 2, rect.top + rect.height / 2);
-                    setHovered(province.id);
-                  }}
-                  onBlur={() => setHovered(null)}
-                  onClick={() => select(province.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Escape') setHovered(null);
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      select(province.id);
-                    }
-                  }}
-                />
-              );
-            })}
-          </svg>
-        </div>
-        {hoveredRow && (
-          <div ref={tooltip} className="assignment-map-tooltip" role="tooltip">
-            <strong>{hoveredRow.name}</strong>
-            <ProvinceNumbers row={hoveredRow} />
-            <ProvinceProgress row={hoveredRow} />
-          </div>
-        )}
-      </div>
+      <ProvinceMapCanvas
+        selected={selected}
+        onSelect={select}
+        rows={summary.rows.map((row) => ({
+          id: row.id,
+          value: value(row),
+          label: provinceMapLabel(row),
+          content: (
+            <>
+              <strong>{row.name}</strong>
+              <ProvinceNumbers row={row} />
+              <ProvinceProgress row={row} />
+            </>
+          ),
+        }))}
+        controls={
+          <>
+            <div className="team-view-switch" role="group" aria-label="Warna peta berdasarkan">
+              <Button
+                variant="ghost"
+                aria-pressed={metric === 'respondents'}
+                onClick={() => setMetric('respondents')}
+              >
+                Responden
+              </Button>
+              <Button
+                variant="ghost"
+                aria-pressed={metric === 'surveyors'}
+                onClick={() => setMetric('surveyors')}
+              >
+                Surveyor
+              </Button>
+            </div>
+            {onEditTarget && (
+              <Button variant="secondary" onClick={() => onEditTarget(selectedRow?.id)}>
+                <Target size={15} />
+                Atur target
+              </Button>
+            )}
+          </>
+        }
+      />
       <div className="assignment-map-legend">
         <span>
           <i />
@@ -296,18 +195,10 @@ export function AssignmentMap({
           </Button>
         </div>
       )}
-      <footer className="assignment-map-source">
+      <MapAttribution>
         Responden = jawaban tersimpan melalui link surveyor, mengikuti wilayah tugas saat ini. Target tidak
-        menutup form. Geometri:{' '}
-        <a href={geography.source} target="_blank" rel="noreferrer">
-          denyherianto
-        </a>{' '}
-        ·{' '}
-        <a href="/licenses/indonesia-provinces.txt" target="_blank" rel="noreferrer">
-          CC BY 4.0, diolah untuk tampilan
-        </a>
-        .
-      </footer>
+        menutup form.
+      </MapAttribution>
     </section>
   );
 }

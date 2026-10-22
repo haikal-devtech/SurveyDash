@@ -33,7 +33,7 @@ export default function TermsPage() {
         ],
         [
           'Versi pengujian dan layanan tambahan',
-          'Fitur dan antarmuka dapat berubah. Simpan ekspor dan cadangan yang diperlukan dengan akses terbatas. Kolaborasi editor tim belum diaktifkan. Penugasan surveyor tersedia sebagai akses terpisah. Pemulihan lewat email dan sambungan Google Forms hanya tersedia setelah layanan tersebut dikonfigurasi dan diaktifkan pengelola aplikasi.',
+          'Fitur dan antarmuka dapat berubah. Simpan ekspor dan cadangan yang diperlukan dengan akses terbatas. Kolaborasi Pengelola tersedia melalui undangan pemilik workspace. Penugasan surveyor tersedia sebagai akses terpisah. Pemulihan lewat email dan sambungan Google Forms hanya tersedia setelah layanan tersebut dikonfigurasi dan diaktifkan pengelola aplikasi.',
         ],
         [
           'Biaya dan privasi',

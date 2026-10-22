@@ -5,7 +5,7 @@ const pages = [
   {
     path: 'workspace',
     title: 'Workspace',
-    description: 'Identitas ruang kerja pribadi Anda.',
+    description: 'Identitas workspace dan undangan rekan Pengelola.',
     icon: Building2,
   },
   {

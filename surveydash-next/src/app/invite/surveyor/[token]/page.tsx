@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { UserPlus } from 'lucide-react';
-import { Brand } from '@/components/brand';
+import { InvitationEntry } from '@/components/invitation-entry';
 import { AcceptSurveyorInvitation } from '@/components/accept-surveyor-invitation';
 import { auth } from '@/lib/auth';
 import { getAccountRole } from '@/lib/account-repository';
@@ -30,36 +29,26 @@ export default async function SurveyorInvitationPage({ params }: { params: Promi
   const role = session ? await getAccountRole(session.user.id) : null;
   const query = new URLSearchParams({ role: 'surveyor', invite: token });
   return (
-    <main className="invite-entry">
-      <section className="invite-card">
-        <Link href="/" className="invite-brand" aria-label="Beranda SurveyDash">
-          <Brand />
-        </Link>
-        <div className="invite-icon">
-          <UserPlus size={26} aria-hidden="true" />
+    <InvitationEntry title="Undangan Surveyor" description="Anda diundang untuk membantu menyebarkan survei.">
+      <div className="invite-survey">
+        <h2>{invitation.title}</h2>
+        {invitation.institution && <p>{invitation.institution}</p>}
+      </div>
+      {session ? (
+        <>
+          {role === 'manager' && <p>Undangan ini untuk akun Surveyor.</p>}
+          <AcceptSurveyorInvitation token={token} switchAccount={role !== 'surveyor'} />
+        </>
+      ) : (
+        <div className="invite-action">
+          <Link className="btn btn-primary" href={'/login?' + query.toString() + '&mode=signup'}>
+            Daftar
+          </Link>
+          <p>
+            Sudah punya akun? <Link href={'/login?' + query.toString()}>Masuk</Link>
+          </p>
         </div>
-        <h1>Undangan Surveyor</h1>
-        <p>Anda diundang untuk membantu menyebarkan survei.</p>
-        <div className="invite-survey">
-          <h2>{invitation.title}</h2>
-          {invitation.institution && <p>{invitation.institution}</p>}
-        </div>
-        {session ? (
-          <>
-            {role === 'manager' && <p>Undangan ini untuk akun Surveyor.</p>}
-            <AcceptSurveyorInvitation token={token} switchAccount={role !== 'surveyor'} />
-          </>
-        ) : (
-          <div className="invite-action">
-            <Link className="btn btn-primary" href={'/login?' + query.toString() + '&mode=signup'}>
-              Daftar
-            </Link>
-            <p>
-              Sudah punya akun? <Link href={'/login?' + query.toString()}>Masuk</Link>
-            </p>
-          </div>
-        )}
-      </section>
-    </main>
+      )}
+    </InvitationEntry>
   );
 }

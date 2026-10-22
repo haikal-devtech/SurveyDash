@@ -28,6 +28,7 @@ import { MotionScene, SelectionRail } from './dashboard-motion';
 import { BrandArtwork } from './brand-artwork';
 import { provinceName } from '@/lib/provinces';
 import { SurveyorTaskProgress } from './surveyor-task-progress';
+import { ProvinceField } from './province-field';
 import '@/app/workspace-experience.css';
 
 interface PortalData {
@@ -164,6 +165,7 @@ function SurveyorProfileForm({
 }) {
   const [username, setUsername] = useState(profile?.username ?? '');
   const [fullName, setFullName] = useState(profile?.fullName ?? initialName);
+  const [provinceId, setProvinceId] = useState(profile?.provinceId ?? '');
   const [bankName, setBankName] = useState(profile?.bankName ?? '');
   const [accountName, setAccountName] = useState(profile?.accountName ?? '');
   const [accountNumber, setAccountNumber] = useState('');
@@ -179,7 +181,15 @@ function SurveyorProfileForm({
       const response = await fetch('/api/surveyor/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, fullName, bankName, accountName, accountNumber, consent }),
+        body: JSON.stringify({
+          username,
+          fullName,
+          provinceId,
+          bankName,
+          accountName,
+          accountNumber,
+          consent,
+        }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'Profil belum berhasil disimpan.');
@@ -245,6 +255,7 @@ function SurveyorProfileForm({
           <p className="hint">Ditampilkan pada link dan form yang Anda bagikan.</p>
         </div>
       </div>
+      <ProvinceField id="profile-province" value={provinceId} onChange={setProvinceId} disabled={pending} />
       <div className="surveyor-bank-intro">
         <Banknote size={20} />
         <div>
@@ -353,9 +364,13 @@ function ProfileDetails({ profile, onEdit }: { profile: SurveyorProfile; onEdit:
           <h2>{profile.fullName}</h2>
           <p>@{profile.username}</p>
         </div>
-        <Badge tone="green">Profil lengkap</Badge>
+        <Badge tone="green">Profil tersimpan</Badge>
       </div>
       <dl className="surveyor-profile-list">
+        <div>
+          <dt>Provinsi</dt>
+          <dd>{profile.provinceId ? provinceName(profile.provinceId) : 'Belum diisi'}</dd>
+        </div>
         <div>
           <dt>Bank</dt>
           <dd>{profile.bankName}</dd>

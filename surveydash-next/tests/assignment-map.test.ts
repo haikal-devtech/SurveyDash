@@ -33,6 +33,7 @@ test.before(async () => {
   await createSurveyorProfile('map-member', {
     username: 'map_member',
     fullName: 'Map Member',
+    provinceId: 'jawa-barat',
     bankName: 'QA Bank',
     accountName: 'Map Member',
     accountNumber: '000123456789',

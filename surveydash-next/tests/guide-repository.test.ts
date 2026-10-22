@@ -40,6 +40,7 @@ test('role is derived from the authenticated account profile', async () => {
   await createSurveyorProfile('guide-surveyor', {
     username: 'guide_surveyor',
     fullName: 'Surveyor Fixture',
+    provinceId: 'jawa-barat',
     bankName: 'Bank Fixture',
     accountName: 'Nama Fixture',
     accountNumber: '000123456789',

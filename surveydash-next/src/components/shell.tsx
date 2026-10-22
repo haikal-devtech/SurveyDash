@@ -21,6 +21,8 @@ import { Brand } from './brand';
 import { Button, Modal } from './ui';
 import { UserAvatar } from './user-avatar';
 import { ReturnWorkspace } from './admin-workspaces';
+import { WorkspacePicker } from './workspace-picker';
+import type { WorkspaceChoice } from '@/lib/workspace-types';
 import { GuideButton, RoleGuide } from './role-guide';
 import { DashboardMotionProvider } from './dashboard-motion-context';
 import { MotionScene, SelectionRail } from './dashboard-motion';
@@ -33,6 +35,8 @@ export function Shell({
   isAdmin = false,
   managingOther = false,
   userId,
+  workspaceChoices = [],
+  currentOwnerId = userId,
 }: {
   children: React.ReactNode;
   name: string;
@@ -41,6 +45,8 @@ export function Shell({
   isAdmin?: boolean;
   managingOther?: boolean;
   userId: string;
+  workspaceChoices?: WorkspaceChoice[];
+  currentOwnerId?: string;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -104,6 +110,11 @@ export function Shell({
           </Link>
         ))}
       </SelectionRail>
+      <WorkspacePicker
+        choices={workspaceChoices}
+        currentOwnerId={currentOwnerId}
+        currentName={workspace.name}
+      />
       <div className="sidebar-bottom">
         <div className="workspace-help">
           <GuideButton role="manager" /> <Link href="/help">Bantuan lainnya</Link>
@@ -195,7 +206,7 @@ export function Shell({
             </header>
           )}
           <MotionScene className="content" motionKey={pathname}>
-            {managingOther && <ReturnWorkspace userId={userId} />}
+            {managingOther && <ReturnWorkspace userId={userId} isAdmin={isAdmin} />}
             {children}
           </MotionScene>
         </main>

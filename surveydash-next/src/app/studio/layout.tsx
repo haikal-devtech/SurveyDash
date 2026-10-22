@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth';
 import { Shell } from '@/components/shell';
 import { getWorkspace } from '@/lib/workspace-repository';
 import { getAccountRole } from '@/lib/account-repository';
+import { listAvailableWorkspaces } from '@/lib/workspace-team';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const metadata = { robots: { index: false, follow: false } };
@@ -22,6 +23,8 @@ export default async function StudioLayout({ children }: { children: React.React
       isAdmin={workspaceUser.isAdmin}
       managingOther={workspaceUser.managingOther}
       userId={session.user.id}
+      workspaceChoices={await listAvailableWorkspaces(session.user.id)}
+      currentOwnerId={workspaceUser.ownerId}
     >
       {children}
     </Shell>

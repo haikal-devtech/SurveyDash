@@ -95,6 +95,7 @@ test('workspace team lists only owned assignments; deactivation does not affect 
   await createSurveyorProfile('member', {
     username: 'team_member',
     fullName: 'Same Person',
+    provinceId: 'jawa-barat',
     bankName: 'Private Bank',
     accountName: 'Private Payout',
     accountNumber: '0000123456789',

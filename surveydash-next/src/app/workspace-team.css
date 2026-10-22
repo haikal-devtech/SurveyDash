@@ -1,0 +1,125 @@
+.workspace-team-panel {
+  margin-top: 24px;
+  padding: 26px;
+  max-width: 900px;
+}
+.workspace-team-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.workspace-team-heading h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+.workspace-team-heading p {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin-top: 7px;
+}
+.workspace-team-invite {
+  padding: 18px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  border-radius: 12px;
+}
+.workspace-team-invite .actions {
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+.workspace-team-invite .input {
+  width: 100%;
+  font-size: 12px;
+}
+.workspace-team-members {
+  margin-top: 22px;
+}
+.workspace-team-member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+.workspace-team-member > div {
+  flex: 1;
+  min-width: 0;
+}
+.workspace-team-member strong {
+  display: block;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.workspace-team-member small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+.workspace-picker {
+  padding: 0 10px 14px;
+}
+.workspace-picker label {
+  font-size: 10px;
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+}
+.workspace-picker select {
+  font-size: 11px;
+  width: 100%;
+  min-width: 0;
+}
+.workspace-picker p {
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--ink);
+  margin-top: 6px;
+}
+.admin-view-switch {
+  width: fit-content;
+  margin-bottom: 24px;
+}
+.admin-map-number {
+  font-size: 28px;
+  color: var(--purple);
+  font-weight: 600;
+}
+.admin-map-number > span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+  margin-top: 6px;
+}
+.admin-surveyor-filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  padding: 0 24px;
+}
+.admin-surveyor-filters .input {
+  width: 100%;
+}
+.admin-surveyor-empty {
+  padding: 18px 24px;
+}
+@media (max-width: 600px) {
+  .workspace-team-panel {
+    padding: 18px 14px;
+  }
+  .workspace-team-member {
+    flex-wrap: wrap;
+  }
+  .workspace-team-member > div {
+    flex-basis: 60%;
+  }
+  .admin-surveyor-filters {
+    grid-template-columns: 1fr;
+    padding-inline: 14px;
+    gap: 8px;
+  }
+}

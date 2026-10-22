@@ -72,6 +72,7 @@ const payout = {
 const profileInput = (username: string, fullName = 'Nama Surveyor Sama') => ({
   username,
   fullName,
+  provinceId: 'jawa-barat',
   ...payout,
   consent: true as const,
 });

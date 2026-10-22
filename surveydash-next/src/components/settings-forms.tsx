@@ -126,7 +126,7 @@ export function SettingsForm({
             />
           </div>
           <p className="template-safe-note">
-            Workspace ini dikelola oleh akun Anda. Kolaborasi dan undangan anggota belum diaktifkan.
+            Nama dan deskripsi ini terlihat oleh Pengelola yang bergabung dalam workspace.
           </p>
         </>
       )}

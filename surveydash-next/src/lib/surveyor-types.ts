@@ -3,6 +3,7 @@ export interface SurveyorProfile {
   userId: string;
   username: string;
   fullName: string;
+  provinceId?: string | null;
   bankName: string;
   accountName: string;
   accountLast4: string;
