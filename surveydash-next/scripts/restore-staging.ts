@@ -34,6 +34,7 @@ const order = [
   'submission_import_sources',
   'surveyor_profiles',
   'surveyor_assignments',
+  'surveyor_assignment_regions',
   'surveyor_invitations',
   'submission_attribution',
   'cleaning_settings',

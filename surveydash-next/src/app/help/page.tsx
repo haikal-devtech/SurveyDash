@@ -7,6 +7,10 @@ import './help-center.css';
 export const metadata = { title: 'Bantuan — SurveyDash Studio', alternates: { canonical: '/help' } };
 const extraHelp = [
   [
+    'Bagaimana melihat peta wilayah tugas surveyor?',
+    'Buka menu Surveyor, lalu pilih Peta. Pada baris surveyor, klik wilayah untuk menetapkan provinsinya. Klik provinsi pada peta untuk melihat tim di sana. Gunakan filter survei dan status untuk membatasi tampilan. Penugasan lama yang belum diberi provinsi masuk Belum diatur. Peta mengikuti wilayah tugas yang ditetapkan pengelola; jumlah respons di daftar berasal dari link penugasan.',
+  ],
+  [
     'Bagaimana cara mengundang Surveyor?',
     'Di workspace, buka menu Surveyor. Pilih survei, lalu buat dan salin link undangan. Kirimkan sendiri link tersebut kepada Surveyor. Undangan berlaku 7 hari; Anda bisa memperbarui atau mencabutnya di halaman yang sama.',
   ],

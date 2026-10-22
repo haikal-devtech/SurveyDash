@@ -16,6 +16,7 @@ export interface SurveyorAssignment {
   institution: string;
   status: 'draft' | 'open' | 'closed';
   active: boolean;
+  provinceId?: string | null;
   shareUrl: string;
   responseCount: number;
   questions: Question[];
@@ -25,6 +26,7 @@ export interface ManagedSurveyorAssignment {
   username: string;
   fullName: string;
   active: boolean;
+  provinceId?: string | null;
   shareUrl: string;
   responseCount: number;
   createdAt: string;

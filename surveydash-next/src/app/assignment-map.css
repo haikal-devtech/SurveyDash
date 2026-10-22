@@ -1,0 +1,302 @@
+.team-view-switch {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-soft);
+}
+.team-view-switch .btn {
+  min-height: 35px;
+  padding: 7px 11px;
+  font-size: 12px;
+}
+.team-view-switch [aria-pressed='true'] {
+  background: var(--card);
+  color: var(--purple);
+  box-shadow: 0 1px 3px #2011390e;
+}
+.team-directory .team-search-bar {
+  flex-wrap: wrap;
+}
+.team-directory .team-search-bar > select {
+  flex: 1 1 135px;
+  max-width: 210px;
+  min-width: 0;
+}
+.team-directory .team-search-bar .team-search {
+  flex: 2 1 220px;
+}
+.assignment-map {
+  padding: 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.assignment-map-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+.assignment-map-heading h2 {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+.assignment-map-heading p {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.assignment-map-heading > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.assignment-map-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.assignment-map-metrics > * {
+  display: grid;
+  gap: 7px;
+  padding: 17px 20px;
+  text-align: left;
+  border: 0;
+  border-right: 1px solid var(--border);
+  color: var(--ink);
+  background: var(--card);
+}
+.assignment-map-metrics > :last-child {
+  border-right: 0;
+}
+.assignment-map-metrics strong {
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.assignment-map-metrics span {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.assignment-map-metrics button:hover,
+.assignment-map-metrics button[aria-pressed='true'] {
+  background: var(--purple-soft);
+}
+.assignment-map-hint {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.assignment-map-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 10px;
+}
+.assignment-map-toolbar > p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.assignment-map-toolbar .btn {
+  min-height: 36px;
+  padding: 7px;
+}
+.assignment-map-toolbar .actions {
+  gap: 4px;
+}
+.assignment-map-viewport {
+  overflow: auto;
+  max-height: 440px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.assignment-map-viewport > svg {
+  display: block;
+  min-width: 100%;
+  max-width: none;
+  min-height: 180px;
+  height: auto;
+}
+.assignment-map-viewport path {
+  fill: var(--surface-soft);
+  stroke: var(--muted);
+  stroke-width: 0.55;
+  cursor: pointer;
+}
+.assignment-map-viewport path[data-has-tasks='true'] {
+  fill: color-mix(in srgb, var(--purple) var(--map-intensity), var(--purple-soft));
+  stroke: var(--card);
+}
+.assignment-map-viewport path:hover,
+.assignment-map-viewport path[aria-pressed='true'] {
+  stroke: var(--ink);
+  stroke-width: 1.8;
+}
+.assignment-map-viewport path:focus-visible {
+  outline: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.assignment-map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 15px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.assignment-map-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.assignment-map-legend i {
+  display: inline-block;
+  width: 12px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+}
+.assignment-map-legend .map-legend-low {
+  background: color-mix(in srgb, var(--purple) 30%, var(--purple-soft));
+}
+.assignment-map-legend .map-legend-high {
+  background: var(--purple);
+}
+.assignment-map-selection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 15px;
+  align-items: center;
+  background: var(--purple-soft);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 18px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.assignment-map-selection > span {
+  color: var(--muted);
+}
+.assignment-map-selection > .btn {
+  margin-left: auto;
+  font-size: 11px;
+  min-height: 34px;
+}
+.assignment-map-source {
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin-top: 18px;
+}
+.assignment-map-source a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.assignment-map-loading {
+  padding: 50px 24px;
+  min-height: 300px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.team-region-button {
+  display: flex;
+  gap: 6px;
+  max-width: 180px;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.5;
+}
+.team-region-button > svg {
+  flex-shrink: 0;
+  color: var(--purple);
+}
+.team-region-button > span {
+  overflow-wrap: anywhere;
+}
+.team-region-button > small {
+  color: var(--purple);
+  font-size: 10px;
+  text-decoration: underline;
+}
+.assignment-region-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.assignment-region-row .btn {
+  font-size: 12px;
+}
+.surveyor-task-region {
+  font-size: 12px;
+  color: var(--purple);
+  margin: 8px 0;
+}
+@media (max-width: 800px) {
+  .team-directory .team-search-bar > select {
+    max-width: none;
+  }
+  .team-directory .page-heading {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .team-directory .page-heading > .actions {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 600px) {
+  .assignment-map {
+    padding: 20px 14px;
+  }
+  .assignment-map-heading {
+    flex-direction: column;
+    gap: 9px;
+    margin-bottom: 17px;
+  }
+  .assignment-map-metrics > * {
+    padding: 14px 10px;
+  }
+  .assignment-map-metrics strong {
+    font-size: 25px;
+  }
+  .assignment-map-metrics span {
+    font-size: 10px;
+  }
+  .team-table td[data-label='Wilayah'] {
+    grid-column: 1 / -1;
+  }
+  .team-region-button {
+    max-width: 240px;
+    font-size: 12px;
+  }
+  .assignment-map-selection {
+    padding: 12px;
+  }
+  .assignment-map-selection > .btn {
+    margin-left: 0;
+  }
+  .team-directory .team-search-bar .team-search {
+    flex-basis: 100%;
+  }
+}

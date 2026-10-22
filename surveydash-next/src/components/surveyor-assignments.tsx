@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useEffectEvent, useState } from 'react';
+import Link from 'next/link';
 import { Check, Copy, Link2, Loader2, RefreshCw, Search, UserPlus, UsersRound } from 'lucide-react';
 import { matchesSurveyor, type SurveyorStatusFilter } from '@/lib/surveyor-search';
 import { Badge, Button, EmptyState } from './ui';
 import { SurveyorShareLink } from './surveyor-portal';
 import type { ManagedSurveyorAssignment } from '@/lib/surveyor-types';
+import { provinceName } from '@/lib/provinces';
+import { AssignmentProvinceDialog } from './assignment-province-dialog';
 import '@/app/manager-surveyors.css';
 
 interface Invitation {
@@ -44,6 +47,7 @@ export function SurveyorAssignments({
   const [invitationError, setInvitationError] = useState('');
   const [message, setMessage] = useState('');
   const [copiedUrl, setCopiedUrl] = useState('');
+  const [regionTarget, setRegionTarget] = useState<ManagedSurveyorAssignment | null>(null);
   const assignments =
     providedAssignments ?? (assignmentData?.endpoint === endpoint ? assignmentData.assignments : null);
   const invitation = invitationData?.endpoint === invitationEndpoint ? invitationData.invitation : null;
@@ -159,6 +163,12 @@ export function SurveyorAssignments({
     <section className="surveyor-manager-panel">
       <div className="surveyor-task-heading">
         <h2>Surveyor</h2>
+        <Link
+          href={`/studio/surveyors?survey=${encodeURIComponent(surveyId)}&view=map`}
+          className="btn btn-secondary"
+        >
+          Peta tim
+        </Link>
         <Button
           variant="ghost"
           disabled={!!pending || invitationPending}
@@ -337,6 +347,12 @@ export function SurveyorAssignments({
                   </Badge>
                 </div>
                 <p className="hint">{assignment.responseCount.toLocaleString('id-ID')} respons</p>
+                <div className="assignment-region-row">
+                  <span>{provinceName(assignment.provinceId)}</span>
+                  <Button variant="ghost" onClick={() => setRegionTarget(assignment)}>
+                    Atur wilayah
+                  </Button>
+                </div>
                 <p className="manager-respondent-link-label">
                   <Link2 size={14} />
                   Link responden
@@ -372,6 +388,19 @@ export function SurveyorAssignments({
             description="Coba nama lain atau ubah filternya."
           />
         )}
+      {regionTarget && (
+        <AssignmentProvinceDialog
+          key={regionTarget.id}
+          surveyId={surveyId}
+          assignment={regionTarget}
+          onClose={() => setRegionTarget(null)}
+          onSaved={(assignments) => {
+            setAssignmentData({ endpoint, assignments });
+            onAssignmentsChange?.(assignments);
+            setMessage('Wilayah tugas disimpan.');
+          }}
+        />
+      )}
     </section>
   );
 }

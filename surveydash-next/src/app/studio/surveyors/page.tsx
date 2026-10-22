@@ -9,7 +9,7 @@ import { ManagerSurveyors } from '@/components/manager-surveyors';
 export default async function WorkspaceSurveyorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ survey?: string | string[] }>;
+  searchParams: Promise<{ survey?: string | string[]; view?: string | string[] }>;
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect('/login');
@@ -19,9 +19,10 @@ export default async function WorkspaceSurveyorsPage({
   const requestedSurvey = typeof query.survey === 'string' ? query.survey : undefined;
   return (
     <ManagerSurveyors
-      key={requestedSurvey ?? 'workspace-surveyors'}
+      key={(requestedSurvey ?? 'workspace-surveyors') + ':' + String(query.view)}
       surveys={surveys}
       initialSurveyId={requestedSurvey}
+      initialView={query.view === 'map' ? 'map' : 'list'}
     />
   );
 }

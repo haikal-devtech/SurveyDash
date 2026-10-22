@@ -5,6 +5,7 @@ import { AppError, getSurvey, listSurveys } from './repository';
 import { assertSurveyor } from './account-repository';
 import { authBaseUrl } from './origins';
 import { canAccessForm } from './model';
+import { isProvinceId } from './provinces';
 import type { Survey } from './types';
 import type { SurveyorAssignment, ManagedSurveyorAssignment, SurveyorAttribution } from './surveyor-types';
 
@@ -16,14 +17,16 @@ function managed(row: Row): ManagedSurveyorAssignment {
     username: String(row.username),
     fullName: String(row.full_name),
     active: Number(row.active) === 1,
+    provinceId: row.province_id ? String(row.province_id) : null,
     shareUrl: shareUrl(String(row.token)),
     responseCount: Number(row.response_count),
     createdAt: String(row.created_at),
   };
 }
-const assignmentSelect = `SELECT a.*, p.username, p.full_name,
+const assignmentSelect = `SELECT a.*, p.username, p.full_name, r.province_id,
   (SELECT count(*) FROM submission_attribution x WHERE x.assignment_id = a.id) AS response_count
-  FROM surveyor_assignments a JOIN surveyor_profiles p ON p.user_id = a.surveyor_id `;
+  FROM surveyor_assignments a JOIN surveyor_profiles p ON p.user_id = a.surveyor_id
+  LEFT JOIN surveyor_assignment_regions r ON r.assignment_id = a.id `;
 
 export async function listManagedSurveyors(surveyId: string, ownerId: string) {
   await getSurvey(surveyId, ownerId);
@@ -139,6 +142,7 @@ export async function listSurveyorAssignments(userId: string): Promise<SurveyorA
       institution: survey.institution,
       status: survey.status,
       active: true,
+      provinceId: row.province_id ? String(row.province_id) : null,
       shareUrl: shareUrl(String(row.token)),
       responseCount: Number(row.response_count),
       questions: survey.questions.map((q) => ({
@@ -148,6 +152,40 @@ export async function listSurveyorAssignments(userId: string): Promise<SurveyorA
     });
   }
   return result;
+}
+export async function setAssignmentProvince(
+  surveyId: string,
+  ownerId: string,
+  assignmentId: string,
+  provinceId: string | null,
+  actor: string,
+) {
+  if (provinceId !== null && !isProvinceId(provinceId)) throw new AppError('Pilih provinsi yang tersedia.');
+  return getDb().transaction(async () => {
+    await getSurvey(surveyId, ownerId);
+    const assignment = await getDb()
+      .prepare('SELECT id FROM surveyor_assignments WHERE id = ? AND survey_id = ? AND owner_id = ?')
+      .get(assignmentId, surveyId, ownerId);
+    if (!assignment) throw new AppError('Penugasan tidak ditemukan.', 404);
+    const at = new Date().toISOString();
+    if (provinceId === null) {
+      await getDb()
+        .prepare('DELETE FROM surveyor_assignment_regions WHERE assignment_id = ?')
+        .run(assignmentId);
+    } else {
+      await getDb()
+        .prepare(
+          `INSERT INTO surveyor_assignment_regions (assignment_id, province_id, updated_by, updated_at)
+        VALUES (?, ?, ?, ?) ON CONFLICT (assignment_id) DO UPDATE SET
+        province_id = excluded.province_id, updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
+        )
+        .run(assignmentId, provinceId, actor, at);
+    }
+    await getDb()
+      .prepare('UPDATE surveyor_assignments SET assigned_by = ?, updated_at = ? WHERE id = ?')
+      .run(actor, at, assignmentId);
+    return listManagedSurveyors(surveyId, ownerId);
+  });
 }
 export async function resolveReferral(
   token: string,

@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useDeferredValue, useState } from 'react';
 import {
   ArrowUpRight,
@@ -10,12 +11,24 @@ import {
   UserMinus,
   Loader2,
   RefreshCw,
+  MapPin,
+  Map,
+  List,
 } from 'lucide-react';
 import type { ManagedSurveyorAssignment } from '@/lib/surveyor-types';
 import { matchesSurveyor, type SurveyorStatusFilter } from '@/lib/surveyor-search';
 import { Badge, Button, EmptyState, Modal } from './ui';
 import { SurveyorAssignments } from './surveyor-assignments';
+import { AssignmentProvinceDialog } from './assignment-province-dialog';
+import { provinces, provinceName, isProvinceId } from '@/lib/provinces';
 import '@/app/manager-surveyors.css';
+const AssignmentMap = dynamic(() => import('./assignment-map').then((module) => module.AssignmentMap), {
+  loading: () => (
+    <p className="assignment-map-loading" role="status">
+      Memuat peta wilayah…
+    </p>
+  ),
+});
 interface SurveyGroup {
   surveyId: string;
   title: string;
@@ -24,19 +37,31 @@ interface SurveyGroup {
 export function ManagerSurveyors({
   surveys,
   initialSurveyId,
+  initialView = 'list',
 }: {
   surveys: SurveyGroup[];
   initialSurveyId?: string;
+  initialView?: 'list' | 'map';
 }) {
   const [groups, setGroups] = useState(surveys);
   const [surveyFilter, setSurveyFilter] = useState(
     surveys.some((s) => s.surveyId === initialSurveyId) ? initialSurveyId! : 'all',
   );
-  const [inviteId, setInviteId] = useState(initialSurveyId ?? surveys[0]?.surveyId ?? '');
+  const [inviteId, setInviteId] = useState(
+    surveys.some((survey) => survey.surveyId === initialSurveyId)
+      ? initialSurveyId!
+      : (surveys[0]?.surveyId ?? ''),
+  );
   const [inviteOpen, setInviteOpen] = useState(false);
   const [query, setQuery] = useState('');
   const search = useDeferredValue(query);
-  const [status, setStatus] = useState<SurveyorStatusFilter>('all');
+  const [status, setStatus] = useState<SurveyorStatusFilter>(initialView === 'map' ? 'active' : 'all');
+  const [view, setView] = useState(initialView);
+  const [provinceFilter, setProvinceFilter] = useState('all');
+  const [regionTarget, setRegionTarget] = useState<{
+    surveyId: string;
+    assignment: ManagedSurveyorAssignment;
+  } | null>(null);
   const [selected, setSelected] = useState<{
     surveyId: string;
     title: string;
@@ -49,10 +74,22 @@ export function ManagerSurveyors({
   const rows = groups.flatMap((group) =>
     group.assignments.map((assignment) => ({ surveyId: group.surveyId, title: group.title, assignment })),
   );
-  const visible = rows.filter(
+  const matching = rows.filter(
     (row) =>
       (surveyFilter === 'all' || row.surveyId === surveyFilter) &&
-      matchesSurveyor(row.assignment, search, status, row.title),
+      matchesSurveyor(
+        row.assignment,
+        search,
+        status,
+        row.title + ' ' + provinceName(row.assignment.provinceId),
+      ),
+  );
+  const visible = matching.filter(
+    (row) =>
+      provinceFilter === 'all' ||
+      (provinceFilter === 'unset'
+        ? !row.assignment.provinceId || !isProvinceId(row.assignment.provinceId)
+        : row.assignment.provinceId === provinceFilter),
   );
   const people = new Set(rows.map((row) => row.assignment.username)).size;
   async function refreshTeam() {
@@ -105,6 +142,23 @@ export function ManagerSurveyors({
           <p>Cari anggota tim dan atur penugasannya.</p>
         </div>
         <div className="actions">
+          <div className="team-view-switch" role="group" aria-label="Tampilan tim">
+            <Button variant="ghost" aria-pressed={view === 'list'} onClick={() => setView('list')}>
+              <List size={16} />
+              Daftar
+            </Button>
+            <Button
+              variant="ghost"
+              aria-pressed={view === 'map'}
+              onClick={() => {
+                setView('map');
+                setStatus('active');
+              }}
+            >
+              <Map size={16} />
+              Peta
+            </Button>
+          </div>
           <Button
             variant="secondary"
             onClick={() => void refreshTeam()}
@@ -143,27 +197,29 @@ export function ManagerSurveyors({
               {error}
             </div>
           )}
-          <div className="team-summary">
-            {[
-              { label: 'Anggota tim', value: people, Icon: UsersRound },
-              {
-                label: 'Tugas aktif',
-                value: rows.filter((r) => r.assignment.active).length,
-                Icon: UserCheck,
-              },
-              {
-                label: 'Tugas nonaktif',
-                value: rows.filter((r) => !r.assignment.active).length,
-                Icon: UserMinus,
-              },
-            ].map(({ label, value, Icon }) => (
-              <section className="card" key={label} data-motion-enter="">
-                <Icon size={19} />
-                <span>{label}</span>
-                <strong>{value}</strong>
-              </section>
-            ))}
-          </div>
+          {view === 'list' && (
+            <div className="team-summary">
+              {[
+                { label: 'Anggota tim', value: people, Icon: UsersRound },
+                {
+                  label: 'Tugas aktif',
+                  value: rows.filter((r) => r.assignment.active).length,
+                  Icon: UserCheck,
+                },
+                {
+                  label: 'Tugas nonaktif',
+                  value: rows.filter((r) => !r.assignment.active).length,
+                  Icon: UserMinus,
+                },
+              ].map(({ label, value, Icon }) => (
+                <section className="card" key={label} data-motion-enter="">
+                  <Icon size={19} />
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                </section>
+              ))}
+            </div>
+          )}
           {inviteOpen && (
             <section className="team-invite-panel">
               <div className="card manager-surveyor-picker">
@@ -230,9 +286,33 @@ export function ManagerSurveyors({
                   </option>
                 ))}
               </select>
+              <select
+                className="input"
+                aria-label="Filter wilayah tugas"
+                value={provinceFilter}
+                onChange={(event) => setProvinceFilter(event.target.value)}
+              >
+                <option value="all">Semua wilayah</option>
+                <option value="unset">Belum diatur</option>
+                {provinces.map((province) => (
+                  <option key={province.id} value={province.id}>
+                    {province.name}
+                  </option>
+                ))}
+              </select>
             </div>
+            {view === 'map' && (
+              <AssignmentMap
+                assignments={matching.map((row) => row.assignment)}
+                selected={provinceFilter}
+                onSelect={setProvinceFilter}
+              />
+            )}
             <p className="team-result-count" role="status">
               {visible.length} penugasan ditemukan
+              {provinceFilter !== 'all'
+                ? ` · ${provinceFilter === 'unset' ? 'Wilayah belum diatur' : provinceName(provinceFilter)}`
+                : ''}
             </p>
             {visible.length ? (
               <div className="team-table-scroll">
@@ -241,6 +321,7 @@ export function ManagerSurveyors({
                     <tr>
                       <th>Surveyor</th>
                       <th>Survei</th>
+                      <th>Wilayah tugas</th>
                       <th>Respons</th>
                       <th>Status</th>
                       <th>
@@ -268,6 +349,18 @@ export function ManagerSurveyors({
                             <ArrowUpRight size={13} />
                           </Link>
                         </td>
+                        <td data-label="Wilayah">
+                          <Button
+                            variant="ghost"
+                            className="team-region-button"
+                            onClick={() => setRegionTarget({ surveyId, assignment })}
+                            aria-label={`Atur wilayah @${assignment.username} untuk ${title}`}
+                          >
+                            <MapPin size={15} />
+                            <span>{provinceName(assignment.provinceId)}</span>
+                            <small>Atur</small>
+                          </Button>
+                        </td>
                         <td data-label="Respons">{assignment.responseCount.toLocaleString('id-ID')}</td>
                         <td data-label="Status">
                           <Badge tone={assignment.active ? 'green' : 'neutral'}>
@@ -294,7 +387,13 @@ export function ManagerSurveyors({
             ) : (
               <EmptyState
                 icon={<Search size={25} />}
-                title={rows.length ? 'Surveyor tidak ditemukan' : 'Tim survei masih kosong'}
+                title={
+                  rows.length
+                    ? provinceFilter === 'all'
+                      ? 'Surveyor tidak ditemukan'
+                      : 'Belum ada penugasan di wilayah ini'
+                    : 'Tim survei masih kosong'
+                }
                 description={
                   rows.length
                     ? 'Coba nama lain atau ubah filternya.'
@@ -304,6 +403,18 @@ export function ManagerSurveyors({
             )}
           </section>
         </>
+      )}
+      {regionTarget && (
+        <AssignmentProvinceDialog
+          key={regionTarget.assignment.id}
+          surveyId={regionTarget.surveyId}
+          assignment={regionTarget.assignment}
+          onClose={() => setRegionTarget(null)}
+          onSaved={(assignments) => {
+            update(regionTarget.surveyId, assignments);
+            setNotice(`Wilayah tugas @${regionTarget.assignment.username} diperbarui.`);
+          }}
+        />
       )}
       <Modal
         open={!!selected}

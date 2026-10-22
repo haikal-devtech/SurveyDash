@@ -25,6 +25,10 @@ export default function PrivacyPage() {
           'Link pribadi menghubungkan satu surveyor dengan satu survei yang ditugaskan. Nama dan username surveyor dapat terlihat oleh siapa pun yang menerima link dan ditampilkan pada form agar responden mengetahui asal link. Saat jawaban dikirim, server memeriksa link dan mencatat atribusi surveyor bersama jawaban. Responden tidak perlu mengetik nama surveyor. Link dapat diteruskan oleh penerima; atribusi menunjukkan asal link yang digunakan, bukan bukti identitas responden atau bukti siapa yang mengirim pesan terakhir.',
         ],
         [
+          'Wilayah tugas surveyor',
+          'Pengelola dapat menetapkan provinsi untuk setiap penugasan surveyor. Wilayah ini tampil pada tugas milik surveyor dan peta tim di workspace pengelola yang berwenang. Peta menghitung penugasan berdasarkan wilayah yang ditetapkan. Aplikasi tidak meminta GPS untuk fitur ini, dan wilayah penugasan tidak digunakan sebagai domisili responden. Peta tidak dipublikasikan bersama form atau presentasi.',
+        ],
+        [
           'Undangan surveyor',
           'Pengelola dapat membagikan link undangan yang berlaku tujuh hari dan dapat dimatikan lebih awal. Penerima link dapat melihat judul survei dan instansinya, lalu mendaftar atau masuk sebagai Surveyor dan memilih Bergabung. Akun yang bergabung tercatat pada penugasan milik Pengelola. Link dapat diteruskan, sehingga Pengelola perlu membagikannya melalui pesan pribadi kepada orang yang dituju. Mematikan undangan menghentikan orang baru bergabung; penugasan yang sudah ada diatur secara terpisah.',
         ],

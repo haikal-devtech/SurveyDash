@@ -26,6 +26,7 @@ import { GuideButton, RoleGuide } from './role-guide';
 import { DashboardMotionProvider } from './dashboard-motion-context';
 import { MotionScene, SelectionRail } from './dashboard-motion';
 import { BrandArtwork } from './brand-artwork';
+import { provinceName } from '@/lib/provinces';
 import '@/app/workspace-experience.css';
 
 interface PortalData {
@@ -556,6 +557,9 @@ export function SurveyorPortal({
                       </Badge>
                     </div>
                     <h3>{task.title}</h3>
+                    {task.provinceId && (
+                      <p className="surveyor-task-region">Wilayah tugas: {provinceName(task.provinceId)}</p>
+                    )}
                     <p className="surveyor-task-count">
                       <FileQuestion size={15} />
                       {task.questions.length} pertanyaan<span>·</span>

@@ -1,0 +1,29 @@
+# Surveyor assignment map
+
+The user confirmed that the map should show surveyor task territories. The implementation starts at province level. It represents the manager's assigned work area, not respondent residence, device/GPS coordinates or proof that fieldwork happened at that location. Response counts remain labelled as responses via each task's link in the team list.
+
+Managers open **Surveyor → Peta**, or **Peta tim** from a survey's assignment panel. The map defaults to active assignments. Name/survey/status filters apply to the map and list; province selection filters the list while retaining the surrounding map. Unassigned provinces are zero, and legacy tasks remain **Belum diatur** until the manager sets them. Multiple tasks for the same username count as separate assignments; each province's accessible label also reports distinct usernames. The province selector, SVG keyboard controls and zoom/reset controls provide alternatives to tapping small provinces.
+
+**Atur** on a team row and **Atur wilayah** within a survey open the same province dialog. Updates return the current scoped assignment list. The surveyor can read the assigned province on their own task but cannot edit it. Clearing a province removes only that setting. Changing/clearing a province does not rotate a referral token, activate a task, change response attribution or rewrite answers. Explicit deactivation/reactivation retains the province and follows existing token-rotation rules. Province information is not added to the public form, respondent submission or shared presentation.
+
+## Storage and deployment
+
+The additive `surveyor_assignment_regions` table references an existing assignment and stores `province_id`, the actual updating actor and timestamp. Existing assignment/profile/response tables and their positional inserts are unchanged. The manager PATCH endpoint retains its existing active-state payload and adds a strict alternative `{ assignmentId, provinceId }`, with canonical IDs validated on the server. Combined active/province payloads, invalid provinces, foreign owners, surveyor callers and foreign origins are rejected. Existing workspace and task APIs return the new optional province field under their existing access guards.
+
+PostgreSQL requires the new idempotent table from `src/lib/db.ts` before releasing the code that joins it; `initializeDatabase` includes it for setup. The rollout backs up each intended cloud database first and applies only that additive table. SQLite creates it with its existing schema initialization. Cloud backup discovers all tables automatically, and the staging restore order now includes the region table after assignments. Previous versions can continue running against the additive schema. Runtime map requests do not perform DDL or call external geography services.
+
+## Geometry and attribution
+
+The static SVG geometry is generated from [denyherianto's 38-province dataset](https://github.com/denyherianto/indonesia-geojson-topojson-maps-with-38-provinces/tree/80aa4a90ac7eef5136eaa2b551b6aa5d198be27d), pinned to commit `80aa4a90ac7eef5136eaa2b551b6aa5d198be27d`. Data is licensed CC BY 4.0, independently of the repo's MIT code license. Visible credit links to the source and [local license/change notice](/licenses/indonesia-provinces.txt). `scripts/build-province-map.mjs` downloads only JSON/license text, validates all 38 provinces and coordinate bounds, projects rings to a near-equatorial display plane and rounds projected coordinates. IDs are internal name slugs, not official administrative codes. All six Papua-region provinces are represented; detailed district boundaries are outside this version.
+
+The derived geometry is about 40 KB and the map component is loaded on demand. No map library, tile service, API key or new image asset is added. A geography-only PNG render was inspected for the island/province outline; it is not browser/UI verification. Browser map interaction, real keyboard/pointer operation, zoom, mobile layout and visual QA remain unverified because the saved automatic browser approval policy denies access.
+
+## Framework patch
+
+The first build surfaced npm security advisories for installed Next.js 16.4.0: [Server Actions denial of service](https://github.com/advisories/GHSA-p3m5-59mp-jv5r), [SVG image optimization](https://github.com/advisories/GHSA-2464-fhr4-w9xw) and [`use cache` typed arrays](https://github.com/advisories/GHSA-673q-mjm6-r5xr). npm reports the affected range through 16.4.0. Next.js and eslint-config-next are pinned to the compatible 16.4.2 patch; React and application APIs are unchanged. Final validation is repeated on that version before release.
+
+## Validation
+
+On Next.js 16.4.2, all 97 tests, strict ESLint and the optimized production build passed. npm's bulk advisory endpoint returned no Next.js advisories for 16.4.2 at verification time. Existing conservative ESLint peer ranges in eslint-plugin-import/jsx-a11y/react still warn about the already-installed ESLint 10; these same plugin versions/ranges predate this change and strict lint passes.
+
+A fresh isolated local production server passed 79 HTTP checks covering manager/surveyor/anonymous role guards, foreign-owner/origin/invalid/combined-payload refusal, setting/clearing a province, unchanged referral links, assigned surveyor metadata, a 38-province SSR map, per-survey map counts, license/CSS delivery, guide persistence and anonymous direct/referral response submission. Respondent form responses contain no assignment province. PostgreSQL staging tests exercised the region joins/upsert/clear within a transaction and rolled back all synthetic changes. The additive staging migration preserved all existing survey, submission and assignment counts. Browser visual/interaction limitations remain as stated above.
