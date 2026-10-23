@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Answer, Distribution, Question, Submission, Survey, SurveyStats, WidgetType } from './types';
 import { categoryChartTypes, trendChartTypes } from './chart-types';
+import { visibleQuestions } from './form-flow';
 
 export class ModelError extends Error {}
 
@@ -14,6 +15,22 @@ export const questionSchema = z
     scored: z.boolean(),
     chartVisible: z.boolean().optional(),
     chartType: z.enum(categoryChartTypes).optional(),
+    section: z.string().trim().max(100).optional(),
+    showWhen: z
+      .object({
+        questionId: z.string().min(1).max(100),
+        operator: z.enum(['equals', 'answered']),
+        value: z.string().max(300).optional(),
+      })
+      .optional(),
+    validation: z
+      .object({
+        min: z.number().finite().optional(),
+        max: z.number().finite().optional(),
+        maxLength: z.number().int().min(1).max(10000).optional(),
+        format: z.enum(['email', 'phone']).optional(),
+      })
+      .optional(),
     options: z
       .array(
         z.object({
@@ -35,6 +52,7 @@ export const questionSchema = z
 export const surveyInputSchema = z
   .object({
     title: z.string().trim().min(3).max(200),
+    dataset: z.enum(['all', 'accepted']).optional(),
     description: z.string().max(3000),
     institution: z.string().max(200),
     kind: z.enum(['skm', 'custom']),
@@ -64,6 +82,25 @@ export const surveyInputSchema = z
       ctx.addIssue({ code: 'custom', message: 'ID pertanyaan harus unik.' });
     if (new Set(s.widgets.map((w) => w.id)).size !== s.widgets.length)
       ctx.addIssue({ code: 'custom', message: 'ID komponen harus unik.' });
+    s.questions.forEach((q, index) => {
+      if (
+        q.validation?.min !== undefined &&
+        q.validation?.max !== undefined &&
+        q.validation.min > q.validation.max
+      )
+        ctx.addIssue({ code: 'custom', message: 'Batas minimum tidak boleh melebihi maksimum.' });
+      if (!q.showWhen) return;
+      const source = s.questions.slice(0, index).find((entry) => entry.id === q.showWhen!.questionId);
+      if (
+        !source ||
+        (q.showWhen.operator === 'equals' &&
+          !source.options.some((option) => option.id === q.showWhen!.value))
+      )
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Syarat pertanyaan harus memakai pertanyaan sebelumnya dan pilihan yang tersedia.',
+        });
+    });
     if (s.kind === 'skm' && s.questions.filter((q) => q.scored).length !== 9)
       ctx.addIssue({ code: 'custom', message: 'Survei SKM harus mempunyai tepat 9 unsur yang diberi skor.' });
     s.widgets.forEach((w) => {
@@ -90,7 +127,7 @@ export function validateAnswers(questions: Question[], input: unknown): Record<s
     )
     .parse(input);
   const result: Record<string, Answer> = {};
-  for (const q of questions) {
+  for (const q of visibleQuestions(questions, raw)) {
     const value = raw[q.id];
     const empty =
       value === undefined ||
@@ -114,11 +151,24 @@ export function validateAnswers(questions: Question[], input: unknown): Record<s
     } else if (q.type === 'number') {
       if (typeof value !== 'number' || !Number.isFinite(value))
         throw new ModelError(`"${q.label}" harus berupa angka.`);
+      if (
+        (q.validation?.min !== undefined && value < q.validation.min) ||
+        (q.validation?.max !== undefined && value > q.validation.max)
+      )
+        throw new ModelError(`Angka untuk "${q.label}" di luar batas yang diizinkan.`);
     } else {
       if (typeof value !== 'string') throw new ModelError(`Jawaban untuk "${q.label}" tidak valid.`);
+      if (value.length > (q.validation?.maxLength ?? 10000))
+        throw new ModelError(`Jawaban "${q.label}" terlalu panjang.`);
+      if (q.validation?.format === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+        throw new ModelError(`Alamat email untuk "${q.label}" tidak valid.`);
+      if (q.validation?.format === 'phone' && !/^\+?[0-9 ()-]{6,25}$/.test(value))
+        throw new ModelError(`Nomor telepon untuk "${q.label}" tidak valid.`);
       if (
         q.type === 'date' &&
-        (!/^\d{4}-\d{2}-\d{2}$/.test(value) || new Date(value).toISOString().slice(0, 10) !== value)
+        (!/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+          !Number.isFinite(Date.parse(value)) ||
+          new Date(value).toISOString().slice(0, 10) !== value)
       )
         throw new ModelError('Tanggal tidak valid.');
     }
@@ -214,6 +264,8 @@ export function assertSchemaCompatible(
       !next ||
       next.type !== q.type ||
       next.scored !== q.scored ||
+      JSON.stringify(next.showWhen) !== JSON.stringify(q.showWhen) ||
+      JSON.stringify(next.validation) !== JSON.stringify(q.validation) ||
       JSON.stringify(next.options) !== JSON.stringify(q.options)
     ) {
       throw new ModelError(

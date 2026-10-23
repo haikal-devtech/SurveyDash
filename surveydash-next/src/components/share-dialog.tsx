@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import { useEffect, useState } from 'react';
 import { Copy, ExternalLink, Loader2 } from 'lucide-react';
 import type { ShareStatus } from '@/lib/share-repository';
@@ -13,7 +14,7 @@ export function ShareDialog({ id, version, onClose }: { id: string; version: num
   const [confirmRevoke, setConfirmRevoke] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`/api/presentations/${id}/share`, { signal: controller.signal })
+    workspaceFetch(`/api/presentations/${id}/share`, { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw Error(data.error);
@@ -32,7 +33,7 @@ export function ShareDialog({ id, version, onClose }: { id: string; version: num
     setError('');
     setNotice('');
     try {
-      const response = await fetch(`/api/presentations/${id}/share`, {
+      const response = await workspaceFetch(`/api/presentations/${id}/share`, {
         method: revoke ? 'DELETE' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: revoke ? undefined : JSON.stringify({ version, acknowledge: ack }),

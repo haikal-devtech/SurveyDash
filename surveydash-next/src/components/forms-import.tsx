@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileUp, ArrowRight } from 'lucide-react';
@@ -27,7 +28,7 @@ export function FormsImport({ googleFailed = false }: { googleFailed?: boolean }
     setPending(true);
     try {
       const source: unknown = JSON.parse(await file.text());
-      const response = await fetch('/api/import/forms', {
+      const response = await workspaceFetch('/api/import/forms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'preview', source }),
@@ -52,7 +53,7 @@ export function FormsImport({ googleFailed = false }: { googleFailed?: boolean }
     setPending(true);
     setError('');
     try {
-      const response = await fetch('/api/import/forms', {
+      const response = await workspaceFetch('/api/import/forms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'import', batchId: preview.batchId, acknowledge }),

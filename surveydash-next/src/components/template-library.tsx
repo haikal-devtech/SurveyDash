@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import { useState } from 'react';
 import {
   ClipboardList,
@@ -171,7 +172,7 @@ export function TemplateLibrary({
     setOperation({ kind, template });
   }
   async function mutate(template: SavedTemplate, method: 'POST' | 'PATCH', body: unknown) {
-    const response = await fetch(`/api/templates/${template.id}`, {
+    const response = await workspaceFetch(`/api/templates/${template.id}`, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -227,7 +228,7 @@ export function TemplateLibrary({
         </div>
         <div className="actions">
           <Badge tone="purple">{systemTemplates.length + active.length} template</Badge>
-          <Button onClick={() => setCreating(true)} disabled={!surveys.length}>
+          <Button permission="edit" onClick={() => setCreating(true)} disabled={!surveys.length}>
             <Plus size={14} />
             Buat template
           </Button>
@@ -317,13 +318,19 @@ export function TemplateLibrary({
                   Pratinjau
                 </Button>
                 {template.archivedAt ? (
-                  <Button disabled={pending} onClick={() => void archive(template)} variant="secondary">
+                  <Button
+                    permission="edit"
+                    disabled={pending}
+                    onClick={() => void archive(template)}
+                    variant="secondary"
+                  >
                     <ArchiveRestore size={13} />
                     Pulihkan
                   </Button>
                 ) : (
                   <Button
                     onClick={() => setSelected(template)}
+                    permission="edit"
                     disabled={template.category === 'presentation' && !surveys.length}
                   >
                     {template.category === 'presentation' ? 'Gunakan' : 'Buat survei'}
@@ -336,6 +343,7 @@ export function TemplateLibrary({
                   <Button
                     variant="ghost"
                     aria-label={`Duplikat template ${template.name}`}
+                    permission="edit"
                     title="Duplikat"
                     onClick={() => startOperation(template, 'duplicate')}
                   >
@@ -346,6 +354,7 @@ export function TemplateLibrary({
                       <Button
                         variant="ghost"
                         aria-label={`Ubah template ${template.name}`}
+                        permission="edit"
                         title="Ubah nama dan deskripsi"
                         onClick={() => startOperation(template, 'edit')}
                       >
@@ -355,6 +364,7 @@ export function TemplateLibrary({
                         variant="ghost"
                         disabled={pending}
                         aria-label={`Arsipkan template ${template.name}`}
+                        permission="edit"
                         title="Arsipkan"
                         onClick={() => void archive(template)}
                       >

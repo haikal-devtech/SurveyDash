@@ -5,8 +5,8 @@ export const runtime = 'nodejs';
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireWorkspaceUser();
+    const user = await requireWorkspaceUser({ write: true });
     const input = z.object({ name: z.string().trim().min(3).max(200) }).parse(await readJson(request));
     return saveSlideTemplate((await context.params).id, user.ownerId, input.name);
-  });
+  }, '/api/presentations/[id]/template');
 }

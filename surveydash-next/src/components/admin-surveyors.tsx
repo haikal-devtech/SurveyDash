@@ -3,6 +3,7 @@ import { useEffect, useEffectEvent, useState } from 'react';
 import { RefreshCw, X } from 'lucide-react';
 import { ProvinceMapCanvas, MapAttribution } from './province-map-canvas';
 import { Button } from './ui';
+import { SurveyorBlockAction } from './surveyor-block-action';
 import { provinces, provinceName, isProvinceId } from '@/lib/provinces';
 import { surveyorDirectoryMap } from '@/lib/surveyor-directory-map';
 import type { RegisteredSurveyor } from '@/lib/admin-surveyors';
@@ -10,6 +11,7 @@ import '@/app/manager-surveyors.css';
 export function AdminSurveyors({ initialSurveyors }: Readonly<{ initialSurveyors: RegisteredSurveyor[] }>) {
   const [surveyors, setSurveyors] = useState(initialSurveyors),
     [selected, setSelected] = useState('all');
+  const [blocks, setBlocks] = useState<string[] | null>(null);
   const [query, setQuery] = useState(''),
     [pending, setPending] = useState(false),
     [error, setError] = useState('');
@@ -21,6 +23,7 @@ export function AdminSurveyors({ initialSurveyors }: Readonly<{ initialSurveyors
       if (!response.ok) throw new Error(data.error ?? 'Daftar surveyor belum dapat dimuat.');
       if (!signal?.aborted) {
         setSurveyors(data.surveyors);
+        setBlocks(data.blockedSurveyors ?? []);
         setError('');
       }
     } catch (failure) {
@@ -43,6 +46,7 @@ export function AdminSurveyors({ initialSurveyors }: Readonly<{ initialSurveyors
       }
     };
     const timer = setInterval(() => void check(), 30000);
+    void check();
     return () => {
       controller.abort();
       clearInterval(timer);
@@ -164,6 +168,7 @@ export function AdminSurveyors({ initialSurveyors }: Readonly<{ initialSurveyors
               <th>Nama</th>
               <th>Username</th>
               <th>Provinsi profil</th>
+              <th>Akses platform</th>
             </tr>
           </thead>
           <tbody>
@@ -172,6 +177,16 @@ export function AdminSurveyors({ initialSurveyors }: Readonly<{ initialSurveyors
                 <td>{person.fullName}</td>
                 <td>@{person.username}</td>
                 <td>{person.provinceId ? provinceName(person.provinceId) : 'Belum diisi'}</td>
+                <td>
+                  {blocks && (
+                    <SurveyorBlockAction
+                      surveyorId={person.userId}
+                      global
+                      blocked={blocks.includes(person.userId)}
+                      onSaved={() => void refresh()}
+                    />
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -14,7 +14,10 @@ import {
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 export async function GET() {
-  return api(async () => googleConnectionStatus((await requireManagerUser()).id));
+  return api(
+    async () => googleConnectionStatus((await requireManagerUser()).id),
+    '/api/integrations/google-forms',
+  );
 }
 export async function POST(request: Request) {
   return api(async () => {
@@ -31,7 +34,7 @@ export async function POST(request: Request) {
       ])
       .parse(await readJson(request));
     if (body.action === 'preview') {
-      const workspace = await requireWorkspaceUser();
+      const workspace = await requireWorkspaceUser({ write: true });
       const source = await fetchConnectedGoogleForm(
         user.id,
         body.formId,
@@ -49,12 +52,12 @@ export async function POST(request: Request) {
       maxAge: 600,
     });
     return { url: connection.url };
-  });
+  }, '/api/integrations/google-forms');
 }
 export async function DELETE(request: Request) {
   return api(async () => {
     checkOrigin(request);
     await disconnectGoogleConnection((await requireManagerUser()).id);
     return { disconnected: true };
-  });
+  }, '/api/integrations/google-forms');
 }

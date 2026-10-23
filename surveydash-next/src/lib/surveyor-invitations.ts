@@ -2,9 +2,11 @@ import { randomBytes } from 'node:crypto';
 import { getDb } from './db';
 import { AppError, getSurvey } from './repository';
 import { assertSurveyor } from './account-repository';
+import { assertSurveyorAvailable } from './surveyor-blocks';
 import { assignSurveyor } from './surveyor-repository';
 import { authBaseUrl } from './origins';
 import type { Survey } from './types';
+import { recordActivity } from './workspace-activity';
 
 type Row = Record<string, string | number | null>;
 const tokenPattern = /^[a-zA-Z0-9_-]{32}$/;
@@ -43,10 +45,11 @@ export async function createSurveyorInvitation(surveyId: string, ownerId: string
         'INSERT INTO surveyor_invitations(survey_id, owner_id, token, active, created_by, expires_at, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?, ?) ON CONFLICT(survey_id) DO UPDATE SET token = excluded.token, active = 1, created_by = excluded.created_by, expires_at = excluded.expires_at, updated_at = excluded.updated_at',
       )
       .run(surveyId, ownerId, token, actor, expiresAt, at, at);
+    await recordActivity(ownerId, actor, 'surveyor.invitation.created', surveyId, { expiresAt });
     return invitationView({ token, expires_at: expiresAt });
   });
 }
-export async function revokeSurveyorInvitation(surveyId: string, ownerId: string) {
+export async function revokeSurveyorInvitation(surveyId: string, ownerId: string, actor = ownerId) {
   return getDb().transaction(async () => {
     await getSurvey(surveyId, ownerId);
     await getDb()
@@ -54,6 +57,7 @@ export async function revokeSurveyorInvitation(surveyId: string, ownerId: string
         'UPDATE surveyor_invitations SET active = 0, updated_at = ? WHERE survey_id = ? AND owner_id = ?',
       )
       .run(new Date().toISOString(), surveyId, ownerId);
+    await recordActivity(ownerId, actor, 'surveyor.invitation.revoked', surveyId);
   });
 }
 async function resolveInvitationRow(token: string) {
@@ -75,6 +79,7 @@ export async function acceptSurveyorInvitation(token: string, userId: string) {
   return getDb().transaction(async () => {
     await assertSurveyor(userId);
     const { row, survey } = await resolveInvitationRow(token);
+    await assertSurveyorAvailable(survey.ownerId, userId);
     const profile = await getDb()
       .prepare(
         'SELECT p.username FROM surveyor_profiles p JOIN "user" u ON u.id = p.user_id WHERE p.user_id = ?',
@@ -86,8 +91,10 @@ export async function acceptSurveyorInvitation(token: string, userId: string) {
       .get(survey.id, userId);
     if (current && Number(current.active) !== 1)
       throw new AppError('Penugasan Anda dinonaktifkan. Hubungi pengelola.', 403);
-    if (!current)
+    if (!current) {
       await assignSurveyor(survey.id, survey.ownerId, String(profile.username), String(row.created_by));
+      await recordActivity(survey.ownerId, userId, 'surveyor.invitation.accepted', survey.id);
+    }
     return { surveyId: survey.id };
   });
 }

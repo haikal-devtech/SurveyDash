@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { calculateStats, distribution } from './model';
-import type { Distribution, Submission, Survey } from './types';
+import type { Distribution, Submission, Survey, SurveyInsights } from './types';
 import { categoryChartTypes, trendChartTypes, type DataChartType } from './chart-types';
 import { questionBreakdown, responseTimeline } from './analytics-model';
 export const SLIDE_WIDTH = 1280;
@@ -200,12 +200,13 @@ export function refreshPresentationData(
   document: PresentationDocument,
   survey: Survey,
   rows: Submission[],
+  supplied?: SurveyInsights,
 ): PresentationDocument {
-  const stats = calculateStats(survey, rows);
-  const timeline = responseTimeline(rows);
+  const stats = supplied?.stats ?? calculateStats(survey, rows);
+  const timeline = supplied?.timeline ?? responseTimeline(rows);
   return {
     ...document,
-    sourceRevision: dataRevision(survey, rows),
+    sourceRevision: supplied?.sourceRevision ?? dataRevision(survey, rows),
     demo: survey.demo,
     slides: document.slides.map((slide) => ({
       ...slide,
@@ -236,11 +237,12 @@ export function refreshPresentationData(
         return {
           ...element,
           data: question
-            ? question.options.length
-              ? distribution(question, rows)
-              : questionBreakdown(question, rows).rows
+            ? (supplied?.questions[question.id]?.distribution ??
+              (question.options.length
+                ? distribution(question, rows)
+                : questionBreakdown(question, rows).rows))
             : [],
-          missing: !question || !rows.length,
+          missing: !question || !stats.total,
         };
       }),
     })),

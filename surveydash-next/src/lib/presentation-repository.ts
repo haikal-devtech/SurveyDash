@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { getDb } from './db';
-import { AppError, getSurvey, listSubmissions, getTemplate } from './repository';
+import { AppError, getSurvey, getTemplate } from './repository';
+import { getSurveyInsights, getQuestionBreakdown } from './responses-repository';
+import type { Survey } from './types';
 import {
   generateSlides,
   presentationInputSchema,
@@ -11,6 +13,22 @@ import {
 } from './presentation-model';
 type Row = Record<string, string | number | null>;
 const decode = (row: Row): PresentationDocument => JSON.parse(String(row.payload));
+async function refreshStoredData(document: PresentationDocument, survey: Survey) {
+  const insights = await getSurveyInsights(survey.id, survey.ownerId);
+  const ids = new Set(
+    document.slides.flatMap((slide) =>
+      slide.elements.flatMap((element) =>
+        element.binding?.kind === 'chart' && element.binding.questionId ? [element.binding.questionId] : [],
+      ),
+    ),
+  );
+  for (const id of ids) {
+    const question = survey.questions.find((q) => q.id === id);
+    if (question && !question.options.length)
+      insights.questions[id].distribution = (await getQuestionBreakdown(survey.id, survey.ownerId, id)).rows;
+  }
+  return refreshPresentationData(document, survey, [], insights);
+}
 export async function listPresentations(surveyId: string, ownerId: string, includeArchived = false) {
   await getSurvey(surveyId, ownerId);
   return (
@@ -53,7 +71,6 @@ export async function createPresentation(
   if (survey.deletedAt) throw new AppError('Pulihkan survei sebelum membuat presentasi.');
   if (sections.includes('ikm') && survey.kind !== 'skm')
     throw new AppError('Slide IKM hanya tersedia untuk survei SKM.');
-  const rows = await listSubmissions(surveyId);
   const now = new Date().toISOString();
   const document: PresentationDocument = {
     id: randomUUID(),
@@ -61,14 +78,14 @@ export async function createPresentation(
     ownerId,
     title,
     theme,
-    slides: generateSlides(survey, rows, theme, sections, randomUUID),
+    slides: generateSlides(survey, [], theme, sections, randomUUID),
     version: 1,
     sourceRevision: '',
     demo: survey.demo,
     createdAt: now,
     updatedAt: now,
   };
-  const refreshed = refreshPresentationData(document, survey, rows);
+  const refreshed = await refreshStoredData(document, survey);
   presentationInputSchema.parse(refreshed);
   await insert(refreshed);
   return refreshed;
@@ -92,11 +109,9 @@ export async function updatePresentation(id: string, ownerId: string, input: unk
       if (!asset) throw new AppError('Gambar tidak ditemukan di workspace Anda.', 404);
     }
     const survey = await getSurvey(before.surveyId, ownerId);
-    const rows = await listSubmissions(before.surveyId);
-    const after: PresentationDocument = refreshPresentationData(
+    const after: PresentationDocument = await refreshStoredData(
       { ...before, ...parsed, version: before.version + 1, updatedAt: new Date().toISOString() },
       survey,
-      rows,
     );
     await getDb()
       .prepare('UPDATE presentations SET payload = ?, updated_at = ? WHERE id = ? AND owner_id = ?')
@@ -110,8 +125,7 @@ export async function refreshPresentation(id: string, ownerId: string, version: 
     if (before.version !== version)
       throw new AppError('Presentasi berubah. Simpan atau muat ulang terlebih dahulu.', 409);
     const survey = await getSurvey(before.surveyId, ownerId);
-    const rows = await listSubmissions(survey.id);
-    const refreshed = refreshPresentationData(before, survey, rows);
+    const refreshed = await refreshStoredData(before, survey);
     return updatePresentation(id, ownerId, refreshed);
   });
 }
@@ -232,7 +246,7 @@ export async function createFromSlideTemplate(
           .get(element.assetId, ownerId);
         if (!asset) throw new AppError('Gambar template tidak ditemukan.', 404);
       }
-  const refreshed = refreshPresentationData(document, survey, await listSubmissions(surveyId));
+  const refreshed = await refreshStoredData(document, survey);
   await insert(refreshed);
   return refreshed;
 }

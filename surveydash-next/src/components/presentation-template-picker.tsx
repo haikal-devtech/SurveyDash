@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import { useEffect, useState } from 'react';
 import { Loader2, LayoutTemplate, ArrowRight } from 'lucide-react';
 import type { SavedTemplate, Survey } from '@/lib/types';
@@ -20,7 +21,7 @@ export function PresentationTemplatePicker({
   const [error, setError] = useState('');
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/templates', { signal: controller.signal })
+    workspaceFetch('/api/templates', { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);

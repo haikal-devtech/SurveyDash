@@ -1,101 +1,56 @@
-import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, open, readdir } from 'node:fs/promises';
 import { Pool } from 'pg';
 import { getAuthDatabase, closeDatabase } from '../src/lib/db';
-if (process.env.ALLOW_STAGING_RESTORE !== 'true')
-  throw new Error('Restore harus dipilih secara eksplisit pada database staging kosong.');
-const backup = JSON.parse(await readFile(process.argv[2], 'utf8')) as {
-  version: number;
-  tables: Record<string, Record<string, unknown>[]>;
-};
-assert.equal(backup.version, 1);
-const database = getAuthDatabase();
-if (!(database instanceof Pool)) throw new Error('Restore memerlukan PostgreSQL staging.');
-const quote = (name: string) => {
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) throw new Error('Identifier tidak valid.');
-  return `"${name}"`;
-};
-const order = [
-  'user',
-  'account',
-  'session',
-  'verification',
-  'rateLimit',
-  'surveys',
-  'templates',
-  'submissions',
-  'audit',
-  'public_rate_limits',
-  'workspace_settings',
-  'account_guides',
-  'platform_admins',
-  'google_form_connections',
-  'form_import_batches',
-  'submission_import_sources',
-  'surveyor_profiles',
-  'surveyor_home_provinces',
-  'workspace_members',
-  'workspace_invitations',
-  'surveyor_assignments',
-  'surveyor_assignment_regions',
-  'survey_province_targets',
-  'surveyor_invitations',
-  'submission_attribution',
-  'cleaning_settings',
-  'cleaning_reviews',
-  'cleaning_review_audit',
-  'presentations',
-  'presentation_assets',
-  'presentation_shares',
-];
-const canonical = (rows: Record<string, unknown>[]) =>
-  rows
-    .map((row) =>
-      JSON.stringify(Object.fromEntries(Object.entries(row).sort(([a], [b]) => a.localeCompare(b)))),
-    )
-    .sort();
-const client = await database.connect();
-try {
-  await client.query('BEGIN');
-  for (const name of order) {
-    const rows = backup.tables[name];
-    if (!rows) continue;
-    const current = await client.query(`SELECT count(*) AS total FROM ${quote(name)}`);
-    if (Number(current.rows[0].total))
-      throw new Error('Target restore harus kosong; tidak ada data yang akan ditimpa.');
-    if (!rows.length) continue;
-    const columns = Object.keys(rows[0]);
-    const parameters: unknown[] = [];
-    const values = rows
-      .map(
-        (row) =>
-          `(${columns
-            .map((column) => {
-              parameters.push(row[column]);
-              return `$${parameters.length}`;
-            })
-            .join(',')})`,
-      )
-      .join(',');
-    await client.query(
-      `INSERT INTO ${quote(name)}(${columns.map(quote).join(',')}) VALUES ${values}`,
-      parameters,
-    );
-    const restored = (await client.query(`SELECT * FROM ${quote(name)}`)).rows;
-    assert.deepEqual(canonical(restored), canonical(rows));
+import { readEncryptedBackup, restoreRecords } from '../src/lib/backup-format';
+import { restoreLegacy } from '../src/lib/restore-legacy';
+async function main() {
+  if (process.env.ALLOW_STAGING_RESTORE !== 'true')
+    throw new Error('Restore harus dipilih secara eksplisit pada database staging kosong.');
+  const latest =
+    process.argv[2] === '--latest'
+      ? (await readdir('.data/backups'))
+          .filter((name) => name.endsWith('.sdb.enc'))
+          .sort()
+          .at(-1)
+      : undefined;
+  const path =
+    process.argv[2] === '--latest' ? (latest ? '.data/backups/' + latest : undefined) : process.argv[2];
+  if (!path) throw new Error('Tentukan berkas backup yang akan diverifikasi.');
+  const file = await open(path, 'r'),
+    header = Buffer.alloc(4);
+  try {
+    await file.read(header, 0, 4, 0);
+  } finally {
+    await file.close();
   }
-  await client.query('COMMIT');
-  console.log(
+  const database = getAuthDatabase();
+  if (!(database instanceof Pool)) throw new Error('Restore memerlukan PostgreSQL staging.');
+  const client = await database.connect();
+  try {
+    await client.query('BEGIN');
+    const result =
+      header.toString() === 'SDB2'
+        ? await restoreRecords(client, readEncryptedBackup(path, process.env.BACKUP_ENCRYPTION_KEY ?? ''))
+        : await restoreLegacy(client, JSON.parse(await readFile(path, 'utf8')));
+    await client.query('COMMIT');
+    console.log(JSON.stringify({ ...result, destination: 'empty staging database' }));
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+    await closeDatabase();
+  }
+}
+await main().catch(async (error: unknown) => {
+  await closeDatabase().catch(() => {});
+  const candidate = error && typeof error === 'object' && 'code' in error ? String(error.code) : 'FAILURE';
+  console.error(
     JSON.stringify({
-      restoreVerified: true,
-      destination: 'empty staging database',
-      rowCounts: Object.fromEntries(Object.entries(backup.tables).map(([name, rows]) => [name, rows.length])),
+      operation: 'restore-staging',
+      passed: false,
+      code: /^[A-Z0-9_]{1,40}$/i.test(candidate) ? candidate : 'FAILURE',
     }),
   );
-} catch (error) {
-  await client.query('ROLLBACK');
-  throw error;
-} finally {
-  client.release();
-  await closeDatabase();
-}
+  process.exitCode = 1;
+});

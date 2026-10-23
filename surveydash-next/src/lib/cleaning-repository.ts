@@ -1,19 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { getDb } from './db';
-import { AppError, getSurvey, listSubmissions } from './repository';
-import { answerLabel } from './model';
+import { AppError, getSurvey } from './repository';
+import { indexedCleaningPage } from './cleaning-index';
+import { recordActivity } from './workspace-activity';
 import {
   cleaningConfigSchema,
-  cleaningIdentity,
   cleaningStatuses,
-  detectCleaningFlags,
-  maskAccount,
   validateCleaningConfig,
-  type CleaningAuditEntry,
   type CleaningPage,
   type CleaningReview,
-  type CleaningRow,
 } from './cleaning-model';
 
 export const cleaningQuerySchema = z.object({
@@ -38,7 +34,6 @@ export const cleaningReviewInputSchema = z.object({
   revision: z.number().int().min(1),
   expectedReviewedAt: timestamp,
 });
-type SqlRow = Record<string, string | number | null>;
 async function readSettings(surveyId: string) {
   const row = await getDb()
     .prepare('SELECT payload, updated_at FROM cleaning_settings WHERE survey_id = ?')
@@ -51,16 +46,7 @@ async function readSettings(surveyId: string) {
 function nextTimestamp(previous: string | null) {
   return new Date(Math.max(Date.now(), previous ? Date.parse(previous) + 1 : 0)).toISOString();
 }
-function parseReview(row: SqlRow, currentRevision: number): CleaningReview {
-  return {
-    status: z.enum(cleaningStatuses).parse(row.status),
-    reason: String(row.reason),
-    revision: Number(row.revision),
-    actor: String(row.actor),
-    reviewedAt: String(row.reviewed_at),
-    stale: Number(row.revision) !== currentRevision,
-  };
-}
+
 export async function saveCleaningConfig(surveyId: string, ownerId: string, rawInput: unknown) {
   const input = cleaningConfigInputSchema.parse(rawInput);
   return getDb().transaction(async () => {
@@ -120,6 +106,11 @@ export async function reviewCleaningSubmission(
         actorId,
         at,
       );
+    await recordActivity(ownerId, actorId, 'response.reviewed', input.submissionId, {
+      surveyId,
+      status: input.status,
+      revision: input.revision,
+    });
     return {
       status: input.status,
       reason: input.reason,
@@ -138,88 +129,6 @@ export async function getCleaningPage(
 ): Promise<CleaningPage> {
   const input = cleaningQuerySchema.parse(rawInput);
   const survey = await getSurvey(surveyId, ownerId);
-  const [settings, submissions, reviews, history] = await Promise.all([
-    readSettings(surveyId),
-    listSubmissions(surveyId),
-    getDb().prepare('SELECT * FROM cleaning_reviews WHERE survey_id = ?').all(surveyId),
-    getDb()
-      .prepare('SELECT * FROM cleaning_review_audit WHERE survey_id = ? ORDER BY at DESC, id LIMIT 100')
-      .all(surveyId),
-  ]);
-  const { config, configUpdatedAt } = settings;
-  const detected = detectCleaningFlags(survey, submissions, config);
-  const reviewById = new Map(reviews.map((row) => [String(row.submission_id), row]));
-  let focusIds: Set<string> | undefined;
-  if (input.focus) {
-    if (!submissions.some((row) => row.id === input.focus))
-      throw new AppError('Respons tidak ditemukan.', 404);
-    focusIds = new Set([input.focus]);
-    for (const groups of Object.values(detected.groups))
-      for (const ids of groups.values())
-        if (ids.includes(input.focus)) for (const id of ids) focusIds.add(id);
-  }
-  const filteredRows = submissions.filter((row) => {
-    if (focusIds) return focusIds.has(row.id);
-    const flags = detected.flags.get(row.id) ?? [];
-    if (input.flaggedOnly === 'true' && !flags.length) return false;
-    if (input.flag !== 'all' && !flags.some((flag) => flag.kind === input.flag)) return false;
-    const saved = reviewById.get(row.id);
-    const status = saved && Number(saved.revision) === row.revision ? String(saved.status) : 'unreviewed';
-    return input.status === 'all' || status === input.status;
-  });
-  filteredRows.sort((a, b) => {
-    if (input.focus && (a.id === input.focus || b.id === input.focus)) return a.id === input.focus ? -1 : 1;
-    return b.submittedAt.localeCompare(a.submittedAt) || a.id.localeCompare(b.id);
-  });
-  const page = Math.min(input.page, Math.max(1, Math.ceil(filteredRows.length / input.pageSize)));
-  const rows: CleaningRow[] = filteredRows
-    .slice((page - 1) * input.pageSize, page * input.pageSize)
-    .map((row) => {
-      const saved = reviewById.get(row.id);
-      return {
-        id: row.id,
-        submittedAt: row.submittedAt,
-        revision: row.revision,
-        ...cleaningIdentity(survey, row, config),
-        flags: detected.flags.get(row.id) ?? [],
-        review: saved ? parseReview(saved, row.revision) : null,
-        ...(input.focus
-          ? {
-              comparison: survey.questions.map((question) => {
-                const value =
-                  question.id === config.accountQuestionId
-                    ? maskAccount(String(row.answers[question.id] ?? ''))
-                    : answerLabel(question, row.answers[question.id]);
-                return {
-                  questionId: question.id,
-                  label: question.label,
-                  value: value.slice(0, 1000),
-                  truncated: value.length > 1000,
-                };
-              }),
-            }
-          : {}),
-      };
-    });
-  const audit: CleaningAuditEntry[] = history.map((row) => ({
-    id: String(row.id),
-    submissionId: String(row.submission_id),
-    status: z.enum(cleaningStatuses).parse(row.status),
-    reason: String(row.reason),
-    revision: Number(row.revision),
-    actor: String(row.actor),
-    at: String(row.at),
-  }));
-  return {
-    config,
-    configUpdatedAt,
-    rows,
-    total: submissions.length,
-    flagged: detected.flags.size,
-    filtered: filteredRows.length,
-    page,
-    pageSize: input.pageSize,
-    focus: input.focus ?? null,
-    audit,
-  };
+  const { config, configUpdatedAt } = await readSettings(surveyId);
+  return indexedCleaningPage(survey, ownerId, config, configUpdatedAt, input);
 }

@@ -6,6 +6,8 @@ import { assertSurveyor } from './account-repository';
 import { authBaseUrl } from './origins';
 import { canAccessForm } from './model';
 import { isProvinceId } from './provinces';
+import { assertSurveyorAvailable } from './surveyor-blocks';
+import { recordActivity } from './workspace-activity';
 import type { Survey } from './types';
 import type {
   SurveyorAssignment,
@@ -19,6 +21,9 @@ const shareUrl = (token: string) => new URL('/r/' + token, authBaseUrl()).toStri
 type Row = Record<string, string | number | null>;
 function managed(row: Row): ManagedSurveyorAssignment {
   return {
+    surveyorId: String(row.surveyor_id),
+    blocked: Number(row.blocked ?? 0) > 0,
+    acceptedCount: Number(row.accepted_count ?? 0),
     id: String(row.id),
     username: String(row.username),
     fullName: String(row.full_name),
@@ -29,10 +34,12 @@ function managed(row: Row): ManagedSurveyorAssignment {
     createdAt: String(row.created_at),
   };
 }
-const assignmentSelect = `SELECT a.*, p.username, p.full_name, r.province_id,
+const assignmentSelect = `SELECT a.*, p.username, p.full_name, r.province_id, fd.city, fd.district, fd.target AS task_target,
+  (SELECT count(*) FROM surveyor_blocks b WHERE b.surveyor_id = a.surveyor_id AND b.active = 1 AND b.owner_id IN (a.owner_id, '*')) AS blocked,
+  (SELECT count(*) FROM submission_attribution ax JOIN submissions sx ON sx.id = ax.submission_id JOIN cleaning_reviews cr ON cr.submission_id = sx.id AND cr.revision = sx.revision AND cr.status = 'valid' WHERE ax.assignment_id = a.id) AS accepted_count,
   (SELECT count(*) FROM submission_attribution x WHERE x.assignment_id = a.id) AS response_count
   FROM surveyor_assignments a JOIN surveyor_profiles p ON p.user_id = a.surveyor_id
-  LEFT JOIN surveyor_assignment_regions r ON r.assignment_id = a.id `;
+  LEFT JOIN surveyor_assignment_regions r ON r.assignment_id = a.id LEFT JOIN fieldwork_details fd ON fd.assignment_id = a.id `;
 
 export async function listManagedSurveyors(surveyId: string, ownerId: string) {
   await getSurvey(surveyId, ownerId);
@@ -54,6 +61,14 @@ export async function listWorkspaceSurveyors(ownerId: string): Promise<SurveyorT
     )
     .all(ownerId);
   const bySurvey = new Map<string, ManagedSurveyorAssignment[]>();
+  const regionRows = await getDb()
+    .prepare(
+      `SELECT s.survey_id, sr.province_id, count(*) AS total,
+    SUM(CASE WHEN cr.status = 'valid' AND cr.revision = s.revision THEN 1 ELSE 0 END) AS accepted
+    FROM submissions s JOIN surveys v ON v.id = s.survey_id LEFT JOIN submission_regions sr ON sr.submission_id = s.id
+    LEFT JOIN cleaning_reviews cr ON cr.submission_id = s.id WHERE v.owner_id = ? GROUP BY s.survey_id, sr.province_id`,
+    )
+    .all(ownerId);
   for (const row of rows) {
     const id = String(row.survey_id);
     const assignments = bySurvey.get(id) ?? [];
@@ -68,6 +83,13 @@ export async function listWorkspaceSurveyors(ownerId: string): Promise<SurveyorT
     targets.set(id, entries);
   }
   return surveys.map((survey) => ({
+    dataset: survey.dataset ?? 'all',
+    provinceResponses: regionRows
+      .filter((row) => row.survey_id === survey.id)
+      .map((row) => ({
+        provinceId: row.province_id ? String(row.province_id) : null,
+        count: Number(survey.dataset === 'accepted' ? row.accepted : row.total),
+      })),
     surveyId: survey.id,
     title: survey.title,
     responseCount: survey.responseCount ?? 0,
@@ -109,6 +131,7 @@ export async function setProvinceTarget(
         )
         .run(surveyId, provinceId, target, actor, new Date().toISOString());
     }
+    await recordActivity(ownerId, actor, 'target.updated', surveyId, { provinceId, target });
     return listProvinceTargets(surveyId, ownerId);
   });
 }
@@ -131,10 +154,12 @@ export async function assignSurveyor(surveyId: string, ownerId: string, username
         'Username Surveyor tidak ditemukan. Minta surveyor menyelesaikan pendaftaran dahulu.',
         404,
       );
+    await assertSurveyorAvailable(ownerId, String(profile.user_id));
     const current = await getDb()
       .prepare('SELECT * FROM surveyor_assignments WHERE survey_id = ? AND surveyor_id = ?')
       .get(surveyId, profile.user_id);
     const at = new Date().toISOString();
+    const assignmentId = current ? String(current.id) : randomUUID();
     if (current) {
       if (Number(current.active) !== 1)
         await getDb()
@@ -146,7 +171,7 @@ export async function assignSurveyor(surveyId: string, ownerId: string, username
       await getDb()
         .prepare('INSERT INTO surveyor_assignments VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)')
         .run(
-          randomUUID(),
+          assignmentId,
           surveyId,
           ownerId,
           profile.user_id,
@@ -155,6 +180,14 @@ export async function assignSurveyor(surveyId: string, ownerId: string, username
           at,
           at,
         );
+    if (!current || Number(current.active) !== 1)
+      await recordActivity(
+        ownerId,
+        actor,
+        current ? 'assignment.activated' : 'assignment.created',
+        assignmentId,
+        { surveyId, surveyorId: String(profile.user_id) },
+      );
     return listManagedSurveyors(surveyId, ownerId);
   });
 }
@@ -171,6 +204,7 @@ export async function setAssignmentActive(
       .prepare('SELECT * FROM surveyor_assignments WHERE id = ? AND survey_id = ? AND owner_id = ?')
       .get(assignmentId, surveyId, ownerId);
     if (!row) throw new AppError('Penugasan tidak ditemukan.', 404);
+    if (active) await assertSurveyorAvailable(ownerId, String(row.surveyor_id));
     const token =
       active && Number(row.active) !== 1 ? randomBytes(24).toString('base64url') : String(row.token);
     await getDb()
@@ -178,6 +212,13 @@ export async function setAssignmentActive(
         'UPDATE surveyor_assignments SET active = ?, token = ?, assigned_by = ?, updated_at = ? WHERE id = ?',
       )
       .run(active ? 1 : 0, token, actor, new Date().toISOString(), assignmentId);
+    await recordActivity(
+      ownerId,
+      actor,
+      active ? 'assignment.activated' : 'assignment.deactivated',
+      assignmentId,
+      { surveyId },
+    );
     return listManagedSurveyors(surveyId, ownerId);
   });
 }
@@ -199,6 +240,10 @@ export async function listSurveyorAssignments(userId: string): Promise<SurveyorA
       title: survey.title,
       institution: survey.institution,
       status: survey.status,
+      acceptedCount: Number(row.accepted_count ?? 0),
+      target: row.task_target === null || row.task_target === undefined ? null : Number(row.task_target),
+      city: String(row.city ?? ''),
+      district: String(row.district ?? ''),
       active: true,
       provinceId: row.province_id ? String(row.province_id) : null,
       shareUrl: shareUrl(String(row.token)),
@@ -242,12 +287,14 @@ export async function setAssignmentProvince(
     await getDb()
       .prepare('UPDATE surveyor_assignments SET assigned_by = ?, updated_at = ? WHERE id = ?')
       .run(actor, at, assignmentId);
+    await recordActivity(ownerId, actor, 'assignment.province', assignmentId, { surveyId, provinceId });
     return listManagedSurveyors(surveyId, ownerId);
   });
 }
 export async function resolveReferral(
   token: string,
   expectedSurveyId?: string,
+  lockedSurvey?: Survey,
 ): Promise<{ survey: Survey; attribution: SurveyorAttribution }> {
   if (!/^[a-zA-Z0-9_-]{32}$/.test(token)) throw new AppError('Link Surveyor tidak tersedia.', 404);
   const row = await getDb()
@@ -255,12 +302,14 @@ export async function resolveReferral(
     .get(token);
   if (!row || Number(row.active) !== 1 || (expectedSurveyId && String(row.survey_id) !== expectedSurveyId))
     throw new AppError('Link Surveyor tidak tersedia atau sudah dicabut.', 404);
-  const survey = await getSurvey(String(row.survey_id), String(row.owner_id));
+  await assertSurveyorAvailable(String(row.owner_id), String(row.surveyor_id));
+  const survey = lockedSurvey ?? (await getSurvey(String(row.survey_id), String(row.owner_id)));
   // Submission holds the survey lock first; assignment mutations use the same lock order.
   if (!canAccessForm(survey)) throw new AppError('Form tidak tersedia.', 404);
   return {
     survey,
     attribution: {
+      provinceId: row.province_id ? String(row.province_id) : null,
       assignmentId: String(row.id),
       surveyorId: String(row.surveyor_id),
       username: String(row.username),

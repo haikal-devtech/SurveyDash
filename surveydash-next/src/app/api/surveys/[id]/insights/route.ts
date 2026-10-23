@@ -17,6 +17,10 @@ export async function GET(request: Request, context: Context) {
       (await context.params).id,
       user.ownerId,
       new URL(request.url).searchParams.get('samples') === 'true',
+      z
+        .enum(['all', 'accepted'])
+        .optional()
+        .parse(new URL(request.url).searchParams.get('dataset') ?? undefined),
     );
-  });
+  }, '/api/surveys/[id]/insights');
 }

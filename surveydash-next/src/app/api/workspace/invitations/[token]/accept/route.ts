@@ -8,5 +8,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     const user = await requireManagerUser();
     const result = await acceptWorkspaceInvitation((await params).token, user.id);
     return switchWorkspace(user.id, result.ownerId);
-  });
+  }, '/api/workspace/invitations/[token]/accept');
 }

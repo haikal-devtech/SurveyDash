@@ -2,6 +2,8 @@
 
 SMTP and Google services require operator configuration. Set credentials through your environment manager or an ignored local environment file; never put them in Git or chat. `help@surveydash.id` is the approved public contact. Showing that address does not create its mailbox or verify its sending domain.
 
+The audit release adds `pnpm check:email` (connection/authentication only, no message), optional verification on new signup through `EMAIL_VERIFICATION_ENABLED`, and user-enrolled TOTP/backup codes. Production email remains unavailable until a sender service and delivery are configured. See [the audit runbook](SURVEYDASH_AUDIT_RUNBOOK.md). CSV/XLSX also respect the selected raw/accepted dataset and date/province/surveyor filters, and include revision-valid manual weights; XLSX records the applied dataset/filter metadata.
+
 ## Password recovery
 
 Use a provider that supplies authenticated SMTP and permits your verified sender. Set these server variables using `.env.example` as a reference:

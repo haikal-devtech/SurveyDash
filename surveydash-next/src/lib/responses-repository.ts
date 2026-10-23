@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import { getDb } from './db';
-import { AppError, getSurvey, listAudit, listSubmissions } from './repository';
-import { answerLabel, calculateStats, csvCell, distribution } from './model';
+import { AppError, getSurvey, listAudit, scanSubmissions } from './repository';
+import { answerLabel, csvCell } from './model';
 import type { Question, ResponsePage, Submission, Survey, SurveyInsights } from './types';
 import { attributionColumns, attributionJoin, parseAttribution } from './surveyor-repository';
-import { questionBreakdown, responseTimeline } from './analytics-model';
+import { InsightAccumulator, streamingBreakdown } from './streaming-insights';
+import { datasetCondition, responseQuality } from './response-quality';
 
 export const responseQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(100000).default(1),
@@ -12,10 +13,19 @@ export const responseQuerySchema = z.object({
   search: z.string().trim().max(200).default(''),
   sort: z.string().max(110).default('submittedAt'),
   direction: z.enum(['asc', 'desc']).default('desc'),
+  dataset: z.enum(['all', 'accepted']).optional(),
+  province: z.string().max(70).optional(),
+  surveyor: z.string().max(100).optional(),
+  after: z.iso.datetime({ offset: true }).optional(),
+  before: z.iso.datetime({ offset: true }).optional(),
 });
 type Query = z.infer<typeof responseQuerySchema>;
 type SqlPart = { sql: string; values: (string | number)[] };
-const from = ' FROM submissions s JOIN surveys v ON v.id = s.survey_id ' + attributionJoin;
+const weightColumns = ', COALESCE(w.weight, 1) AS analysis_weight';
+const from =
+  ' FROM submissions s JOIN surveys v ON v.id = s.survey_id ' +
+  attributionJoin +
+  ' LEFT JOIN submission_weights w ON w.submission_id = s.id AND w.revision = s.revision ';
 
 function answerExpression(q: Question): SqlPart {
   if (getDb().dialect === 'postgres') return { sql: '(s.answers::jsonb ->> ?)', values: [q.id] };
@@ -44,6 +54,24 @@ function buildQuery(survey: Survey, ownerId: string, query: Query) {
     sql: 's.survey_id = ? AND v.owner_id = ?',
     values: [survey.id, ownerId],
   };
+  if ((query.dataset ?? survey.dataset) === 'accepted') where.sql += ' AND ' + datasetCondition();
+  if (query.province) {
+    where.sql +=
+      ' AND EXISTS (SELECT 1 FROM submission_regions sr WHERE sr.submission_id = s.id AND sr.province_id = ?)';
+    where.values.push(query.province);
+  }
+  if (query.surveyor) {
+    where.sql += ' AND (x.surveyor_id = ? OR lower(x.username_snapshot) = lower(?))';
+    where.values.push(query.surveyor, query.surveyor.replace(/^@/, ''));
+  }
+  if (query.after) {
+    where.sql += ' AND s.submitted_at >= ?';
+    where.values.push(query.after);
+  }
+  if (query.before) {
+    where.sql += ' AND s.submitted_at <= ?';
+    where.values.push(query.before);
+  }
   if (query.search) {
     const parts: SqlPart[] = [
       { sql: 's.id', values: [] },
@@ -91,6 +119,7 @@ function parseRow(row: Record<string, string | number | null>): Submission {
     questionSnapshot: JSON.parse(String(row.snapshot)),
     revision: Number(row.revision),
     surveyor: parseAttribution(row),
+    analysisWeight: Number(row.analysis_weight ?? 1),
   };
 }
 const exportSourceColumns =
@@ -115,6 +144,7 @@ export async function* responseExportRows(id: string, ownerId: string, input: un
     const rows = await getDb()
       .prepare(
         'SELECT s.*' +
+          weightColumns +
           attributionColumns +
           exportSourceColumns +
           exportFrom +
@@ -129,6 +159,7 @@ export async function* responseExportRows(id: string, ownerId: string, input: un
     for (const raw of rows)
       yield {
         ...parseRow(raw),
+        analysisWeight: Number(raw.analysis_weight ?? 1),
         importProvider: String(raw.import_provider ?? ''),
         importResponseId: String(raw.import_response_id ?? ''),
         importRaw: String(raw.import_raw ?? ''),
@@ -148,6 +179,7 @@ export async function getResponsePage(id: string, ownerId: string, input: unknow
   const result = await getDb()
     .prepare(
       'SELECT s.*' +
+        weightColumns +
         attributionColumns +
         from +
         'WHERE ' +
@@ -170,46 +202,23 @@ export async function getSurveyInsights(
   id: string,
   ownerId: string,
   includeSamples = false,
+  dataset?: 'all' | 'accepted',
 ): Promise<SurveyInsights> {
   const survey = await getSurvey(id, ownerId);
-  const rows = await listSubmissions(id);
+  const selectedDataset = dataset ?? survey.dataset ?? 'all';
+  const accumulator = new InsightAccumulator(survey, includeSamples);
+  for await (const row of scanSubmissions(id, selectedDataset)) accumulator.add(row);
   return {
-    stats: calculateStats(survey, rows),
-    timeline: responseTimeline(rows),
-    questions: Object.fromEntries(
-      survey.questions.map((q) => [
-        q.id,
-        {
-          answered: rows.filter((row) => {
-            const value = row.answers[q.id];
-            return (
-              value !== undefined &&
-              value !== '' &&
-              (typeof value !== 'string' || !!value.trim()) &&
-              (!Array.isArray(value) || value.length > 0)
-            );
-          }).length,
-          distribution: q.options.length ? distribution(q, rows) : [],
-          samples:
-            !includeSamples || q.options.length
-              ? []
-              : rows
-                  .filter((row) => row.answers[q.id] !== undefined && row.answers[q.id] !== '')
-                  .slice(0, 50)
-                  .map((row) => {
-                    const label = answerLabel(q, row.answers[q.id]);
-                    return label.length > 500 ? label.slice(0, 500) + '…' : label;
-                  }),
-        },
-      ]),
-    ),
+    ...accumulator.finish(),
+    quality: await responseQuality(id),
+    dataset: selectedDataset,
   };
 }
 export async function getQuestionBreakdown(id: string, ownerId: string, questionId: string) {
   const survey = await getSurvey(id, ownerId);
   const question = survey.questions.find((q) => q.id === questionId);
   if (!question) throw new AppError('Pertanyaan tidak ditemukan.', 404);
-  return questionBreakdown(question, await listSubmissions(id));
+  return streamingBreakdown(question, () => scanSubmissions(id, survey.dataset));
 }
 export async function exportResponseCsv(id: string, ownerId: string, input: unknown, signal: AbortSignal) {
   const query = responseQuerySchema.parse(input);
@@ -231,6 +240,7 @@ export async function exportResponseCsv(id: string, ownerId: string, input: unkn
               'Sumber impor',
               'ID respons sumber',
               'Data asli impor (JSON)',
+              'Bobot manual (revisi terbaru)',
             ]
               .map(csvCell)
               .join(',') +
@@ -266,6 +276,7 @@ export async function exportResponseCsv(id: string, ownerId: string, input: unkn
               row.importProvider,
               row.importResponseId,
               row.importRaw,
+              String(row.analysisWeight),
             ]
               .map(csvCell)
               .join(','),

@@ -1,10 +1,10 @@
 import Link from 'next/link';
-import { requireWorkspaceUser } from '@/lib/http';
+import { requireWorkspacePage as requireWorkspaceUser } from '@/lib/workspace-page';
 import { listSurveys } from '@/lib/repository';
 import { EmptyState } from '@/components/ui';
 import { ListChecks, ArrowRight } from 'lucide-react';
 export default async function CleaningHome() {
-  const user = await requireWorkspaceUser();
+  const user = await requireWorkspaceUser({ area: 'field' });
   const surveys = await listSurveys(user.ownerId);
   return (
     <>

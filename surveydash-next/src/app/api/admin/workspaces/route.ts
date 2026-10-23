@@ -4,7 +4,7 @@ import { listAdminWorkspaces } from '@/lib/access-repository';
 import { switchWorkspace } from '@/lib/workspace-session';
 export const runtime = 'nodejs';
 export async function GET() {
-  return api(async () => listAdminWorkspaces((await requireAdmin()).id));
+  return api(async () => listAdminWorkspaces((await requireAdmin()).id), '/api/admin/workspaces');
 }
 export async function POST(request: Request) {
   return api(async () => {
@@ -12,5 +12,5 @@ export async function POST(request: Request) {
     const user = await requireUser();
     const { ownerId } = z.object({ ownerId: z.string().min(1).max(100) }).parse(await readJson(request));
     return switchWorkspace(user.id, ownerId);
-  });
+  }, '/api/admin/workspaces');
 }

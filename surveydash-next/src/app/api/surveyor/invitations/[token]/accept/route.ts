@@ -6,5 +6,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     checkOrigin(request);
     const user = await requireSurveyorUser();
     return acceptSurveyorInvitation((await params).token, user.id);
-  });
+  }, '/api/surveyor/invitations/[token]/accept');
 }

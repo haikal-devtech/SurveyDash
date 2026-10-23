@@ -593,6 +593,15 @@ export function SurveyorPortal({
                       {task.questions.length} pertanyaan
                     </p>
                     <SurveyorTaskProgress responseCount={task.responseCount} />
+                    <p className="hint">
+                      {task.acceptedCount ?? 0} respons diterima
+                      {task.target
+                        ? ` · Target ${task.target} · ${Math.round(((task.acceptedCount ?? 0) / task.target) * 100)}%`
+                        : ''}
+                      {task.city || task.district
+                        ? ' · ' + [task.city, task.district].filter(Boolean).join(' / ')
+                        : ''}
+                    </p>
                     <Button
                       variant="ghost"
                       data-tour="surveyor-preview"

@@ -5,5 +5,5 @@ export async function POST(request: Request) {
     checkOrigin(request);
     const user = await requireSurveyorUser();
     return updateSurveyorProfile(user.id, await readJson(request, 12000));
-  });
+  }, '/api/surveyor/profile');
 }

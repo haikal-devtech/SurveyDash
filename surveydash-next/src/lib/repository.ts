@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { getDb } from './db';
+import { datasetCondition, type Dataset } from './response-quality';
+import { recordActivity } from './workspace-activity';
 import {
   attributionColumns,
   attributionJoin,
@@ -60,9 +62,12 @@ export async function getSurvey(id: string, ownerId: string): Promise<Survey> {
   if (!row) throw new AppError('Survei tidak ditemukan.', 404);
   return parseSurvey(row as SqlRow);
 }
-export async function getSurveyByToken(token: string): Promise<Survey> {
+export async function getSurveyByToken(token: string, collecting = false): Promise<Survey> {
   const row = await getDb()
-    .prepare('SELECT * FROM surveys WHERE token = ?' + getDb().lockSuffix)
+    .prepare(
+      'SELECT * FROM surveys WHERE token = ?' +
+        (collecting ? getDb().collectionLockSuffix : getDb().lockSuffix),
+    )
     .get(token);
   if (!row) throw new AppError('Form tidak ditemukan.', 404);
   return parseSurvey(row as SqlRow);
@@ -129,7 +134,12 @@ export async function createSurvey(ownerId: string, title: string, templateId: s
   await insertSurvey(survey);
   return survey;
 }
-export async function updateSurvey(id: string, ownerId: string, input: unknown): Promise<Survey> {
+export async function updateSurvey(
+  id: string,
+  ownerId: string,
+  input: unknown,
+  actor = ownerId,
+): Promise<Survey> {
   const parsed = surveyInputSchema.parse(input);
   const db = getDb();
   return db.transaction(async () => {
@@ -145,7 +155,10 @@ export async function updateSurvey(id: string, ownerId: string, input: unknown):
       const usage = await getUsage(ownerId);
       assertCapacity(usage.activeSurveys, usage.activeLimit, 'survei aktif');
     }
-    assertSchemaCompatible(before, parsed, (await listSubmissions(id)).length > 0);
+    const hasResponses = !!(await db
+      .prepare('SELECT id FROM submissions WHERE survey_id = ? LIMIT 1')
+      .get(id));
+    assertSchemaCompatible(before, parsed, hasResponses);
     const after: Survey = {
       ...before,
       ...parsed,
@@ -155,6 +168,7 @@ export async function updateSurvey(id: string, ownerId: string, input: unknown):
     await db
       .prepare('UPDATE surveys SET payload = ?, updated_at = ? WHERE id = ? AND owner_id = ?')
       .run(JSON.stringify(after), after.updatedAt, id, ownerId);
+    await recordActivity(ownerId, actor, 'survey.updated', id, { version: after.version });
     return after;
   });
 }
@@ -231,7 +245,7 @@ export async function applyTemplate(
     });
   });
 }
-export async function listSubmissions(surveyId: string): Promise<Submission[]> {
+export async function listSubmissions(surveyId: string, dataset: Dataset = 'all'): Promise<Submission[]> {
   return (
     await getDb()
       .prepare(
@@ -239,21 +253,47 @@ export async function listSubmissions(surveyId: string): Promise<Submission[]> {
           attributionColumns +
           ' FROM submissions s' +
           attributionJoin +
-          'WHERE s.survey_id = ? ORDER BY s.submitted_at DESC',
+          'WHERE s.survey_id = ?' +
+          (dataset === 'accepted' ? ' AND ' + datasetCondition() : '') +
+          ' ORDER BY s.submitted_at DESC',
       )
       .all(surveyId)
   ).map((row) => parseSubmission(row as SqlRow));
+}
+export async function* scanSubmissions(surveyId: string, dataset: Dataset = 'all') {
+  let cursor = '';
+  while (true) {
+    const rows = await getDb()
+      .prepare(
+        'SELECT s.* FROM submissions s WHERE s.survey_id = ? AND s.id > ?' +
+          (dataset === 'accepted' ? ' AND ' + datasetCondition() : '') +
+          ' ORDER BY s.id LIMIT 250',
+      )
+      .all(surveyId, cursor);
+    if (!rows.length) return;
+    for (const row of rows) {
+      cursor = String(row.id);
+      yield parseSubmission(row);
+    }
+  }
 }
 export async function submitResponse(
   token: string,
   input: unknown,
   requestKey: string,
   referralToken?: string,
+  clientStartedAt?: string,
 ) {
   const db = getDb();
   return db.transaction(async () => {
-    const survey = await getSurveyByToken(token);
-    const source = referralToken ? (await resolveReferral(referralToken, survey.id)).attribution : undefined;
+    // Concurrent collectors share the definition lock; editing/closing still waits for them.
+    // Quota enforcement retains the exclusive path for an exact capacity boundary.
+    const collecting = process.env.ENFORCE_FREE_LIMITS !== 'true';
+    const survey = await getSurveyByToken(token, collecting);
+    if (collecting) await db.lockOwner('submission:' + survey.id + ':' + requestKey);
+    const source = referralToken
+      ? (await resolveReferral(referralToken, survey.id, survey)).attribution
+      : undefined;
     const existing = await db
       .prepare('SELECT id FROM submissions WHERE survey_id = ? AND request_key = ?')
       .get(survey.id, requestKey);
@@ -293,6 +333,20 @@ export async function submitResponse(
       await db
         .prepare('INSERT INTO submission_attribution VALUES (?, ?, ?, ?, ?)')
         .run(id, source.assignmentId, source.surveyorId, source.username, source.fullName);
+    await db
+      .prepare('INSERT INTO submission_regions VALUES (?, ?, ?)')
+      .run(id, source?.provinceId ?? null, new Date().toISOString());
+    if (clientStartedAt && Number.isFinite(Date.parse(clientStartedAt))) {
+      const elapsed = Math.round((Date.now() - Date.parse(clientStartedAt)) / 1000);
+      await db
+        .prepare('INSERT INTO submission_timing VALUES (?, ?, ?, ?)')
+        .run(
+          id,
+          clientStartedAt,
+          new Date().toISOString(),
+          elapsed >= 0 && elapsed <= 86400 ? elapsed : null,
+        );
+    }
     return { id, duplicate: false };
   });
 }
@@ -390,6 +444,7 @@ export async function manageSurvey(
   id: string,
   ownerId: string,
   action: 'duplicate' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'opened',
+  actor = ownerId,
 ): Promise<Survey> {
   return getDb().transaction(async () => {
     const source = await getSurvey(id, ownerId);
@@ -444,6 +499,7 @@ export async function manageSurvey(
     await getDb()
       .prepare('UPDATE surveys SET payload = ?, updated_at = ? WHERE id = ? AND owner_id = ?')
       .run(JSON.stringify(next), next.updatedAt, id, ownerId);
+    if (action !== 'opened') await recordActivity(ownerId, actor, 'survey.' + action, id);
     return next;
   });
 }

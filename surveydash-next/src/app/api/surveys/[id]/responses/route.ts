@@ -20,6 +20,6 @@ export async function GET(request: Request, context: Context) {
       return null;
     }
     return getResponsePage(id, user.ownerId, input);
-  });
+  }, '/api/surveys/[id]/responses');
   return download ?? result;
 }

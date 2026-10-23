@@ -25,15 +25,17 @@ Database dan rahasia sesi lokal ada pada `.data/` dan `.env.local`, keduanya dia
 
 ## Fitur yang sudah bekerja
 
-- Autentikasi email/kata sandi dengan Better Auth. Pemilik workspace hanya dapat membaca dan mengubah surveinya sendiri.
+- Autentikasi email/kata sandi dengan Better Auth, authenticator dua langkah dan kode cadangan. Workspace bersama mendukung Pemilik, Editor, Pembaca dan Koordinator lapangan dengan pemeriksaan akses di server.
 - Portal Surveyor terpisah dengan username, profil rekening privat, tugas baca saja, dan link atribusi pribadi. Pengelola membuka menu **Surveyor** → memilih survei → **Undang Surveyor**, lalu mengirim link; penerima daftar/masuk dan memilih **Bergabung**. Login ringkas dan pendaftaran Surveyor dibagi dua langkah. Data/CSV mencatat sumber setiap respons; Cleaning data menyediakan pemeriksaan kemiripan dan tinjauan manual. Detail penggunaan, batas, dan status rilis: [alur Surveyor](docs/SURVEYDASH_SURVEYOR_WORKFLOW.md).
 - Template SKM, evaluasi layanan, kepuasan pelanggan dan form kosong. Form, layout, paket survei dan dokumen slide dapat disimpan, dipratinjau, dipakai ulang, diduplikasi, diubah namanya, diarsipkan dan dipulihkan.
 - Pembuat pertanyaan: teks, paragraf, pilihan tunggal/jamak, skala penilaian, angka, dan tanggal. Satu pertanyaan dibuka saat diedit; tambah langsung, duplikat di bawah asal, urutkan, atau tempel daftar pilihan sekaligus.
-- Form publik dalam website yang sama, termasuk validasi wajib isi dan pengiriman yang tidak menggandakan respons saat permintaan dicoba ulang.
+- Form publik tanpa login/tutorial: bagian/halaman, pertanyaan bersyarat dari jawaban sebelumnya, validasi, pemulihan draft perangkat maksimal empat jam dan kunci pengiriman stabil untuk retry. Pemulihan meminta pilihan lanjut atau mulai kosong.
 - Status **Draft / Buka / Tutup**, terpisah dari visibilitas **Publik / Link saja / Privat**. Publik masuk portal; link saja tersembunyi dari portal; privat tidak bisa diakses melalui link responden.
 - Tabel respons dengan pencarian, pengurutan dan pagination di server, pilihan kolom, koreksi sel, dan **Unduh data → Excel (.xlsx) / CSV**, meliputi seluruh hasil pencarian. Excel mempertahankan angka dan teks berawalan nol. Koreksi menyimpan nilai sebelum/sesudah serta memakai revision untuk mendeteksi konflik.
 - Analisis demografi, distribusi jawaban, capaian target, dan IKM. IKM hanya berlaku pada survei SKM dengan sembilan unsur. Nilai kosong tidak diberi skor 1.
-- Studio slide 16:9 dengan teks, bentuk, gambar, pie/bar/tabel, metrik terikat ke data, drag/resize, lapisan, undo/redo, autosave, tema dan pratinjau. Inspector dapat ditutup dan terbuka saat memilih objek. Generator menampilkan kelengkapan sumber data sebelum membuat slide. File PDF/PPTX mempertahankan tampilan sebagai gambar; komponen PowerPoint tidak dapat diedit terpisah.
+- Studio slide 16:9 dengan teks, bentuk, gambar, chart/tabel, metrik terikat data, drag/resize, lapisan, undo/redo, autosave, tema dan pratinjau. Ekspor PDF/PPTX gambar mempertahankan tampilan; tersedia juga PPTX editable dengan teks dan chart Office asli. Font/layout editable dapat berbeda.
+- Cleaning membedakan respons diterima, perlu verifikasi dan dikeluarkan. Dataset mentah/diterima berlaku pada analisis, ekspor, peta dan refresh presentasi. Koreksi membuat review revisi lama tidak berlaku. Tersedia filter tanggal WIB/provinsi/surveyor, tabulasi silang, bobot manual dan dataset final immutable dengan catatan metode serta CSV.
+- Operasi lapangan: koordinator, target tugas, catatan kota/kecamatan, kualitas respons, aktivitas terakhir dan rekap honor manual. Blacklist workspace/platform memakai alasan dan audit. Respons baru menyimpan snapshot wilayah tugas; data lama tanpa snapshot tetap belum terpetakan.
 - Presentasi dapat diarsipkan dan dipulihkan. Tombol **Bagikan** mengaktifkan link viewer tanpa login untuk versi slide yang sudah ditinjau. Perubahan editor tampil setelah **Perbarui versi berbagi**. Cabut link kapan saja; arsip presentasi dan sampah survei juga mencabutnya.
 - Beranda dengan starter template dan tabel survei; pencarian, duplikat, arsip, sampah dan pemulihan.
 - Pengaturan nama dan foto profil privat, identitas workspace, dan impor Google Form JSON dengan preview serta catatan item yang tidak didukung. Menu langganan, plan, dan tagihan disembunyikan sementara.
@@ -87,9 +89,9 @@ pnpm build
 
 Versi online memakai PostgreSQL melalui Prisma Postgres di Vercel Marketplace. Produksi memakai `DATABASE_URL`. Preview wajib memakai `STAGING_DATABASE_URL` yang terpisah untuk seluruh data dan autentikasi. Deployment Vercel menolak fallback SQLite agar data tidak ditulis ke filesystem sementara.
 
-Tabel berfokus pada jawaban survei. Formula Excel bebas, copy-paste banyak sel, conditional branching, impor respons Google Sheets, manajemen tim/admin/surveyor belum tersedia. Impor JSON saat ini hanya memindahkan instrumen Google Form. CSV, PDF dan PowerPoint sudah dapat diekspor. Penyegaran respons memakai tombol **Muat ulang**, bukan subscription realtime.
+Tabel berfokus pada jawaban survei. Formula Excel bebas dan copy-paste banyak sel belum tersedia. Impor Google Forms/Sheets membuat survei baru dengan pertanyaan dan respons yang dipratinjau dahulu. Penyegaran memakai **Muat ulang**; operasi lapangan juga menyegarkan saat halaman terlihat. Tidak ada subscription realtime.
 
-Pendaftaran workspace terbuka untuk pengujian. Verifikasi email, kebijakan undangan, dan manajemen tim belum tersedia. Pemulihan password memerlukan SMTP yang telah diuji; tanpa konfigurasi, UI menampilkan kontak support. Analisis menghitung respons di server saat dibutuhkan, tetapi masih membaca seluruh dataset di server. `TRUST_PROXY=true` dipakai pada deployment Vercel yang mengelola header alamat IP.
+Pendaftaran workspace terbuka untuk pengujian. Pemulihan password dan verifikasi email memerlukan SMTP operator; kode tersedia tidak berarti pengiriman produksi aktif. Undangan berlaku tujuh hari dan dikelola pemilik/admin. Analisis, ekspor dan backup diproses per batch. Cleaning membuat indeks bertahap dan belum memiliki SLA nasional. `TRUST_PROXY=true` hanya untuk proxy tepercaya.
 
 ## Deployment cloud
 
@@ -99,10 +101,10 @@ Branch production: `codex/surveydash-studio`. Push ke branch ini memicu deployme
 
 Konfigurasi server: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, dan `TRUST_PROXY`. Rahasia disimpan di environment Vercel dan tidak masuk Git. Jangan menambahkan prefix `NEXT_PUBLIC_` pada kredensial database atau rahasia sesi.
 
-Untuk migrasi awal, siapkan berkas environment cloud yang diabaikan Git, verifikasi project/team dan environment, lalu jalankan:
+Untuk setup awal gunakan `pnpm setup`. Upgrade cloud memerlukan backup terenkripsi dan fingerprint target privat; ikuti [runbook audit](docs/SURVEYDASH_AUDIT_RUNBOOK.md), lalu:
 
 ```powershell
-node --env-file=.env.cloud.local --import tsx scripts/setup.ts
+node --env-file=.env.cloud.local --import tsx scripts/migrate.ts production
 ```
 
 Migrasi membuat skema aplikasi dan tabel Better Auth. Migrasi tidak berjalan pada setiap request atau build. Setiap preview deployment mempercayai hostname deploymentnya sendiri; production memakai URL kanonis dari `BETTER_AUTH_URL`.
@@ -126,7 +128,7 @@ Lisensi masing-masing dependency tetap menjadi milik pengembangnya. Detail terse
 
 ## Dokumentasi rilis produk
 
-Lihat [laporan implementasi](docs/SURVEYDASH_IMPLEMENTATION_REPORT.md), [audit master brief](docs/SURVEYDASH_MASTER_SPEC_AUDIT.md), [route map](docs/SURVEYDASH_ROUTE_MAP.md), [UI system](docs/SURVEYDASH_UI_SYSTEM.md), [arsitektur](docs/SURVEYDASH_ARCHITECTURE.md), [integrasi](docs/SURVEYDASH_INTEGRATIONS.md) dan [rilis/recovery](docs/SURVEYDASH_RELEASE.md). Revisi pada branch `codex/surveydash-revisions` belum dirilis ke production. SMTP/OAuth production masih membutuhkan konfigurasi eksternal; pembayaran belum diaktifkan.
+Status terbaru ada pada [pengerjaan audit](docs/SURVEYDASH_AUDIT_IMPLEMENTATION.md), [arsitektur](docs/SURVEYDASH_ARCHITECTURE.md) dan [runbook audit](docs/SURVEYDASH_AUDIT_RUNBOOK.md). Dokumen rilis lama menyimpan bukti historis. SMTP/OAuth memerlukan konfigurasi eksternal; aplikasi mencatat honor, tanpa melakukan transfer.
 
 ## Admin dan akun client uji
 

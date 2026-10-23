@@ -7,7 +7,7 @@ export const maxDuration = 60;
 export async function POST(request: Request) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireWorkspaceUser();
+    const user = await requireWorkspaceUser({ write: true });
     const input = z
       .discriminatedUnion('action', [
         z.object({ action: z.literal('preview'), source: z.unknown() }),
@@ -16,5 +16,5 @@ export async function POST(request: Request) {
       .parse(await readJson(request, MAX_IMPORT_REQUEST_BYTES));
     if (input.action === 'preview') return prepareFormImport(user.ownerId, user.id, input.source, 'file');
     return commitFormImport(user.ownerId, user.id, input.batchId, input.acknowledge);
-  });
+  }, '/api/import/forms');
 }

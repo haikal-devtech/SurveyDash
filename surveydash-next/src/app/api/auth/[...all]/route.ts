@@ -31,7 +31,7 @@ export async function POST(request: Request) {
         );
       } else signedIn = await handlers.POST(request);
       return null;
-    });
+    }, '/api/auth/[...all]');
     return signedIn ?? failure;
   }
   if (!new URL(request.url).pathname.endsWith('/sign-up/email')) return handlers.POST(request);
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
         await discardUncreatedProfile(registration.pendingUserId);
     }
     return null;
-  });
+  }, '/api/auth/[...all]');
   return response ?? failure;
 }
 export const runtime = 'nodejs';

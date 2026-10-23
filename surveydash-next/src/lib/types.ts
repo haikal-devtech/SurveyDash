@@ -6,6 +6,9 @@ export interface Option {
   score?: number;
 }
 export interface Question {
+  section?: string;
+  showWhen?: { questionId: string; operator: 'equals' | 'answered'; value?: string };
+  validation?: { min?: number; max?: number; maxLength?: number; format?: 'email' | 'phone' };
   id: string;
   label: string;
   description: string;
@@ -29,6 +32,7 @@ export interface Widget {
   h: number;
 }
 export interface Survey {
+  dataset?: 'all' | 'accepted';
   id: string;
   ownerId: string;
   title: string;
@@ -51,6 +55,8 @@ export interface Survey {
   lastOpenedAt?: string;
 }
 export interface Submission {
+  analysisWeight?: number;
+  provinceId?: string | null;
   id: string;
   surveyId: string;
   submittedAt: string;
@@ -108,6 +114,9 @@ export interface SurveyStats {
   completion: number;
 }
 export interface SurveyInsights {
+  sourceRevision?: string;
+  quality?: { all: number; accepted: number; held: number; excluded: number; unreviewed: number };
+  dataset?: 'all' | 'accepted';
   stats: SurveyStats;
   timeline?: import('./analytics-model').ResponseTimeline;
   questions: Record<string, { answered: number; distribution: Distribution[]; samples: string[] }>;

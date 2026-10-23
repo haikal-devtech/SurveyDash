@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { WorkspaceChoice } from '@/lib/workspace-types';
@@ -14,7 +15,7 @@ export function WorkspacePicker({
     setPending(true);
     setError('');
     try {
-      const response = await fetch('/api/workspace/select', {
+      const response = await workspaceFetch('/api/workspace/select', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ownerId }),

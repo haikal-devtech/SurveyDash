@@ -1,10 +1,10 @@
 import Link from 'next/link';
-import { requireWorkspaceUser } from '@/lib/http';
+import { requireWorkspacePage as requireWorkspaceUser } from '@/lib/workspace-page';
 import { getSurvey } from '@/lib/repository';
 import { CleaningPanel } from '@/components/cleaning-panel';
 import { notFound } from 'next/navigation';
 export default async function SurveyCleaning({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requireWorkspaceUser();
+  const user = await requireWorkspaceUser({ area: 'field' });
   let survey;
   try {
     survey = await getSurvey((await params).id, user.ownerId);

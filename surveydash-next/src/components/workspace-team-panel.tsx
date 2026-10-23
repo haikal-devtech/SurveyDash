@@ -1,8 +1,10 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import { useState } from 'react';
 import { Copy, Link2, Loader2, RefreshCw, UserMinus, UserPlus } from 'lucide-react';
 import type { WorkspaceInvitation, WorkspaceMember } from '@/lib/workspace-types';
 import { Badge, Button, Modal } from './ui';
+import { workspaceRoles, workspaceRoleLabels } from '@/lib/workspace-role-model';
 
 export function WorkspaceTeamPanel({
   initialMembers,
@@ -19,7 +21,7 @@ export function WorkspaceTeamPanel({
     setError('');
     setNotice('');
     try {
-      const response = await fetch(path, {
+      const response = await workspaceFetch(path, {
         method,
         headers: { 'Content-Type': 'application/json' },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -123,6 +125,25 @@ export function WorkspaceTeamPanel({
               <Badge tone={member.active ? 'green' : 'neutral'}>
                 {member.active ? 'Pengelola' : 'Akses dicabut'}
               </Badge>
+              <label className="field">
+                Peran
+                <select
+                  disabled={pending || !member.active}
+                  value={member.role ?? 'editor'}
+                  onChange={(event) =>
+                    void request('/api/workspace/team', 'PATCH', {
+                      userId: member.userId,
+                      role: event.target.value,
+                    })
+                  }
+                >
+                  {workspaceRoles.map((role) => (
+                    <option key={role} value={role}>
+                      {workspaceRoleLabels[role]}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <Button variant="secondary" disabled={pending} onClick={() => setSelected(member)}>
                 {member.active ? <UserMinus size={15} /> : <UserPlus size={15} />}
                 {member.active ? 'Cabut akses' : 'Aktifkan'}

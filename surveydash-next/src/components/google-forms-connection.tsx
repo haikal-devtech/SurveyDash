@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import { useEffect, useState } from 'react';
 import { Link2, Loader2, Unplug } from 'lucide-react';
 import { Button, Badge } from './ui';
@@ -30,7 +31,7 @@ export function GoogleFormsConnection({
   const [includeResponses, setIncludeResponses] = useState(true);
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/integrations/google-forms', { signal: controller.signal })
+    workspaceFetch('/api/integrations/google-forms', { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
@@ -51,7 +52,7 @@ export function GoogleFormsConnection({
     setPending(true);
     setError('');
     try {
-      const response = await fetch('/api/integrations/google-forms', {
+      const response = await workspaceFetch('/api/integrations/google-forms', {
         method: kind === 'disconnect' ? 'DELETE' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body:

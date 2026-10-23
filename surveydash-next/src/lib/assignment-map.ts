@@ -1,13 +1,14 @@
 import { provinces, isProvinceId } from './provinces';
 import type { ManagedSurveyorAssignment, ProvinceTarget } from './surveyor-types';
 
-/** Responses follow the assignment's current province, including inactive assignments. */
+/** Live pages supply response-time province snapshots; the fallback supports legacy callers. */
 export function assignmentMap(
   assignments: (Pick<ManagedSurveyorAssignment, 'provinceId' | 'username' | 'active'> & {
     responseCount?: number;
   })[],
   targets: ProvinceTarget[] = [],
   unattributedResponses = 0,
+  provinceResponses?: { provinceId: string | null; count: number }[],
 ) {
   const rows = provinces.map((province) => {
     const tasks = assignments.filter((assignment) => assignment.provinceId === province.id);
@@ -18,15 +19,18 @@ export function assignmentMap(
       people: new Set(tasks.map((task) => task.username)).size,
       active: tasks.filter((task) => task.active).length,
       activePeople: new Set(tasks.filter((task) => task.active).map((task) => task.username)).size,
-      respondents: tasks.reduce((sum, task) => sum + (task.responseCount ?? 0), 0),
+      respondents: provinceResponses
+        ? provinceResponses
+            .filter((entry) => entry.provinceId === province.id)
+            .reduce((sum, entry) => sum + entry.count, 0)
+        : tasks.reduce((sum, task) => sum + (task.responseCount ?? 0), 0),
       target: configured.length ? configured.reduce((sum, entry) => sum + entry.target, 0) : null,
     };
   });
   const unmapped = assignments.filter((task) => !task.provinceId || !isProvinceId(task.provinceId)).length;
-  const respondents = assignments.reduce(
-    (sum, task) => sum + (task.responseCount ?? 0),
-    unattributedResponses,
-  );
+  const respondents = provinceResponses
+    ? provinceResponses.reduce((sum, entry) => sum + entry.count, 0)
+    : assignments.reduce((sum, task) => sum + (task.responseCount ?? 0), unattributedResponses);
   return {
     rows,
     unmapped,

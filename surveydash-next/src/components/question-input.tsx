@@ -95,7 +95,7 @@ export function QuestionInput({
           value={String(value ?? '')}
           disabled={disabled}
           required={q.required}
-          maxLength={10000}
+          maxLength={q.validation?.maxLength ?? 10000}
           placeholder="Tuliskan jawaban Anda…"
           aria-invalid={invalid || undefined}
           aria-describedby={invalid ? `${id}-error` : undefined}
@@ -105,11 +105,22 @@ export function QuestionInput({
         <input
           id={id}
           className="input"
-          type={q.type === 'number' ? 'number' : q.type === 'date' ? 'date' : 'text'}
+          type={
+            q.type === 'number'
+              ? 'number'
+              : q.type === 'date'
+                ? 'date'
+                : q.validation?.format === 'email'
+                  ? 'email'
+                  : 'text'
+          }
           value={String(value ?? '')}
           disabled={disabled}
           required={q.required}
-          maxLength={10000}
+          maxLength={q.validation?.maxLength ?? 10000}
+          min={q.type === 'number' ? q.validation?.min : undefined}
+          max={q.type === 'number' ? q.validation?.max : undefined}
+          inputMode={q.validation?.format === 'phone' ? 'tel' : undefined}
           step={q.type === 'number' ? 'any' : undefined}
           placeholder="Jawaban Anda"
           aria-invalid={invalid || undefined}

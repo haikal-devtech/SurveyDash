@@ -1,4 +1,4 @@
-import { requireWorkspaceUser } from '@/lib/http';
+import { requireWorkspacePage as requireWorkspaceUser } from '@/lib/workspace-page';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
@@ -14,7 +14,7 @@ export default async function WorkspaceSurveyorsPage({
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect('/login');
   if ((await getAccountRole(session.user.id)) === 'surveyor') redirect('/surveyor');
-  const user = await requireWorkspaceUser();
+  const user = await requireWorkspaceUser({ area: 'field' });
   const [surveys, query] = await Promise.all([listWorkspaceSurveyors(user.ownerId), searchParams]);
   const requestedSurvey = typeof query.survey === 'string' ? query.survey : undefined;
   return (

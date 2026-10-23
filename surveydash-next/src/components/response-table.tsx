@@ -1,4 +1,8 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
+import { ResponseFilters } from './response-filters';
+import { ResponseWeightForm } from './research-panel';
+import { emptyResponseFilters, responseFilterParams } from '@/lib/response-filters';
 import { useEffect, useRef, useState } from 'react';
 import {
   flexRender,
@@ -150,12 +154,15 @@ export function ResponseTable({
   const [history, setHistory] = useState(false);
   const [editing, setEditing] = useState(false);
   const [details, setDetails] = useState<Submission | null>(null);
+  const [filters, setFilters] = useState({ ...emptyResponseFilters });
   const rows = pageData?.rows ?? [];
   const audit = pageData?.audit ?? [];
   const query = new URLSearchParams({
     page: String(pagination.pageIndex + 1),
     pageSize: String(pagination.pageSize),
     search: querySearch,
+    dataset: survey.dataset ?? 'all',
+    ...responseFilterParams(filters),
     sort: sorting[0]?.id ?? 'submittedAt',
     direction: sorting[0]?.desc === false ? 'asc' : 'desc',
   }).toString();
@@ -170,7 +177,7 @@ export function ResponseTable({
     const controller = new AbortController();
     setLoading(true);
     setLoadError('');
-    fetch('/api/surveys/' + survey.id + '/responses?' + query, { signal: controller.signal })
+    workspaceFetch('/api/surveys/' + survey.id + '/responses?' + query, { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
@@ -190,7 +197,7 @@ export function ResponseTable({
   }, [survey.id, query, reload]);
   async function commit(q: Question, row: Submission, value: Answer) {
     try {
-      const response = await fetch(`/api/surveys/${survey.id}`, {
+      const response = await workspaceFetch(`/api/surveys/${survey.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ submissionId: row.id, questionId: q.id, value, revision: row.revision }),
@@ -295,7 +302,9 @@ export function ResponseTable({
   async function exportData(format: 'csv' | 'xlsx') {
     setExporting(true);
     try {
-      const response = await fetch('/api/surveys/' + survey.id + '/responses?' + query + '&format=' + format);
+      const response = await workspaceFetch(
+        '/api/surveys/' + survey.id + '/responses?' + query + '&format=' + format,
+      );
       if (!response.ok) throw new Error((await response.json()).error);
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement('a');
@@ -340,6 +349,13 @@ export function ResponseTable({
         <Badge tone="purple">{pageData?.total ?? survey.responseCount ?? 0} respons</Badge>
       </div>
       <section className="card">
+        <ResponseFilters
+          value={filters}
+          onChange={(value) => {
+            setFilters(value);
+            setPagination((previous) => ({ ...previous, pageIndex: 0 }));
+          }}
+        />
         <div className="data-toolbar">
           <div className="search-input">
             <Search size={13} />
@@ -352,7 +368,12 @@ export function ResponseTable({
             />
           </div>
           <div className="actions">
-            <Button variant="secondary" aria-pressed={editing} onClick={() => setEditing((value) => !value)}>
+            <Button
+              permission="edit"
+              variant="secondary"
+              aria-pressed={editing}
+              onClick={() => setEditing((value) => !value)}
+            >
               <Pencil size={13} />
               {editing ? 'Selesai koreksi' : 'Koreksi data'}
             </Button>
@@ -578,6 +599,12 @@ export function ResponseTable({
           description={new Date(details.submittedAt).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}
           wide
         >
+          <ResponseWeightForm
+            key={details.id}
+            surveyId={survey.id}
+            response={details}
+            onSaved={() => setReload((value) => value + 1)}
+          />
           <div className="response-details">
             <div>
               <strong>Sumber link</strong>

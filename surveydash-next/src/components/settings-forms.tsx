@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Save, Loader2, Upload } from 'lucide-react';
@@ -33,7 +34,7 @@ export function SettingsForm({
       if (file.size > 2500000) throw new Error('Foto profil maksimal 2,5 MB.');
       const body = new FormData();
       body.set('image', file);
-      const response = await fetch('/api/account/avatar', { method: 'POST', body });
+      const response = await workspaceFetch('/api/account/avatar', { method: 'POST', body });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       setImage(data.image);
@@ -55,7 +56,7 @@ export function SettingsForm({
         const result = await authClient.updateUser({ name });
         if (result.error) throw new Error(result.error.message ?? 'Profil gagal disimpan.');
       } else {
-        const response = await fetch('/api/workspace', {
+        const response = await workspaceFetch('/api/workspace', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, description, locale: 'id-ID' }),

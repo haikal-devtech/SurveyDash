@@ -11,6 +11,10 @@ export interface SurveyorProfile {
   updatedAt: string;
 }
 export interface SurveyorAssignment {
+  acceptedCount?: number;
+  target?: number | null;
+  city?: string;
+  district?: string;
   id: string;
   surveyId: string;
   title: string;
@@ -23,6 +27,9 @@ export interface SurveyorAssignment {
   questions: Question[];
 }
 export interface ManagedSurveyorAssignment {
+  surveyorId?: string;
+  blocked?: boolean;
+  acceptedCount?: number;
   id: string;
   username: string;
   fullName: string;
@@ -33,6 +40,7 @@ export interface ManagedSurveyorAssignment {
   createdAt: string;
 }
 export interface SurveyorAttribution {
+  provinceId?: string | null;
   assignmentId: string;
   surveyorId: string;
   username: string;
@@ -43,6 +51,8 @@ export interface ProvinceTarget {
   target: number;
 }
 export interface SurveyorTeamGroup {
+  provinceResponses?: { provinceId: string | null; count: number }[];
+  dataset?: 'all' | 'accepted';
   surveyId: string;
   title: string;
   responseCount: number;

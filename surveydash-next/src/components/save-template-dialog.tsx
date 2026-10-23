@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import { useState } from 'react';
 import { Bookmark, Loader2 } from 'lucide-react';
 import type { SavedTemplate, Survey, TemplateCategory } from '@/lib/types';
@@ -34,7 +35,7 @@ export function SaveTemplateDialog({
     setPending(true);
     setError('');
     try {
-      const response = await fetch('/api/templates', {
+      const response = await workspaceFetch('/api/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

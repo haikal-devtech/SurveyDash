@@ -52,6 +52,7 @@ export async function exportResponseXlsx(id: string, ownerId: string, input: unk
     ...survey.questions.map((q) => q.label),
     'Sumber impor',
     'ID respons sumber',
+    'Bobot manual (revisi terbaru)',
   ];
   header(sheet, labels);
   sheet.getColumn(2).numFmt = 'yyyy-mm-dd hh:mm:ss';
@@ -59,6 +60,25 @@ export async function exportResponseXlsx(id: string, ownerId: string, input: unk
   header(info, ['Keterangan', 'Nilai']);
   info.addRow(['Survei', survey.title]).commit();
   info.addRow(['Filter pencarian', query.search || 'Semua jawaban']).commit();
+  info
+    .addRow([
+      'Dataset',
+      (query.dataset ?? survey.dataset) === 'accepted'
+        ? 'Hanya respons diterima pada revisi terbaru'
+        : 'Semua respons mentah',
+    ])
+    .commit();
+  info
+    .addRow([
+      'Filter wilayah / surveyor / tanggal',
+      JSON.stringify({
+        province: query.province,
+        surveyor: query.surveyor,
+        after: query.after,
+        before: query.before,
+      }),
+    ])
+    .commit();
   info
     .addRow(['Waktu', 'Kolom waktu memakai WIB (UTC+7). Data asli impor mempertahankan waktu sumber.'])
     .commit();
@@ -97,6 +117,7 @@ export async function exportResponseXlsx(id: string, ownerId: string, input: unk
           ...values,
           response.importProvider,
           response.importResponseId,
+          response.analysisWeight,
         ])
         .commit();
       if (response.importRaw) {

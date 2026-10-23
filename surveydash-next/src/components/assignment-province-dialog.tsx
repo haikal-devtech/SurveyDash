@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { provinces } from '@/lib/provinces';
@@ -24,7 +25,7 @@ export function AssignmentProvinceDialog({
     setPending(true);
     setError('');
     try {
-      const response = await fetch(`/api/surveys/${encodeURIComponent(surveyId)}/surveyors`, {
+      const response = await workspaceFetch(`/api/surveys/${encodeURIComponent(surveyId)}/surveyors`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ assignmentId: assignment.id, provinceId: provinceId || null }),

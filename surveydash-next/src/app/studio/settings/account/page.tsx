@@ -5,9 +5,10 @@ import { SettingsForm } from '@/components/settings-forms';
 import Link from 'next/link';
 import { passwordRecoveryAvailable } from '@/lib/email';
 import { SUPPORT_EMAIL } from '@/lib/support';
-import { requireWorkspaceUser } from '@/lib/http';
+import { requireWorkspacePage as requireWorkspaceUser } from '@/lib/workspace-page';
+import { AccountSecurity } from '@/components/account-security';
 export default async function AccountPage() {
-  await requireWorkspaceUser();
+  await requireWorkspaceUser({ area: 'shell' });
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect('/login');
   return (
@@ -39,6 +40,12 @@ export default async function AccountPage() {
           </>
         )}
       </p>
+      <AccountSecurity
+        email={session.user.email}
+        verified={session.user.emailVerified}
+        enabled={session.user.twoFactorEnabled ?? false}
+        emailAvailable={passwordRecoveryAvailable()}
+      />
     </>
   );
 }

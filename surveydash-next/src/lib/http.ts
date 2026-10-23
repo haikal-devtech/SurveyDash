@@ -6,15 +6,30 @@ import { ZodError } from 'zod';
 import { trustedOrigins } from './origins';
 import { ModelError } from './model';
 import { assertManager, assertSurveyor } from './account-repository';
+import { WORKSPACE_HEADER } from './workspace-request';
+import { workspaceRole, assertWorkspaceRole } from './workspace-roles';
+import { randomUUID } from 'node:crypto';
+import { recordFailure } from './operations';
 
 export async function requireUser() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new AppError('Silakan masuk untuk mengelola survei.', 401);
   return session.user;
 }
-export async function requireWorkspaceUser() {
+export async function requireWorkspaceUser(
+  options: { write?: boolean; area?: 'data' | 'field' | 'shell' } = {},
+) {
   const user = await requireManagerUser();
-  return { ...user, ...(await resolveAccess(user.id, (await cookies()).get(WORKSPACE_COOKIE)?.value)) };
+  const access = await resolveAccess(user.id, (await cookies()).get(WORKSPACE_COOKIE)?.value);
+  const expected = (await headers()).get(WORKSPACE_HEADER);
+  if ((options.write && !expected) || (expected && expected !== access.ownerId))
+    throw new AppError(
+      'Workspace telah berubah. Buka ulang halaman pada workspace yang dituju; perubahan belum disimpan.',
+      409,
+    );
+  const role = await workspaceRole(user.id, access.ownerId, access.isAdmin);
+  assertWorkspaceRole(role, options.write, options.area);
+  return { ...user, ...access, workspaceRole: role };
 }
 export async function requireManagerUser() {
   const user = await requireUser();
@@ -68,15 +83,20 @@ export async function readJson(request: Request, limit = 250000) {
     throw new AppError('Format data tidak valid.');
   }
 }
-export async function api(work: () => Promise<unknown> | unknown) {
+export async function api(work: () => Promise<unknown> | unknown, route = 'application') {
+  const eventId = randomUUID();
+  const responseHeaders = { 'Cache-Control': 'no-store', 'X-Request-Id': eventId };
   try {
-    return Response.json(await work(), { headers: { 'Cache-Control': 'no-store' } });
+    return Response.json(await work(), { headers: responseHeaders });
   } catch (error) {
     if (error instanceof ZodError)
       return Response.json({ error: error.issues[0]?.message ?? 'Data tidak valid.' }, { status: 400 });
     if (error instanceof AppError) return Response.json({ error: error.message }, { status: error.status });
     if (error instanceof ModelError) return Response.json({ error: error.message }, { status: 400 });
-    console.error('SurveyDash API failure', { name: error instanceof Error ? error.name : 'UnknownError' });
-    return Response.json({ error: 'Terjadi kesalahan saat menyimpan data.' }, { status: 500 });
+    await recordFailure(eventId, route, error);
+    return Response.json(
+      { error: 'Terjadi kesalahan. Kode laporan: ' + eventId, eventId },
+      { status: 500, headers: responseHeaders },
+    );
   }
 }

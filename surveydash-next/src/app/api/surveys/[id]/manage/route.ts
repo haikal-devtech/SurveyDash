@@ -5,10 +5,10 @@ export const runtime = 'nodejs';
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireWorkspaceUser();
+    const user = await requireWorkspaceUser({ write: true });
     const input = z
       .object({ action: z.enum(['duplicate', 'archive', 'unarchive', 'trash', 'restore', 'opened']) })
       .parse(await readJson(request));
-    return manageSurvey((await context.params).id, user.ownerId, input.action);
-  });
+    return manageSurvey((await context.params).id, user.ownerId, input.action, user.id);
+  }, '/api/surveys/[id]/manage');
 }

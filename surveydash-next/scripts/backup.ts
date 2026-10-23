@@ -1,22 +1,45 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, unlink } from 'node:fs/promises';
 import { Pool } from 'pg';
 import { getAuthDatabase, closeDatabase } from '../src/lib/db';
-const database = getAuthDatabase();
-if (!(database instanceof Pool)) throw new Error('Backup cloud memerlukan DATABASE_URL PostgreSQL.');
-const client = await database.connect();
-try {
-  await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
-  const tableNames = await client.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY table_name");
-  const tables: Record<string, unknown[]> = {};
-  for (const row of tableNames.rows) {
-    const name = String(row.table_name);
-    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) throw new Error('Nama tabel tidak didukung.');
-    tables[name] = (await client.query(`SELECT * FROM "${name}"`)).rows;
-  }
-  await client.query('COMMIT');
+import { backupRecords, writeEncryptedBackup } from '../src/lib/backup-format';
+import { randomUUID } from 'node:crypto';
+async function main() {
+  const secret = process.env.BACKUP_ENCRYPTION_KEY ?? '';
+  if (secret.length < 32)
+    throw new Error(
+      'Atur BACKUP_ENCRYPTION_KEY minimal 32 karakter. Jangan simpan kunci bersama berkas backup.',
+    );
+  const database = getAuthDatabase();
+  if (!(database instanceof Pool)) throw new Error('Backup cloud memerlukan DATABASE_URL PostgreSQL.');
+  const client = await database.connect();
   await mkdir('.data/backups', { recursive: true });
-  const path = `.data/backups/studio-${new Date().toISOString().replaceAll(':', '-')}.json`;
-  await writeFile(path, JSON.stringify({ version: 1, createdAt: new Date().toISOString(), tables }), { mode: 0o600 });
-  console.log(JSON.stringify({ backup: path, rowCounts: Object.fromEntries(Object.entries(tables).map(([table, rows]) => [table, rows.length])) }));
-} catch (error) { await client.query('ROLLBACK'); throw error; }
-finally { client.release(); await closeDatabase(); }
+  const path = `.data/backups/studio-${new Date().toISOString().replaceAll(':', '-')}-${randomUUID().slice(0, 8)}.sdb.enc`;
+  try {
+    await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+    await writeEncryptedBackup(path, backupRecords(client), secret);
+    await client.query('COMMIT');
+    console.log(
+      JSON.stringify({ backup: path, encrypted: true, format: 2, source: 'read-only repeatable snapshot' }),
+    );
+  } catch (error) {
+    await client.query('ROLLBACK');
+    if (!(error && typeof error === 'object' && 'code' in error && error.code === 'EEXIST'))
+      await unlink(path).catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+    await closeDatabase();
+  }
+}
+await main().catch(async (error: unknown) => {
+  await closeDatabase().catch(() => {});
+  const candidate = error && typeof error === 'object' && 'code' in error ? String(error.code) : 'FAILURE';
+  console.error(
+    JSON.stringify({
+      operation: 'backup',
+      passed: false,
+      code: /^[A-Z0-9_]{1,40}$/i.test(candidate) ? candidate : 'FAILURE',
+    }),
+  );
+  process.exitCode = 1;
+});

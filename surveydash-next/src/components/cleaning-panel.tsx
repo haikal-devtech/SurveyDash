@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Eye, History, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import type { Survey } from '@/lib/types';
@@ -56,9 +57,12 @@ function CleaningComparison({
   const initialized = useRef(false);
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`/api/surveys/${survey.id}/cleaning?focus=${encodeURIComponent(row.id)}&page=${page}&pageSize=10`, {
-      signal: controller.signal,
-    })
+    workspaceFetch(
+      `/api/surveys/${survey.id}/cleaning?focus=${encodeURIComponent(row.id)}&page=${page}&pageSize=10`,
+      {
+        signal: controller.signal,
+      },
+    )
       .then(jsonResponse)
       .then((result: CleaningPage) => {
         if (!controller.signal.aborted) {
@@ -85,7 +89,7 @@ function CleaningComparison({
     setPending(true);
     setError('');
     try {
-      await fetch(`/api/surveys/${survey.id}/cleaning`, {
+      await workspaceFetch(`/api/surveys/${survey.id}/cleaning`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -143,6 +147,11 @@ function CleaningComparison({
                     <th scope="col" key={item.id}>
                       {item.id === row.id ? 'Sedang ditinjau' : item.id.slice(0, 8)}
                       <small>{formatTime(item.submittedAt)}</small>
+                      <small>
+                        {item.reportedSeconds == null
+                          ? 'Durasi belum tersedia'
+                          : `Durasi perangkat: ${item.reportedSeconds} dtk`}
+                      </small>
                     </th>
                   ))}
                 </tr>
@@ -229,8 +238,8 @@ function CleaningComparison({
           <small>Hindari menyalin nomor rekening lengkap ke catatan.</small>
         </label>
         <p className="hint">
-          Keputusan ini hanya menyimpan status dan riwayat. Jawaban, skor, dan jumlah dalam analisis tetap
-          sama.
+          Data mentah tetap disimpan. Analisis dengan pilihan “Hanya respons diterima” memakai respons
+          berstatus Diterima pada revisi jawaban terbaru.
         </p>
         <Button
           type="submit"
@@ -271,7 +280,7 @@ export function CleaningPanel({ survey }: { survey: Survey }) {
   const loading = loadedKey !== requestKey && !error;
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`/api/surveys/${survey.id}/cleaning?${query}`, { signal: controller.signal })
+    workspaceFetch(`/api/surveys/${survey.id}/cleaning?${query}`, { signal: controller.signal })
       .then(jsonResponse)
       .then((result: CleaningPage) => {
         if (!controller.signal.aborted) {
@@ -295,6 +304,11 @@ export function CleaningPanel({ survey }: { survey: Survey }) {
       });
     return () => controller.abort();
   }, [survey.id, query, requestKey, page]);
+  useEffect(() => {
+    if (!data?.indexing) return;
+    const timer = setTimeout(() => setReload((value) => value + 1), 500);
+    return () => clearTimeout(timer);
+  }, [data?.indexing]);
   async function saveConfig(event: React.FormEvent) {
     event.preventDefault();
     if (!data) return;
@@ -302,7 +316,7 @@ export function CleaningPanel({ survey }: { survey: Survey }) {
     setActionError('');
     setNotice('');
     try {
-      await fetch(`/api/surveys/${survey.id}/cleaning`, {
+      await workspaceFetch(`/api/surveys/${survey.id}/cleaning`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'config', config: draft, expectedUpdatedAt: data.configUpdatedAt }),
@@ -325,6 +339,25 @@ export function CleaningPanel({ survey }: { survey: Survey }) {
     },
     { key: 'accountQuestionId' as const, label: 'Nomor rekening responden', types: ['text'] },
   ];
+  if (data?.indexing)
+    return (
+      <section className="card" style={{ padding: 24 }} aria-live="polite">
+        <h2>Menyiapkan pemeriksaan data</h2>
+        <p>
+          {data.indexing.done.toLocaleString('id-ID')} dari {data.indexing.total.toLocaleString('id-ID')}{' '}
+          respons diproses. Jawaban tetap disimpan.
+        </p>
+        <progress
+          value={data.indexing.done}
+          max={Math.max(1, data.indexing.total)}
+          aria-label="Kemajuan indeks cleaning"
+        />
+        {error && <p role="alert">{error}</p>}
+        <Button variant="secondary" onClick={() => setReload((value) => value + 1)}>
+          Lanjutkan pemeriksaan
+        </Button>
+      </section>
+    );
   return (
     <div className="cleaning-panel">
       <div className="panel-intro">
@@ -347,7 +380,8 @@ export function CleaningPanel({ survey }: { survey: Survey }) {
         <ShieldCheck size={18} />
         <p>
           Indikasi bukan bukti kecurangan. Nama atau rekening bisa digunakan bersama, dan jawaban identik bisa
-          sah. Tidak ada penghapusan otomatis, pengecualian respons, atau perubahan skor dari halaman ini.
+          sah. Penandaan tidak otomatis menolak respons. Keputusan manusia dicatat; analisis respons diterima
+          mengikuti hasil peninjauan terbaru.
         </p>
       </div>
       {error && (

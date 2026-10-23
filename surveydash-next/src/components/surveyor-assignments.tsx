@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 
 import { useEffect, useEffectEvent, useState } from 'react';
 import Link from 'next/link';
@@ -58,7 +59,7 @@ export function SurveyorAssignments({
     const controller = new AbortController();
     async function load() {
       try {
-        const response = await fetch(endpoint, { signal: controller.signal, cache: 'no-store' });
+        const response = await workspaceFetch(endpoint, { signal: controller.signal, cache: 'no-store' });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? 'Surveyor belum berhasil dimuat.');
         if (!controller.signal.aborted) {
@@ -79,7 +80,10 @@ export function SurveyorAssignments({
     const controller = new AbortController();
     async function load() {
       try {
-        const response = await fetch(invitationEndpoint, { signal: controller.signal, cache: 'no-store' });
+        const response = await workspaceFetch(invitationEndpoint, {
+          signal: controller.signal,
+          cache: 'no-store',
+        });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? 'Link undangan belum berhasil dimuat.');
         if (!controller.signal.aborted) {
@@ -100,7 +104,7 @@ export function SurveyorAssignments({
     setInvitationError('');
     setCopiedUrl('');
     try {
-      const response = await fetch(invitationEndpoint, {
+      const response = await workspaceFetch(invitationEndpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
         ...(method === 'POST' ? { body: '{}' } : {}),
@@ -132,7 +136,7 @@ export function SurveyorAssignments({
     setError('');
     setMessage('');
     try {
-      const response = await fetch(endpoint, {
+      const response = await workspaceFetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

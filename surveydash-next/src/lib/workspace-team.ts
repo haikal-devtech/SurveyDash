@@ -5,6 +5,8 @@ import { isPlatformAdmin } from './access-repository';
 import { AppError } from './repository';
 import { getWorkspace } from './workspace-repository';
 import { authBaseUrl } from './origins';
+import { workspaceRoles, type WorkspaceRole } from './workspace-roles';
+import { recordActivity } from './workspace-activity';
 import type { WorkspaceChoice, WorkspaceMember, WorkspaceInvitation } from './workspace-types';
 
 type Row = Record<string, string | number | null>;
@@ -48,15 +50,41 @@ export async function listWorkspaceMembers(ownerId: string, actor: string): Prom
   await requireOwner(ownerId, actor);
   const rows = await getDb()
     .prepare(
-      'SELECT m.user_id, m.active, u.name, u.email FROM workspace_members m JOIN "user" u ON u.id = m.user_id WHERE m.owner_id = ? ORDER BY m.created_at',
+      'SELECT m.user_id, m.active, u.name, u.email, r.role FROM workspace_members m JOIN "user" u ON u.id = m.user_id LEFT JOIN workspace_member_roles r ON r.owner_id = m.owner_id AND r.user_id = m.user_id WHERE m.owner_id = ? ORDER BY m.created_at',
     )
     .all(ownerId);
   return rows.map((row) => ({
     userId: String(row.user_id),
+    role: (row.role ?? 'editor') as WorkspaceRole,
     name: String(row.name),
     email: String(row.email),
     active: Number(row.active) === 1,
   }));
+}
+export async function setWorkspaceMemberRole(
+  ownerId: string,
+  actor: string,
+  userId: string,
+  role: (typeof workspaceRoles)[number],
+) {
+  return getDb().transaction(async () => {
+    await getDb().lockOwner(ownerId);
+    await requireOwner(ownerId, actor);
+    if (
+      !workspaceRoles.includes(role) ||
+      !(await getDb()
+        .prepare('SELECT user_id FROM workspace_members WHERE owner_id = ? AND user_id = ?')
+        .get(ownerId, userId))
+    )
+      throw new AppError('Anggota atau peran tidak tersedia.', 404);
+    await getDb()
+      .prepare(
+        `INSERT INTO workspace_member_roles VALUES (?, ?, ?, ?, ?) ON CONFLICT(owner_id, user_id) DO UPDATE SET role = excluded.role, updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
+      )
+      .run(ownerId, userId, role, actor, new Date().toISOString());
+    await recordActivity(ownerId, actor, 'member.role', userId, { role });
+    return listWorkspaceMembers(ownerId, actor);
+  });
 }
 export async function getWorkspaceInvitation(ownerId: string, actor: string) {
   await requireOwner(ownerId, actor);
@@ -81,6 +109,7 @@ export async function createWorkspaceInvitation(ownerId: string, actor: string) 
       created_by = excluded.created_by, expires_at = excluded.expires_at, updated_at = excluded.updated_at`,
       )
       .run(ownerId, token, actor, expiresAt, at, at);
+    await recordActivity(ownerId, actor, 'workspace.invitation.created', ownerId, { expiresAt });
     return invitation({ token, expires_at: expiresAt });
   });
 }
@@ -91,6 +120,7 @@ export async function revokeWorkspaceInvitation(ownerId: string, actor: string) 
     await getDb()
       .prepare('UPDATE workspace_invitations SET active = 0, updated_at = ? WHERE owner_id = ?')
       .run(new Date().toISOString(), ownerId);
+    await recordActivity(ownerId, actor, 'workspace.invitation.revoked', ownerId);
   });
 }
 async function invitationRow(token: string, lock = false) {
@@ -131,6 +161,7 @@ export async function acceptWorkspaceInvitation(token: string, userId: string) {
           'INSERT INTO workspace_members (owner_id, user_id, active, invited_by, updated_by, created_at, updated_at) VALUES (?, ?, 1, ?, ?, ?, ?)',
         )
         .run(ownerId, userId, row.created_by, userId, at, at);
+      await recordActivity(ownerId, userId, 'workspace.invitation.accepted', userId);
     }
     return { ownerId };
   });
@@ -153,6 +184,7 @@ export async function setWorkspaceMemberActive(
         'UPDATE workspace_members SET active = ?, updated_by = ?, updated_at = ? WHERE owner_id = ? AND user_id = ?',
       )
       .run(active ? 1 : 0, actor, new Date().toISOString(), ownerId, userId);
+    await recordActivity(ownerId, actor, active ? 'member.activated' : 'member.revoked', userId);
     return listWorkspaceMembers(ownerId, actor);
   });
 }

@@ -1,4 +1,4 @@
-import { requireWorkspaceUser } from '@/lib/http';
+import { requireWorkspacePage as requireWorkspaceUser } from '@/lib/workspace-page';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
@@ -13,7 +13,7 @@ export default async function StudioLayout({ children }: { children: React.React
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect('/login');
   if ((await getAccountRole(session.user.id)) === 'surveyor') redirect('/surveyor');
-  const workspaceUser = await requireWorkspaceUser();
+  const workspaceUser = await requireWorkspaceUser({ area: 'shell' });
   const workspace = await getWorkspace(workspaceUser.ownerId);
   return (
     <Shell
@@ -25,6 +25,7 @@ export default async function StudioLayout({ children }: { children: React.React
       userId={session.user.id}
       workspaceChoices={await listAvailableWorkspaces(session.user.id)}
       currentOwnerId={workspaceUser.ownerId}
+      role={workspaceUser.workspaceRole}
     >
       {children}
     </Shell>
