@@ -1,6 +1,6 @@
 # Pengerjaan audit — 23 Oktober 2026
 
-Permintaan pengguna: kerjakan temuan dan rekomendasi audit, push GitHub dan rilis dengan QA visual menyusul. Basis awal `050ab28a886b354cfe2184df9620d4c069f62ed1`; pengerjaan `codex/audit-hardening`. Status pada checkpoint ini: kode selesai dan pemeriksaan lokal/staging lulus, migrasi produksi selesai, push/CI/rilis masih berjalan. Bukti rilis akhir ditambahkan setelah deployment diverifikasi.
+Permintaan pengguna: kerjakan temuan dan rekomendasi audit, push GitHub dan rilis dengan QA visual menyusul. Basis awal `050ab28a886b354cfe2184df9620d4c069f62ed1`. Rilis utama sudah aktif di [SurveyDash Studio](https://surveydash-studio.vercel.app) melalui [PR #15](https://github.com/haikal-devtech/SurveyDash/pull/15), commit produksi `95057152631716be63e8bfee8bae5e08128fc110`. Workflow dipasang melalui [PR #16](https://github.com/haikal-devtech/SurveyDash/pull/16); portabilitas recovery diperkuat melalui [PR #17](https://github.com/haikal-devtech/SurveyDash/pull/17), commit `1ba0cc02f8e006045cb631b7a13003d33e292540`. Ketiga PR telah merged dan CI lulus. Sonar quality gate lulus untuk perubahan aplikasi/recovery.
 
 ## Implementasi
 
@@ -27,7 +27,7 @@ Permintaan pengguna: kerjakan temuan dan rekomendasi audit, push GitHub dan rili
 
 | Pemeriksaan | Hasil |
 | --- | --- |
-| Unit/repository | 116 lulus, 0 gagal; tes hardening/backup ditargetkan ulang setelah ringkasan final ditambahkan |
+| Unit/repository | 117 lulus, 0 gagal, termasuk pembandingan restore lintas representasi numerik dan penolakan kehilangan presisi |
 | ESLint ketat | Lulus tanpa warning |
 | Build produksi + TypeScript | Lulus; database lokal sudah dimigrasikan setelah backup lokal |
 | HTTP lokal | 63 tim/admin + 106 alur/peta/artwork + 101 audit/MFA/roles/health = 270 pemeriksaan |
@@ -38,13 +38,17 @@ Permintaan pengguna: kerjakan temuan dan rekomendasi audit, push GitHub dan rili
 | Backup produksi terbaru | Terenkripsi; berhasil dipulihkan/diverifikasi dalam schema staging sementara, lalu rollback |
 | Migrasi staging/produksi | Versi audit diterapkan; jumlah data inti tidak berkurang |
 | Audit dependency produksi | 0 critical/high/moderate/low/info |
+| HTTP produksi setelah rilis | 67 pemeriksaan lulus, memakai akun QA dan GET data bisnis; tidak mengubah respons pelanggan |
+| Recovery lintas lingkungan | Backup produksi terenkripsi dan legacy dipulihkan di schema sementara dengan collation berbeda serta representasi bigint/double; seluruh fixture rollback |
+| Health terjadwal | Aktif setiap 15 menit; run pertama berhasil |
+| Backup offsite dan restore GitHub | [Run 39927073628 berhasil](https://github.com/haikal-devtech/SurveyDash/actions/runs/39927073628): enkripsi, artefak terenkripsi, setup PostgreSQL sementara, readback seluruh baris dan verifikasi sebelum commit |
 
 Hasil mentah/fixture berada dalam `test-results/` yang diabaikan Git. DSN, secret, rekening, jawaban dan file backup tidak disertakan dalam laporan. Benchmark 20.000/100.000 respons dan batasnya ada di [runbook](SURVEYDASH_AUDIT_RUNBOOK.md).
 
 ## Batas dan ketergantungan operasional
 
-- SMTP produksi belum tersedia. Konfigurasi serta panduan siap; pengiriman/pemulihan/verifikasi email belum dinyatakan aktif. Jangan membeli layanan atau mengirim email tanpa tujuan yang disetujui.
-- Secret backup sudah disimpan terenkripsi di GitHub Actions; workflow default branch, flag aktivasi dan run nyata masih menunggu langkah rilis. Sumber sementara memakai DSN produksi yang ada dengan transaksi read-only; role penyedia yang benar-benar read-only tetap direkomendasikan. Kunci recovery disimpan privat dan terpisah dari artefak backup.
+- SMTP produksi belum tersedia sesuai konfirmasi pengguna. [Panduan konfigurasi berbahasa Indonesia](PANDUAN_SMTP.md) sudah disiapkan. Pengiriman/pemulihan/verifikasi email belum aktif. Tidak ada layanan dibeli atau email dikirim ke pihak lain.
+- Secret backup disimpan terenkripsi di GitHub Actions; workflow default branch serta flag backup harian dan health 15 menit sudah aktif. Snapshot terenkripsi tersimpan offsite dan run restore setelah perbaikan berhasil. Run restore pertama menemukan perbedaan antarlingkungan dan menghasilkan perbaikan teruji pada PR #17. Sumber sementara memakai DSN produksi yang ada dengan transaksi read-only; role penyedia yang benar-benar read-only tetap direkomendasikan. Repository publik: artefak hanya ciphertext AES-GCM, dengan kunci terpisah dalam Actions Secrets dan recovery copy lokal privat.
 - Enkripsi rekening mempertahankan kunci efektif yang sudah digunakan. Jangan merotasi auth/data key tanpa migrasi yang diuji. Konfigurasi key khusus dan recovery copy harus dijaga operator; tidak ada penggantian kunci sepihak.
 - Notifikasi kegagalan workflow bergantung pengaturan GitHub pengguna; pengiriman alert belum diverifikasi. PITR/backup penyedia memiliki pengaturan tersendiri.
 - Browser automation ditolak oleh pemeriksaan izin otomatis tersimpan. Tidak dicoba CUA/Playwright/CDP/headless/DOM emulator pengganti. QA visual HP/desktop, fokus/keyboard/tutorial, penyimpanan draft dan interaksi download belum lulus secara langsung.

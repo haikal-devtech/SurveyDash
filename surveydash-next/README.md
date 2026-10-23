@@ -130,6 +130,8 @@ Lisensi masing-masing dependency tetap menjadi milik pengembangnya. Detail terse
 
 Status terbaru ada pada [pengerjaan audit](docs/SURVEYDASH_AUDIT_IMPLEMENTATION.md), [arsitektur](docs/SURVEYDASH_ARCHITECTURE.md) dan [runbook audit](docs/SURVEYDASH_AUDIT_RUNBOOK.md). Dokumen rilis lama menyimpan bukti historis. SMTP/OAuth memerlukan konfigurasi eksternal; aplikasi mencatat honor, tanpa melakukan transfer.
 
+Belum punya pengirim email? Ikuti [panduan SMTP berbahasa Indonesia](docs/PANDUAN_SMTP.md) untuk konfigurasi, pengujian Preview dan aktivasi produksi.
+
 ## Admin dan akun client uji
 
 Admin platform yang ditetapkan pengelola memiliki menu **Admin workspace** untuk memilih workspace. Akun login dan profil tetap milik admin tersebut. Banner mode admin menyediakan tombol kembali ke workspace sendiri. Akun client memiliki akses semua fitur pada workspace uji terpisah; data simulasi, template dan slide awal disiapkan tanpa menyalin jawaban produksi.
