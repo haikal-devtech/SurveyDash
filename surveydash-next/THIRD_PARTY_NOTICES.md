@@ -20,6 +20,7 @@ Paket utama dan sumber lisensinya:
 - Nodemailer — MIT-0: https://github.com/nodemailer/nodemailer/blob/master/LICENSE
 - Google Auth Library — Apache-2.0: https://github.com/googleapis/google-auth-library-nodejs/blob/main/LICENSE
 - SMTP Server (pengujian lokal) — MIT-0: https://github.com/nodemailer/smtp-server/blob/master/LICENSE
+- QRCode — MIT, QR authenticator dibuat lokal: https://github.com/soldair/node-qrcode/blob/master/license ; notice disertakan di `/licenses/qrcode-LICENSE.txt`.
 
 Referensi visual shadcn/ui: https://github.com/shadcn-ui/ui/blob/main/LICENSE.md (MIT).
 Riset dnd kit: https://github.com/clauderic/dnd-kit/blob/master/LICENSE (MIT); tidak menjadi dependency versi ini.

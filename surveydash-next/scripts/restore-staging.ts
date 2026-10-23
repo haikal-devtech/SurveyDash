@@ -50,6 +50,12 @@ await main().catch(async (error: unknown) => {
       operation: 'restore-staging',
       passed: false,
       code: /^[A-Z0-9_]{1,40}$/i.test(candidate) ? candidate : 'FAILURE',
+      ...(typeof error === 'object' &&
+      error !== null &&
+      'table' in error &&
+      /^[A-Za-z_][A-Za-z_0-9]*$/.test(String(error.table))
+        ? { table: String(error.table) }
+        : {}),
     }),
   );
   process.exitCode = 1;

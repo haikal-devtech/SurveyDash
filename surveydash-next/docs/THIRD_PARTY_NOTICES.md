@@ -5,3 +5,5 @@ This application uses published packages through pnpm. It does not vendor a copi
 The Inter font is copyright The Inter Project Authors and distributed under SIL Open Font License 1.1. Its complete notice is shipped at `/licenses/inter-OFL.txt`.
 
 Primary packages include Next.js, React, Better Auth, pg, Zod, Radix UI, TanStack Table, Recharts, react-grid-layout, Lucide, html-to-image, jsPDF, PptxGenJS and Sharp. Consult the installed package LICENSE files for their specific terms and transitive dependencies. The project lockfile records exact package versions.
+
+The QRCode package renders authenticator enrollment QR codes locally. Its MIT notice is shipped at `/licenses/qrcode-LICENSE.txt`; no QR-generating third-party service receives the enrollment secret.
