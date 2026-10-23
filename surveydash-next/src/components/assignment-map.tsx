@@ -52,6 +52,7 @@ export function AssignmentMap({
   assignments,
   targets = [],
   unattributedResponses = 0,
+  provinceResponses,
   selected,
   onSelect,
   onEditTarget,
@@ -59,12 +60,13 @@ export function AssignmentMap({
   assignments: ManagedSurveyorAssignment[];
   targets?: ProvinceTarget[];
   unattributedResponses?: number;
+  provinceResponses?: { provinceId: string | null; count: number }[];
   selected: string;
   onSelect: (provinceId: string) => void;
   onEditTarget?: (provinceId?: string) => void;
 }>) {
   const [metric, setMetric] = useState<'respondents' | 'surveyors'>('respondents');
-  const summary = assignmentMap(assignments, targets, unattributedResponses);
+  const summary = assignmentMap(assignments, targets, unattributedResponses, provinceResponses);
   const value = (row: ProvinceMapRow) => (metric === 'respondents' ? row.respondents : row.activePeople);
   const maximum = Math.max(0, ...summary.rows.map(value));
   const byId = new Map(summary.rows.map((row) => [row.id, row]));

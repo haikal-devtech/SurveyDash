@@ -20,8 +20,12 @@ export async function POST(request: Request, { params }: Context) {
     if (!(await allowSubmission(key)))
       throw new AppError('Terlalu banyak pengiriman. Coba lagi dalam satu menit.', 429);
     const body = z
-      .object({ answers: z.unknown(), requestKey: z.string().uuid() })
+      .object({
+        answers: z.unknown(),
+        requestKey: z.string().uuid(),
+        startedAt: z.iso.datetime({ offset: true }).optional(),
+      })
       .parse(await readJson(request));
-    return submitResponse(source.survey.token, body.answers, body.requestKey, token);
-  });
+    return submitResponse(source.survey.token, body.answers, body.requestKey, token, body.startedAt);
+  }, '/api/referrals/[token]');
 }

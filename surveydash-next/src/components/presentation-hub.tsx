@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -53,7 +54,7 @@ export function PresentationHub({
   useEffect(() => {
     if (mode !== 'generate') return;
     const controller = new AbortController();
-    fetch('/api/surveys/' + survey.id + '/insights', { signal: controller.signal })
+    workspaceFetch('/api/surveys/' + survey.id + '/insights', { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
@@ -68,7 +69,7 @@ export function PresentationHub({
   const visible = documents.filter((item) => (showArchived ? !!item.archivedAt : !item.archivedAt));
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`/api/presentations?surveyId=${survey.id}&archived=include`, { signal: controller.signal })
+    workspaceFetch(`/api/presentations?surveyId=${survey.id}&archived=include`, { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
@@ -93,7 +94,7 @@ export function PresentationHub({
     setPending(true);
     setError('');
     try {
-      const response = await fetch('/api/presentations', {
+      const response = await workspaceFetch('/api/presentations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -116,7 +117,7 @@ export function PresentationHub({
     setPending(true);
     setError('');
     try {
-      const response = await fetch(`/api/presentations/${document.id}`, {
+      const response = await workspaceFetch(`/api/presentations/${document.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),
@@ -140,11 +141,11 @@ export function PresentationHub({
           <p>Buat dokumen slide yang terhubung dengan hasil survei.</p>
         </div>
         <div className="actions">
-          <Button variant="secondary" onClick={() => setMode('blank')}>
+          <Button permission="edit" variant="secondary" onClick={() => setMode('blank')}>
             <Plus size={14} />
             Presentasi kosong
           </Button>
-          <Button onClick={beginGeneration}>
+          <Button permission="edit" onClick={beginGeneration}>
             <WandSparkles size={14} />
             Buat dari analisis
           </Button>
@@ -208,6 +209,7 @@ export function PresentationHub({
                   variant="ghost"
                   disabled={pending}
                   aria-label={`Duplikat presentasi ${document.title}`}
+                  permission="edit"
                   onClick={() => void manage(document, 'duplicate')}
                 >
                   <Copy size={14} />
@@ -217,6 +219,7 @@ export function PresentationHub({
                     variant="ghost"
                     disabled={pending}
                     aria-label={`Arsipkan presentasi ${document.title}`}
+                    permission="edit"
                     onClick={() => setArchive(document)}
                   >
                     <Archive size={14} />

@@ -16,6 +16,6 @@ export async function GET(_request: Request, context: { params: Promise<{ token:
   } catch (error) {
     return api(() => {
       throw error;
-    });
+    }, '/api/shared/[token]/assets/[id]');
   }
 }

@@ -77,6 +77,7 @@ export function LoginForm({
     setPending(true);
     try {
       let result;
+      let requiresTwoFactor = false;
       if (surveyorRegistration) {
         const response = await fetch('/api/auth/sign-up/email', {
           method: 'POST',
@@ -115,6 +116,7 @@ export function LoginForm({
         const data = await response.json();
         if (!response.ok)
           throw new Error(data.error || data.message || 'Email/username atau kata sandi tidak cocok.');
+        requiresTwoFactor = data.twoFactorRedirect === true;
         result = { error: null };
       } else {
         result = register
@@ -123,6 +125,22 @@ export function LoginForm({
       }
       if (result.error) {
         setError(result.error.message ?? 'Periksa email dan kata sandi Anda.');
+        return;
+      }
+      if (
+        requiresTwoFactor ||
+        ('data' in result &&
+          result.data &&
+          'twoFactorRedirect' in result.data &&
+          result.data.twoFactorRedirect)
+      ) {
+        const next = workspaceInvitationToken
+          ? '/invite/workspace/' + workspaceInvitationToken
+          : invitationToken
+            ? '/invite/surveyor/' + invitationToken
+            : '';
+        setPassword('');
+        router.replace('/two-factor' + (next ? '?next=' + encodeURIComponent(next) : ''));
         return;
       }
       const contextResponse = await fetch('/api/account/context');

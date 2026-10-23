@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutTemplate, Loader2 } from 'lucide-react';
@@ -48,7 +49,7 @@ export function ApplyPresentationDialog({
         onClose();
         return;
       }
-      const response = await fetch(`/api/templates/${template.id}/apply`, {
+      const response = await workspaceFetch(`/api/templates/${template.id}/apply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ surveyId: target.id, version: target.version, mapping }),

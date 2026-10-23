@@ -1,4 +1,6 @@
 'use client';
+import { ResearchPanel } from './research-panel';
+import { DatasetVersions } from './dataset-versions';
 import { useState } from 'react';
 import {
   Users,
@@ -167,6 +169,33 @@ export function AnalyticsPanel({
           </Button>
         </div>
       </div>
+      <section
+        className="card"
+        style={{ padding: 18, marginBottom: 20 }}
+        aria-label="Kualitas dan sumber data"
+      >
+        <label className="field">
+          Data untuk analisis
+          <select
+            value={survey.dataset ?? 'all'}
+            onChange={(event) => onChange({ ...survey, dataset: event.target.value as 'all' | 'accepted' })}
+          >
+            <option value="all">Semua respons · data mentah</option>
+            <option value="accepted">Hanya respons diterima</option>
+          </select>
+        </label>
+        {insights.quality && (
+          <p className="hint">
+            {insights.quality.all} masuk · {insights.quality.accepted} diterima · {insights.quality.held}{' '}
+            perlu verifikasi · {insights.quality.excluded} dikeluarkan · {insights.quality.unreviewed} belum
+            ditinjau
+          </p>
+        )}
+        <p className="hint">
+          Pilihan ini juga dipakai untuk ekspor, peta capaian dan pembaruan data presentasi. Presentasi yang
+          sudah dibagikan tetap memakai versi yang disetujui.
+        </p>
+      </section>
       <div className="stats-grid analysis-metrics">
         {metrics.map((metric) => (
           <div className="stat-card" key={metric.label}>
@@ -287,6 +316,8 @@ export function AnalyticsPanel({
           </details>
         </section>
       )}
+      <ResearchPanel key={survey.id + ':' + String(survey.dataset)} survey={survey} />
+      <DatasetVersions survey={survey} />
       <div className="analysis-section-heading">
         <div>
           <h2>

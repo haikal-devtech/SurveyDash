@@ -1,4 +1,7 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
+import { downloadDraft } from '@/lib/download-draft';
+import { useWorkspacePermissions } from './workspace-permissions';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -75,6 +78,7 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
   const [previewValues, setPreviewValues] = useState<Record<string, string | string[] | number>>({});
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestSurvey = useRef(survey);
+  const { canEdit } = useWorkspacePermissions();
   const saving = useRef(false);
   const responseCount = survey.responseCount ?? 0;
   const needsInsights = tab === 'analytics' || (tab === 'presentation' && dashboardOpen) || presenting;
@@ -82,6 +86,7 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
   const insightsSource = JSON.stringify([
     survey.kind,
     survey.target,
+    survey.dataset,
     survey.responseCount,
     survey.questions.map((q) => [q.id, q.label, q.type, q.scored, q.options]),
   ]);
@@ -91,7 +96,15 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
   useEffect(() => {
     if (!needsInsights) return;
     const controller = new AbortController();
-    fetch('/api/surveys/' + survey.id + '/insights?samples=' + includeSamples, { signal: controller.signal })
+    workspaceFetch(
+      '/api/surveys/' +
+        survey.id +
+        '/insights?samples=' +
+        includeSamples +
+        '&dataset=' +
+        (survey.dataset ?? 'all'),
+      { signal: controller.signal },
+    )
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
@@ -109,7 +122,7 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
           });
       });
     return () => controller.abort();
-  }, [needsInsights, survey.id, requestKey, includeSamples]);
+  }, [needsInsights, survey.id, survey.dataset, requestKey, includeSamples]);
   const insightsStatus = insightsError ? (
     <div className="empty-state" role="alert">
       <p>{insightsError}</p>
@@ -142,19 +155,24 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
     return () => window.removeEventListener('keydown', keyboard);
   }, []);
   function change(next: Survey) {
+    if (!canEdit) {
+      notify('Mode baca. Minta peran Editor kepada pemilik untuk mengubah survei.');
+      return;
+    }
     latestSurvey.current = next;
     setSurvey(next);
     setDirty(true);
     setError('');
   }
   async function save(next = latestSurvey.current, quiet = false) {
+    if (!canEdit) return false;
     if (saving.current) return false;
     saving.current = true;
     const atStart = latestSurvey.current;
     setPending(true);
     setError('');
     try {
-      const resp = await fetch(`/api/surveys/${survey.id}`, {
+      const resp = await workspaceFetch(`/api/surveys/${survey.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(next),
@@ -185,18 +203,19 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
       setPending(false);
     }
   }
-  async function refresh() {
-    if (dirty) {
+  async function refresh(discard = false) {
+    if (dirty && !discard) {
       notify('Simpan perubahan sebelum memuat ulang data.');
       return;
     }
     setPending(true);
     try {
-      const resp = await fetch(`/api/surveys/${survey.id}?view=metadata`);
+      const resp = await workspaceFetch(`/api/surveys/${survey.id}?view=metadata`);
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error);
       setSurvey(data.survey);
       latestSurvey.current = data.survey;
+      setDirty(false);
       setInsightsEpoch((value) => value + 1);
       setError('');
       notify('Data terbaru sudah dimuat.');
@@ -233,7 +252,7 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
   useEffect(() => {
-    void fetch(`/api/surveys/${initialSurvey.id}/manage`, {
+    void workspaceFetch(`/api/surveys/${initialSurvey.id}/manage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'opened' }),
@@ -318,7 +337,7 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
               <Play size={13} />
               Presentasikan
             </Button>
-            <Button onClick={() => void save()} disabled={pending || !dirty}>
+            <Button permission="edit" onClick={() => void save()} disabled={pending || !dirty}>
               {pending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Simpan perubahan
             </Button>
           </div>
@@ -344,6 +363,27 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
       {error && (
         <div role="alert" className="banner banner-error">
           {error}
+          {dirty && (
+            <div className="actions">
+              <Button variant="secondary" onClick={() => downloadDraft(latestSurvey.current, survey.title)}>
+                Unduh draft saya
+              </Button>
+              <Button
+                variant="ghost"
+                disabled={pending}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      'Buang perubahan yang belum tersimpan dan ambil versi terbaru? Unduh draft dahulu bila masih diperlukan.',
+                    )
+                  )
+                    void refresh(true);
+                }}
+              >
+                Ambil versi terbaru
+              </Button>
+            </div>
+          )}
         </div>
       )}
       <MotionScene motionKey={tab} className="editor-panel-motion">
@@ -368,7 +408,11 @@ export function SurveyEditor({ initialSurvey }: { initialSurvey: Survey }) {
                     Salin link
                   </Button>
                   {survey.status === 'draft' ? (
-                    <Button onClick={() => void save({ ...survey, status: 'open' })} disabled={pending}>
+                    <Button
+                      permission="edit"
+                      onClick={() => void save({ ...survey, status: 'open' })}
+                      disabled={pending}
+                    >
                       Buka form
                       <ExternalLink size={13} />
                     </Button>

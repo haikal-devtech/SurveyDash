@@ -10,5 +10,5 @@ export async function POST(request: Request) {
       .strict()
       .parse(await readJson(request, 2000));
     return switchWorkspace(user.id, ownerId);
-  });
+  }, '/api/workspace/select');
 }

@@ -6,14 +6,20 @@ import { listProvinceTargets, setProvinceTarget } from '@/lib/surveyor-repositor
 export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };
 export async function GET(_request: Request, { params }: Context) {
-  return api(async () => ({
-    targets: await listProvinceTargets((await params).id, (await requireWorkspaceUser()).ownerId),
-  }));
+  return api(
+    async () => ({
+      targets: await listProvinceTargets(
+        (await params).id,
+        (await requireWorkspaceUser({ area: 'field' })).ownerId,
+      ),
+    }),
+    '/api/surveys/[id]/province-targets',
+  );
 }
 export async function PATCH(request: Request, { params }: Context) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireWorkspaceUser();
+    const user = await requireWorkspaceUser({ write: true, area: 'field' });
     const body = z
       .object({
         provinceId: z.string().max(70).refine(isProvinceId),
@@ -30,5 +36,5 @@ export async function PATCH(request: Request, { params }: Context) {
         user.id,
       ),
     };
-  });
+  }, '/api/surveys/[id]/province-targets');
 }

@@ -9,22 +9,28 @@ import {
 import { isProvinceId } from '@/lib/provinces';
 type Context = { params: Promise<{ id: string }> };
 export async function GET(_request: Request, { params }: Context) {
-  return api(async () => ({
-    assignments: await listManagedSurveyors((await params).id, (await requireWorkspaceUser()).ownerId),
-  }));
+  return api(
+    async () => ({
+      assignments: await listManagedSurveyors(
+        (await params).id,
+        (await requireWorkspaceUser({ area: 'field' })).ownerId,
+      ),
+    }),
+    '/api/surveys/[id]/surveyors',
+  );
 }
 export async function POST(request: Request, { params }: Context) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireWorkspaceUser();
+    const user = await requireWorkspaceUser({ write: true, area: 'field' });
     const body = z.object({ username: z.string().max(30) }).parse(await readJson(request, 2000));
     return { assignments: await assignSurveyor((await params).id, user.ownerId, body.username, user.id) };
-  });
+  }, '/api/surveys/[id]/surveyors');
 }
 export async function PATCH(request: Request, { params }: Context) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireWorkspaceUser();
+    const user = await requireWorkspaceUser({ write: true, area: 'field' });
     const body = z
       .union([
         z.object({ assignmentId: z.string().uuid(), active: z.boolean() }).strict(),
@@ -54,5 +60,5 @@ export async function PATCH(request: Request, { params }: Context) {
               user.id,
             ),
     };
-  });
+  }, '/api/surveys/[id]/surveyors');
 }

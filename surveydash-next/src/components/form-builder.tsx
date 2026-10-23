@@ -19,6 +19,7 @@ import {
 import type { Question, QuestionType, Survey } from '@/lib/types';
 import { Badge, Button } from './ui';
 import { parseOptionLines } from '@/lib/question-editing';
+import { useWorkspacePermissions } from './workspace-permissions';
 
 const questionTypes: { type: QuestionType; label: string; icon: React.ReactNode }[] = [
   { type: 'text', label: 'Jawaban singkat', icon: <AlignLeft size={15} /> },
@@ -38,8 +39,10 @@ export function FormBuilder({
   hasResponses: boolean;
   onChange: (survey: Survey) => void;
 }) {
+  const { canEdit } = useWorkspacePermissions();
   const [dragged, setDragged] = useState<string | null>(null);
   const [activeId, setActiveId] = useState(survey.questions[0]?.id ?? '');
+  const [message, setMessage] = useState('');
   const pendingFocus = useRef(false);
   useEffect(() => {
     if (!pendingFocus.current) return;
@@ -55,7 +58,24 @@ export function FormBuilder({
     setActiveId(id);
   }
   function change(q: Question) {
-    onChange({ ...survey, questions: survey.questions.map((p) => (p.id === q.id ? q : p)) });
+    let adjusted = false;
+    const questions = survey.questions.map((p) => {
+      if (p.id === q.id) return q;
+      if (
+        p.showWhen?.questionId === q.id &&
+        p.showWhen.operator === 'equals' &&
+        !q.options.some((option) => option.id === p.showWhen!.value)
+      ) {
+        adjusted = true;
+        return { ...p, showWhen: { questionId: q.id, operator: 'answered' as const } };
+      }
+      return p;
+    });
+    if (adjusted)
+      setMessage(
+        'Syarat pertanyaan terkait diubah menjadi “sudah dijawab” karena pilihan pemicunya dihapus.',
+      );
+    onChange({ ...survey, questions });
   }
   function add(type: QuestionType, afterId?: string) {
     if (survey.questions.length >= 100) return;
@@ -112,6 +132,14 @@ export function FormBuilder({
     if (index < 0 || to < 0 || to >= next.length) return;
     const [question] = next.splice(index, 1);
     next.splice(to, 0, question);
+    if (
+      next.some(
+        (q, i) => q.showWhen && !next.slice(0, i).some((previous) => previous.id === q.showWhen!.questionId),
+      )
+    ) {
+      setMessage('Pertanyaan pemicu harus berada sebelum pertanyaan yang bergantung padanya.');
+      return;
+    }
     onChange({ ...survey, questions: next });
   }
   return (
@@ -121,7 +149,7 @@ export function FormBuilder({
           <h2>Pertanyaan</h2>
           <p>{survey.questions.length}/100 pertanyaan · Klik pertanyaan untuk mengedit.</p>
         </div>
-        <Button disabled={survey.questions.length >= 100} onClick={() => add('text')}>
+        <Button permission="edit" disabled={survey.questions.length >= 100} onClick={() => add('text')}>
           <Plus size={16} />
           Tambah pertanyaan
         </Button>
@@ -132,6 +160,14 @@ export function FormBuilder({
           Survei sudah memiliki respons. Jenis, pilihan, dan skor pertanyaan dikunci agar data tetap
           konsisten.
         </div>
+      )}
+      {message && (
+        <p className="banner" role="status">
+          {message}
+          <Button variant="ghost" onClick={() => setMessage('')}>
+            Tutup
+          </Button>
+        </p>
       )}
       <div className="builder-layout">
         <aside className="card builder-palette">
@@ -196,226 +232,364 @@ export function FormBuilder({
                 <Badge>{questionTypes.find((t) => t.type === q.type)?.label}</Badge>
               </div>
               <div className="question-body" id={'body-' + q.id} hidden={activeId !== q.id}>
-                <div className="question-edit-toolbar">
-                  <label className="question-type-label">
-                    Jenis pertanyaan
-                    <select
-                      className="question-type-select"
-                      aria-label={`Jenis pertanyaan ${index + 1}`}
-                      value={q.type}
-                      disabled={hasResponses}
-                      onChange={(e) => {
-                        const type = e.target.value as QuestionType;
-                        change({
-                          ...q,
-                          type,
-                          scored: false,
-                          options: ['choice', 'checkbox', 'rating'].includes(type)
-                            ? q.options.length >= 2
-                              ? q.options.map((option) => ({ id: option.id, label: option.label }))
-                              : Array.from({ length: type === 'rating' ? 4 : 2 }, (_, i) => ({
-                                  id: crypto.randomUUID(),
-                                  label: `Pilihan ${i + 1}`,
-                                }))
-                            : [],
-                        });
-                      }}
+                <fieldset disabled={!canEdit} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+                  <div className="question-edit-toolbar">
+                    <label className="question-type-label">
+                      Jenis pertanyaan
+                      <select
+                        className="question-type-select"
+                        aria-label={`Jenis pertanyaan ${index + 1}`}
+                        value={q.type}
+                        disabled={hasResponses}
+                        onChange={(e) => {
+                          const type = e.target.value as QuestionType;
+                          change({
+                            ...q,
+                            type,
+                            scored: false,
+                            options: ['choice', 'checkbox', 'rating'].includes(type)
+                              ? q.options.length >= 2
+                                ? q.options.map((option) => ({ id: option.id, label: option.label }))
+                                : Array.from({ length: type === 'rating' ? 4 : 2 }, (_, i) => ({
+                                    id: crypto.randomUUID(),
+                                    label: `Pilihan ${i + 1}`,
+                                  }))
+                              : [],
+                          });
+                        }}
+                      >
+                        {questionTypes.map((item) => (
+                          <option key={item.type} value={item.type}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <Button
+                      variant="ghost"
+                      style={{ padding: 3, minHeight: 26 }}
+                      aria-label={`Naikkan pertanyaan ${index + 1}`}
+                      disabled={index === 0}
+                      onClick={() => move(q.id, index - 1)}
                     >
-                      {questionTypes.map((item) => (
-                        <option key={item.type} value={item.type}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <Button
-                    variant="ghost"
-                    style={{ padding: 3, minHeight: 26 }}
-                    aria-label={`Naikkan pertanyaan ${index + 1}`}
-                    disabled={index === 0}
-                    onClick={() => move(q.id, index - 1)}
-                  >
-                    <ArrowUp size={13} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    style={{ padding: 3, minHeight: 26 }}
-                    aria-label={`Turunkan pertanyaan ${index + 1}`}
-                    disabled={index === survey.questions.length - 1}
-                    onClick={() => move(q.id, index + 1)}
-                  >
-                    <ArrowDown size={13} />
-                  </Button>
-                </div>
-                <div className="field">
-                  <label htmlFor={`label-${q.id}`}>Pertanyaan</label>
-                  <input
-                    id={`label-${q.id}`}
-                    className="input"
-                    value={q.label}
-                    maxLength={500}
-                    onChange={(e) => change({ ...q, label: e.target.value })}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor={`description-${q.id}`}>
-                    Deskripsi <span style={{ fontWeight: 400, color: 'var(--muted)' }}>(opsional)</span>
-                  </label>
-                  <input
-                    id={`description-${q.id}`}
-                    className="input"
-                    value={q.description}
-                    maxLength={2000}
-                    placeholder="Tambahkan petunjuk untuk responden"
-                    onChange={(e) => change({ ...q, description: e.target.value })}
-                  />
-                </div>
-                {q.options.length > 0 && (
-                  <div style={{ marginTop: 14 }}>
-                    <p className="label">Pilihan jawaban {q.scored ? 'dan skor' : ''}</p>
-                    {q.options.map((o, i) => (
-                      <div className="option-row" key={o.id}>
-                        <span className="hint" style={{ minWidth: 16 }}>
-                          {i + 1}.
-                        </span>
-                        <input
-                          className="input"
-                          aria-label={`Pilihan ${i + 1} untuk ${q.label}`}
-                          value={o.label}
-                          maxLength={300}
+                      <ArrowUp size={13} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      style={{ padding: 3, minHeight: 26 }}
+                      aria-label={`Turunkan pertanyaan ${index + 1}`}
+                      disabled={index === survey.questions.length - 1}
+                      onClick={() => move(q.id, index + 1)}
+                    >
+                      <ArrowDown size={13} />
+                    </Button>
+                  </div>
+                  <div className="field">
+                    <label htmlFor={`label-${q.id}`}>Pertanyaan</label>
+                    <input
+                      id={`label-${q.id}`}
+                      className="input"
+                      value={q.label}
+                      maxLength={500}
+                      onChange={(e) => change({ ...q, label: e.target.value })}
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor={`description-${q.id}`}>
+                      Deskripsi <span style={{ fontWeight: 400, color: 'var(--muted)' }}>(opsional)</span>
+                    </label>
+                    <input
+                      id={`description-${q.id}`}
+                      className="input"
+                      value={q.description}
+                      maxLength={2000}
+                      placeholder="Tambahkan petunjuk untuk responden"
+                      onChange={(e) => change({ ...q, description: e.target.value })}
+                    />
+                  </div>
+                  <details className="card" style={{ padding: 12, marginBlock: 12 }}>
+                    <summary>Bagian dan pengaturan lanjutan</summary>
+                    <label className="field">
+                      Bagian / halaman
+                      <input
+                        className="input"
+                        maxLength={100}
+                        value={q.section ?? ''}
+                        placeholder="Misalnya: Profil responden"
+                        onChange={(event) => change({ ...q, section: event.target.value })}
+                      />
+                    </label>
+                    <label className="field">
+                      Tampilkan jika
+                      <select
+                        disabled={hasResponses}
+                        value={q.showWhen?.questionId ?? ''}
+                        onChange={(event) =>
+                          change({
+                            ...q,
+                            showWhen: event.target.value
+                              ? { questionId: event.target.value, operator: 'answered' }
+                              : undefined,
+                          })
+                        }
+                      >
+                        <option value="">Selalu tampil</option>
+                        {survey.questions.slice(0, index).map((previous) => (
+                          <option key={previous.id} value={previous.id}>
+                            {previous.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {q.showWhen && (
+                      <label className="field">
+                        Jawaban pemicu
+                        <select
                           disabled={hasResponses}
-                          onChange={(e) =>
+                          value={q.showWhen.operator === 'answered' ? '' : q.showWhen.value}
+                          onChange={(event) =>
                             change({
                               ...q,
-                              options: q.options.map((p) =>
-                                p.id === o.id ? { ...p, label: e.target.value } : p,
-                              ),
+                              showWhen: {
+                                questionId: q.showWhen!.questionId,
+                                operator: event.target.value ? 'equals' : 'answered',
+                                value: event.target.value || undefined,
+                              },
                             })
                           }
-                        />
-                        {q.scored && (
+                        >
+                          <option value="">Sudah dijawab</option>
+                          {survey.questions
+                            .find((previous) => previous.id === q.showWhen!.questionId)
+                            ?.options.map((option) => (
+                              <option key={option.id} value={option.id}>
+                                {option.label}
+                              </option>
+                            ))}
+                        </select>
+                      </label>
+                    )}
+                    {q.type === 'number' && (
+                      <div className="actions">
+                        {(['min', 'max'] as const).map((bound) => (
+                          <label className="field" key={bound}>
+                            {bound === 'min' ? 'Minimum' : 'Maksimum'}
+                            <input
+                              type="number"
+                              step="any"
+                              value={q.validation?.[bound] ?? ''}
+                              disabled={hasResponses}
+                              onChange={(event) =>
+                                change({
+                                  ...q,
+                                  validation: {
+                                    ...q.validation,
+                                    [bound]:
+                                      event.target.value === '' ? undefined : Number(event.target.value),
+                                  },
+                                })
+                              }
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {['text', 'textarea'].includes(q.type) && (
+                      <>
+                        <label className="field">
+                          Maksimum karakter
+                          <input
+                            type="number"
+                            min={1}
+                            max={10000}
+                            disabled={hasResponses}
+                            value={q.validation?.maxLength ?? ''}
+                            placeholder="10000"
+                            onChange={(event) =>
+                              change({
+                                ...q,
+                                validation: {
+                                  ...q.validation,
+                                  maxLength: event.target.value ? Number(event.target.value) : undefined,
+                                },
+                              })
+                            }
+                          />
+                        </label>
+                        <label className="field">
+                          Format
                           <select
-                            className="input option-score"
-                            aria-label={`Skor pilihan ${i + 1}`}
-                            value={o.score ?? i + 1}
+                            disabled={hasResponses}
+                            value={q.validation?.format ?? ''}
+                            onChange={(event) =>
+                              change({
+                                ...q,
+                                validation: {
+                                  ...q.validation,
+                                  format: (event.target.value as 'email' | 'phone') || undefined,
+                                },
+                              })
+                            }
+                          >
+                            <option value="">Teks biasa</option>
+                            <option value="email">Email</option>
+                            <option value="phone">Nomor telepon</option>
+                          </select>
+                        </label>
+                      </>
+                    )}
+                  </details>
+                  {q.options.length > 0 && (
+                    <div style={{ marginTop: 14 }}>
+                      <p className="label">Pilihan jawaban {q.scored ? 'dan skor' : ''}</p>
+                      {q.options.map((o, i) => (
+                        <div className="option-row" key={o.id}>
+                          <span className="hint" style={{ minWidth: 16 }}>
+                            {i + 1}.
+                          </span>
+                          <input
+                            className="input"
+                            aria-label={`Pilihan ${i + 1} untuk ${q.label}`}
+                            value={o.label}
+                            maxLength={300}
                             disabled={hasResponses}
                             onChange={(e) =>
                               change({
                                 ...q,
                                 options: q.options.map((p) =>
-                                  p.id === o.id ? { ...p, score: Number(e.target.value) } : p,
+                                  p.id === o.id ? { ...p, label: e.target.value } : p,
                                 ),
                               })
                             }
+                          />
+                          {q.scored && (
+                            <select
+                              className="input option-score"
+                              aria-label={`Skor pilihan ${i + 1}`}
+                              value={o.score ?? i + 1}
+                              disabled={hasResponses}
+                              onChange={(e) =>
+                                change({
+                                  ...q,
+                                  options: q.options.map((p) =>
+                                    p.id === o.id ? { ...p, score: Number(e.target.value) } : p,
+                                  ),
+                                })
+                              }
+                            >
+                              {[1, 2, 3, 4].map((s) => (
+                                <option value={s} key={s}>
+                                  Skor {s}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                          <Button
+                            variant="ghost"
+                            disabled={hasResponses || q.options.length <= 2}
+                            aria-label={`Hapus pilihan ${i + 1}`}
+                            style={{ padding: 4 }}
+                            onClick={() => change({ ...q, options: q.options.filter((p) => p.id !== o.id) })}
                           >
-                            {[1, 2, 3, 4].map((s) => (
-                              <option value={s} key={s}>
-                                Skor {s}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                        <Button
-                          variant="ghost"
-                          disabled={hasResponses || q.options.length <= 2}
-                          aria-label={`Hapus pilihan ${i + 1}`}
-                          style={{ padding: 4 }}
-                          onClick={() => change({ ...q, options: q.options.filter((p) => p.id !== o.id) })}
-                        >
-                          <Trash2 size={13} />
-                        </Button>
-                      </div>
-                    ))}
-                    <Button
-                      variant="ghost"
-                      disabled={hasResponses || q.options.length >= 50}
-                      style={{ marginTop: 8 }}
-                      onClick={() =>
-                        change({
-                          ...q,
-                          options: [
-                            ...q.options,
-                            {
-                              id: crypto.randomUUID(),
-                              label: `Pilihan ${q.options.length + 1}`,
-                              ...(q.scored ? { score: 4 } : {}),
-                            },
-                          ],
-                        })
-                      }
-                    >
-                      <Plus size={12} />
-                      Tambah pilihan
-                    </Button>
-                    {!hasResponses && <BulkOptions question={q} onChange={change} />}
-                  </div>
-                )}
-                <div className="question-controls">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={q.required}
-                      onChange={(e) => change({ ...q, required: e.target.checked })}
-                    />
-                    Wajib diisi
-                  </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={q.chartVisible ?? q.options.length > 0}
-                      onChange={(event) => change({ ...q, chartVisible: event.target.checked })}
-                    />
-                    Tampilkan chart
-                  </label>
-                  {['choice', 'rating'].includes(q.type) && (
+                            <Trash2 size={13} />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        variant="ghost"
+                        disabled={hasResponses || q.options.length >= 50}
+                        style={{ marginTop: 8 }}
+                        onClick={() =>
+                          change({
+                            ...q,
+                            options: [
+                              ...q.options,
+                              {
+                                id: crypto.randomUUID(),
+                                label: `Pilihan ${q.options.length + 1}`,
+                                ...(q.scored ? { score: 4 } : {}),
+                              },
+                            ],
+                          })
+                        }
+                      >
+                        <Plus size={12} />
+                        Tambah pilihan
+                      </Button>
+                      {!hasResponses && <BulkOptions question={q} onChange={change} />}
+                    </div>
+                  )}
+                  <div className="question-controls">
                     <label>
                       <input
                         type="checkbox"
-                        checked={q.scored}
-                        disabled={hasResponses}
-                        onChange={(e) =>
-                          change({
-                            ...q,
-                            scored: e.target.checked,
-                            options: q.options.map((o, i) => ({
-                              ...o,
-                              score: e.target.checked ? Math.min(i + 1, 4) : undefined,
-                            })),
-                          })
-                        }
+                        checked={q.required}
+                        onChange={(e) => change({ ...q, required: e.target.checked })}
                       />
-                      Unsur dengan skor SKM
+                      Wajib diisi
                     </label>
-                  )}
-                  <div style={{ marginLeft: 'auto', display: 'flex' }}>
-                    <Button
-                      variant="ghost"
-                      disabled={survey.questions.length >= 100}
-                      onClick={() => duplicate(q)}
-                    >
-                      <Copy size={12} />
-                      Duplikat
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      disabled={hasResponses || survey.questions.length === 1}
-                      aria-label={`Hapus ${q.label}`}
-                      onClick={() => {
-                        if (activeId === q.id)
-                          setActiveId(
-                            survey.questions[index + 1]?.id ?? survey.questions[index - 1]?.id ?? '',
-                          );
-                        onChange({
-                          ...survey,
-                          questions: survey.questions.filter((p) => p.id !== q.id),
-                          widgets: survey.widgets.filter((w) => w.questionId !== q.id),
-                        });
-                      }}
-                    >
-                      <Trash2 size={13} />
-                    </Button>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={q.chartVisible ?? q.options.length > 0}
+                        onChange={(event) => change({ ...q, chartVisible: event.target.checked })}
+                      />
+                      Tampilkan chart
+                    </label>
+                    {['choice', 'rating'].includes(q.type) && (
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={q.scored}
+                          disabled={hasResponses}
+                          onChange={(e) =>
+                            change({
+                              ...q,
+                              scored: e.target.checked,
+                              options: q.options.map((o, i) => ({
+                                ...o,
+                                score: e.target.checked ? Math.min(i + 1, 4) : undefined,
+                              })),
+                            })
+                          }
+                        />
+                        Unsur dengan skor SKM
+                      </label>
+                    )}
+                    <div style={{ marginLeft: 'auto', display: 'flex' }}>
+                      <Button
+                        variant="ghost"
+                        disabled={survey.questions.length >= 100}
+                        onClick={() => duplicate(q)}
+                      >
+                        <Copy size={12} />
+                        Duplikat
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        disabled={hasResponses || survey.questions.length === 1}
+                        aria-label={`Hapus ${q.label}`}
+                        onClick={() => {
+                          if (activeId === q.id)
+                            setActiveId(
+                              survey.questions[index + 1]?.id ?? survey.questions[index - 1]?.id ?? '',
+                            );
+                          onChange({
+                            ...survey,
+                            questions: survey.questions
+                              .filter((p) => p.id !== q.id)
+                              .map((p) =>
+                                p.showWhen?.questionId === q.id ? { ...p, showWhen: undefined } : p,
+                              ),
+                            widgets: survey.widgets.filter((w) => w.questionId !== q.id),
+                          });
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                </fieldset>
               </div>
             </article>
           ))}

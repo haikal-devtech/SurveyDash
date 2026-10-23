@@ -11,12 +11,12 @@ export async function GET(request: Request) {
       user.ownerId,
       new URL(request.url).searchParams.get('archived') === 'include',
     );
-  });
+  }, '/api/presentations');
 }
 export async function POST(request: Request) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireWorkspaceUser();
+    const user = await requireWorkspaceUser({ write: true });
     const input = z
       .object({
         surveyId: z.string().max(100),
@@ -31,5 +31,5 @@ export async function POST(request: Request) {
     return createPresentation(input.surveyId, user.ownerId, input.title, input.theme, [
       ...new Set(input.sections),
     ]);
-  });
+  }, '/api/presentations');
 }

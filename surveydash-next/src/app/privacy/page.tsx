@@ -18,7 +18,7 @@ export default function PrivacyPage() {
         ],
         [
           'Anggota dan undangan workspace',
-          'Pemilik workspace dapat membuat link undangan Pengelola yang berlaku tujuh hari. Penerima yang masuk sebagai Pengelola dan memilih Bergabung mendapat akses membuat serta mengedit survei, membaca jawaban, dan mengelola presentasi dalam workspace itu. Anggota tidak mendapat hak admin platform atau akses rekening pribadi surveyor. Pemilik dapat melihat nama dan email anggota, mematikan link, atau mencabut akses anggota tanpa menghapus survei dan jawaban. Mematikan link tidak mencabut keanggotaan yang sudah aktif. Link perlu dibagikan hanya kepada rekan yang memang diberi kewenangan mengelola data. Keanggotaan menyimpan akun penerima, pemilik workspace, pengundang, dan waktu perubahan; koreksi jawaban tetap mencatat akun pelakunya.',
+          'Pemilik workspace dapat membuat link undangan Pengelola yang berlaku tujuh hari. Penerima yang memilih Bergabung mendapat peran Editor secara bawaan. Pemilik dapat mengubah peran menjadi Pembaca yang tidak dapat menulis data, atau Koordinator lapangan yang mengelola penugasan dan review kualitas tanpa akses pengelolaan umum. Anggota tidak mendapat hak admin platform atau akses rekening pribadi surveyor. Pemilik dapat melihat nama dan email anggota, mematikan link, atau mencabut akses anggota tanpa menghapus survei dan jawaban. Mematikan link tidak mencabut keanggotaan yang sudah aktif. Bagikan link hanya kepada rekan yang diberi kewenangan. Keanggotaan, perubahan peran, tindakan penting dan koreksi data menyimpan pelaku serta waktunya.',
         ],
         [
           'Persetujuan profil surveyor',
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         ],
         [
           'Wilayah tugas surveyor',
-          'Pengelola dapat menetapkan provinsi untuk setiap penugasan surveyor dan target responden per survei dan provinsi. Peta pribadi workspace menghitung surveyor aktif dan jumlah jawaban dari link penugasan menurut wilayah tugas saat ini. Mengubah wilayah tugas memindahkan kelompok hitungan jawaban link itu, tanpa mengubah isi jawaban. Jawaban tanpa link surveyor atau tugas tanpa provinsi ditandai belum terpetakan. Aplikasi tidak meminta GPS untuk fitur ini, dan wilayah penugasan bukan domisili responden. Surveyor hanya melihat tugas yang diberikan kepadanya dan jumlah jawaban dari link pribadinya untuk masing-masing survei. Peta tidak dipublikasikan bersama form atau presentasi.',
+          'Pengelola menetapkan provinsi tugas, target provinsi dan bila diperlukan catatan kabupaten/kota, kecamatan, koordinator serta target tugas. Respons baru menyimpan provinsi penugasan pada saat dikirim. Mengganti wilayah tugas tidak memindahkan snapshot respons yang sudah tercatat. Data lama tanpa snapshot dan link tanpa provinsi ditandai belum terpetakan. Angka peta mengikuti pilihan dataset mentah atau respons diterima pada survei; surveyor aktif tetap dihitung dari tugas saat ini. Aplikasi tidak meminta GPS untuk fitur ini, dan wilayah penugasan bukan domisili responden. Surveyor hanya melihat tugasnya serta jumlah respons dari link pribadinya per survei. Peta tidak dipublikasikan bersama form atau presentasi.',
         ],
         [
           'Undangan surveyor',
@@ -46,11 +46,23 @@ export default function PrivacyPage() {
         ],
         [
           'Peninjauan data yang mungkin berulang',
-          'Fitur cleaning membantu Pengelola meninjau kemiripan di dalam survei miliknya, misalnya nama sama, jawaban sama, atau nomor rekening sama bila pertanyaan rekening memang tersedia dan dipilih untuk pemeriksaan. Hasil adalah tanda untuk ditinjau manusia, bukan keputusan bahwa seseorang berbuat curang. Nama yang sama dapat dimiliki orang berbeda. Tanda tidak otomatis menghapus jawaban atau mengeluarkannya dari hasil; keputusan dan catatan peninjauan dicatat terpisah.',
+          'Cleaning membantu meninjau nama, jawaban, atau bank dan rekening yang sama bila pertanyaan terkait tersedia dan dipilih. Indeks kemiripan tersimpan privat pada survei. Kesamaan bukan bukti kecurangan. Pengelola menandai respons Diterima, Perlu verifikasi, atau Dikeluarkan dengan alasan dan audit. Dataset diterima hanya memakai keputusan Diterima pada revisi terbaru; dataset mentah tetap mencakup semua respons. Koreksi jawaban membuat review dan bobot lama perlu ditinjau ulang. Pembatasan surveyor dapat berlaku pada workspace atau seluruh platform melalui admin; tugas dan link dinonaktifkan, sedangkan respons lama tetap tersedia untuk review. Pengelola juga dapat mencatat honor; aplikasi tidak menjalankan transfer.',
         ],
         [
           'Form, presentasi, dan ekspor yang dibagikan',
           'Form dapat dipasang publik, link saja, atau privat. Pengelola dapat mengaktifkan link presentasi tanpa login setelah meninjau isi slide. Link menampilkan versi yang disetujui, termasuk angka agregat, teks manual, dan gambar, tanpa tabel jawaban atau akses editor. Link dapat dicabut dan otomatis dicabut saat presentasi diarsipkan atau survei dipindahkan ke sampah. Salinan atau ekspor yang sudah dimiliki penerima tidak dapat ditarik kembali. Ekspor dapat memuat jawaban dan atribusi surveyor; Pengelola perlu membatasi pembagiannya sesuai tujuan survei.',
+        ],
+        [
+          'Draft, alur form dan waktu pengisian',
+          'Form dapat memakai bagian dan pertanyaan bersyarat. Jawaban pertanyaan yang tersembunyi tidak ikut disimpan sebagai jawaban aktif. Draft dan kunci retry disimpan per tab untuk pemulihan setelah refresh. Penyimpanan yang bertahan setelah tab ditutup hanya dilakukan jika Anda memilih Simpan draft di perangkat ini; draft berlaku paling lama empat jam sejak disimpan. Saat ditemukan draft, Anda memilih melanjutkan atau memulai isian kosong. Hindari penyimpanan lintas tab pada perangkat bersama. Setelah kirim, jawaban draft dihapus dan tanda berhasil tersimpan per tab agar refresh tidak membuat pengisian ulang tanpa sengaja. Waktu mulai yang dilaporkan perangkat dan waktu penerimaan server dapat disimpan untuk membantu review kualitas; durasi tidak membuktikan identitas atau kecurangan.',
+        ],
+        [
+          'Dataset final dan pembobotan',
+          'Pengelola dapat memberi bobot manual dengan alasan dan membuat versi final setelah pengumpulan ditutup serta peninjauan dikonfirmasi. Versi final menyalin pertanyaan, jawaban, wilayah, atribusi, bobot dan catatan metode saat itu. Koreksi sumber tidak mengubah salinan yang dikunci. Salinan bersifat privat bagi pihak berwenang dan dapat diekspor. Dataset final ikut dihapus bila seluruh survei dihapus permanen; salinan ekspor dan backup mengikuti pengelolaan terpisah.',
+        ],
+        [
+          'Verifikasi email dan authenticator',
+          'Bila layanan email aktif, akun dapat menerima link verifikasi satu jam. Anda dapat menambahkan authenticator dua langkah dan menyimpan kode cadangan sendiri. Jangan membagikan QR, kunci authenticator, kode cadangan atau kata sandi kepada anggota workspace maupun support. Pengaturan keamanan mengikuti akun pribadi, terpisah dari workspace yang sedang dibuka.',
         ],
         [
           'Penyimpanan dan penyedia layanan',
@@ -70,7 +82,7 @@ export default function PrivacyPage() {
         ],
         [
           'Retensi dan permintaan terkait data',
-          'Arsip dan sampah menyimpan data agar dapat dipulihkan. Profil surveyor, atribusi, dan catatan peninjauan tidak memiliki penghapusan otomatis pada versi ini. Cadangan dapat memuat salinan data. Permintaan akses, koreksi, penonaktifan, penarikan persetujuan, atau penghapusan ditangani operator secara manual setelah memeriksa kewenangan pemohon dan keterkaitannya dengan survei. Batas penanganan data historis dan cadangan akan dijelaskan saat permintaan ditinjau; aplikasi belum menyediakan penghapusan mandiri menyeluruh.',
+          'Arsip dan sampah menyimpan data agar dapat dipulihkan. Penghapusan otomatis tidak aktif. Pemilik menetapkan masa minimum di sampah antara 30 dan 3650 hari, bawaan 90 hari, lalu dapat meninjau penghapusan permanen setelah masa tersebut terlewati dengan konfirmasi nama survei, alasan dan kebutuhan cadangan. Ini menghapus respons, penugasan, presentasi, hasil review dan versi final survei terkait, tetapi tidak otomatis menghapus akun, profil surveyor, aset yang dipakai ulang atau salinan eksternal. Permintaan akses, koreksi, penghapusan atau penarikan persetujuan dapat diajukan dari akun atau melalui kontak support untuk pemohon tanpa akun. Operator memeriksa identitas, kewenangan dan data terkait; mengubah status permintaan saja tidak otomatis menjalankan penghapusan. Cadangan baru dapat memakai format streaming terenkripsi; bila workflow backup GitHub diaktifkan, artifact terenkripsi disimpan maksimal 90 hari dan pemulihan diuji pada lingkungan terisolasi. Penerapan jadwal serta penyedia backup bergantung konfigurasi operator. Catatan error operasional tanpa isi jawaban disimpan 14 hari.',
         ],
         [
           'Kontak privasi dan bantuan',

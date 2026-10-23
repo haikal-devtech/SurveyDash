@@ -1,0 +1,20 @@
+name: SurveyDash availability
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: surveydash-health
+  cancel-in-progress: false
+jobs:
+  health:
+    if: vars.SURVEYDASH_HEALTH_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Verify public application and database health
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --retry 2 --retry-delay 10 --connect-timeout 15 --max-time 30 https://surveydash-studio.vercel.app/api/health

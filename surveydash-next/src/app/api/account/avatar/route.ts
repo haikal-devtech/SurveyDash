@@ -26,7 +26,7 @@ export async function GET(request: Request) {
       },
     });
     return null;
-  });
+  }, '/api/account/avatar');
   return image ?? failure;
 }
 export async function POST(request: Request) {
@@ -45,5 +45,5 @@ export async function POST(request: Request) {
     const image = '/api/account/avatar?id=' + asset.id;
     await auth.api.updateUser({ body: { image }, headers: request.headers });
     return { image };
-  });
+  }, '/api/account/avatar');
 }

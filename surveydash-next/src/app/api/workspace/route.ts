@@ -6,11 +6,11 @@ export async function GET() {
     const user = await requireWorkspaceUser();
     const [workspace, usage] = await Promise.all([getWorkspace(user.ownerId), getUsage(user.ownerId)]);
     return { workspace, usage, access: { isAdmin: user.isAdmin, managingOther: user.managingOther } };
-  });
+  }, '/api/workspace');
 }
 export async function PATCH(request: Request) {
   return api(async () => {
     checkOrigin(request);
-    return saveWorkspace((await requireWorkspaceUser()).ownerId, await readJson(request));
-  });
+    return saveWorkspace((await requireWorkspaceUser({ write: true })).ownerId, await readJson(request));
+  }, '/api/workspace');
 }

@@ -1,10 +1,12 @@
-import { requireWorkspaceUser } from '@/lib/http';
+import { requireWorkspacePage as requireWorkspaceUser } from '@/lib/workspace-page';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { getWorkspace } from '@/lib/workspace-repository';
 import { SettingsForm } from '@/components/settings-forms';
 import { WorkspaceTeamPanel } from '@/components/workspace-team-panel';
+import { RetentionControls } from '@/components/retention-controls';
+import Link from 'next/link';
 import { canManageWorkspaceTeam, listWorkspaceMembers, getWorkspaceInvitation } from '@/lib/workspace-team';
 export default async function WorkspacePage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -36,6 +38,10 @@ export default async function WorkspacePage() {
       ) : (
         <p className="hint">Workspace bersama. Pemilik mengatur undangan dan anggota.</p>
       )}
+      {team && <RetentionControls />}
+      <Link className="btn btn-secondary" href="/studio/activity">
+        Riwayat aktivitas workspace
+      </Link>
     </>
   );
 }

@@ -60,6 +60,7 @@ const schema = `
     );
     CREATE INDEX IF NOT EXISTS submissions_survey ON submissions(survey_id);
     CREATE INDEX IF NOT EXISTS submissions_survey_order ON submissions(survey_id, submitted_at, id);
+    CREATE INDEX IF NOT EXISTS submissions_survey_cursor ON submissions(survey_id, id);
     CREATE TABLE IF NOT EXISTS audit (
       id TEXT PRIMARY KEY, survey_id TEXT NOT NULL REFERENCES surveys(id), submission_id TEXT NOT NULL,
       question_id TEXT NOT NULL, before_value TEXT NOT NULL, after_value TEXT NOT NULL, actor TEXT NOT NULL, at TEXT NOT NULL
@@ -134,6 +135,73 @@ const schema = `
       surveyor_id TEXT NOT NULL, username_snapshot TEXT NOT NULL, name_snapshot TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS attribution_assignment ON submission_attribution(assignment_id);
+    CREATE TABLE IF NOT EXISTS submission_regions (
+      submission_id TEXT PRIMARY KEY REFERENCES submissions(id), province_id TEXT,
+      captured_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS submission_regions_province ON submission_regions(province_id);
+    CREATE TABLE IF NOT EXISTS submission_timing (
+      submission_id TEXT PRIMARY KEY REFERENCES submissions(id), client_started_at TEXT NOT NULL,
+      received_at TEXT NOT NULL, reported_seconds INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS surveyor_blocks (
+      owner_id TEXT NOT NULL, surveyor_id TEXT NOT NULL, active INTEGER NOT NULL,
+      reason TEXT NOT NULL, actor TEXT NOT NULL, updated_at TEXT NOT NULL,
+      PRIMARY KEY (owner_id, surveyor_id)
+    );
+    CREATE TABLE IF NOT EXISTS workspace_activity (
+      id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, actor TEXT NOT NULL,
+      action TEXT NOT NULL, subject_id TEXT NOT NULL, details TEXT NOT NULL, at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS activity_owner ON workspace_activity(owner_id, at);
+    CREATE TABLE IF NOT EXISTS app_migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS workspace_member_roles (
+      owner_id TEXT NOT NULL, user_id TEXT NOT NULL, role TEXT NOT NULL,
+      updated_by TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (owner_id, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS fieldwork_details (
+      assignment_id TEXT PRIMARY KEY REFERENCES surveyor_assignments(id), coordinator_id TEXT,
+      city TEXT NOT NULL, district TEXT NOT NULL, target INTEGER,
+      updated_by TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS surveyor_payments (
+      assignment_id TEXT PRIMARY KEY REFERENCES surveyor_assignments(id), amount BIGINT NOT NULL,
+      status TEXT NOT NULL, note TEXT NOT NULL, actor TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS submission_weights (
+      submission_id TEXT PRIMARY KEY REFERENCES submissions(id), weight DOUBLE PRECISION NOT NULL,
+      revision INTEGER NOT NULL, reason TEXT NOT NULL, actor TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS operation_events (
+      id TEXT PRIMARY KEY, route TEXT NOT NULL, error_name TEXT NOT NULL, code TEXT NOT NULL, at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS operation_events_time ON operation_events(at);
+    CREATE TABLE IF NOT EXISTS dataset_versions (
+      id TEXT PRIMARY KEY, survey_id TEXT NOT NULL REFERENCES surveys(id), owner_id TEXT NOT NULL,
+      name TEXT NOT NULL, dataset TEXT NOT NULL, payload TEXT NOT NULL, row_count INTEGER NOT NULL,
+      method_notes TEXT NOT NULL, actor TEXT NOT NULL, created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS dataset_version_rows (
+      version_id TEXT NOT NULL REFERENCES dataset_versions(id), submission_id TEXT NOT NULL,
+      revision INTEGER NOT NULL, answers TEXT NOT NULL, snapshot TEXT NOT NULL, submitted_at TEXT NOT NULL,
+      assignment_id TEXT, surveyor_username TEXT, surveyor_name TEXT, province_id TEXT,
+      weight DOUBLE PRECISION NOT NULL, PRIMARY KEY(version_id, submission_id)
+    );
+    CREATE TABLE IF NOT EXISTS cleaning_keys (
+      submission_id TEXT PRIMARY KEY REFERENCES submissions(id), survey_id TEXT NOT NULL,
+      revision INTEGER NOT NULL, config_version TEXT NOT NULL, name_key TEXT NOT NULL,
+      account_key TEXT NOT NULL, answer_key TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS cleaning_name ON cleaning_keys(survey_id, config_version, name_key);
+    CREATE INDEX IF NOT EXISTS cleaning_account ON cleaning_keys(survey_id, config_version, account_key);
+    CREATE INDEX IF NOT EXISTS cleaning_answer ON cleaning_keys(survey_id, config_version, answer_key);
+    CREATE TABLE IF NOT EXISTS data_requests (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL, note TEXT NOT NULL,
+      status TEXT NOT NULL, operator_note TEXT NOT NULL, updated_by TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS workspace_retention (
+      owner_id TEXT PRIMARY KEY, days INTEGER NOT NULL, actor TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS cleaning_settings (
       survey_id TEXT PRIMARY KEY REFERENCES surveys(id), payload TEXT NOT NULL, updated_at TEXT NOT NULL
     );
@@ -193,6 +261,11 @@ export function getDb() {
         ? ' FOR UPDATE'
         : '';
     },
+    get collectionLockSuffix() {
+      return transactions.getStore() && !(transactions.getStore() instanceof DatabaseSync)
+        ? ' FOR SHARE'
+        : '';
+    },
     async lockOwner(ownerId: string) {
       if (!(getAuthDatabase() instanceof DatabaseSync))
         await query('SELECT pg_advisory_xact_lock(hashtext(?))', [ownerId]);
@@ -236,6 +309,7 @@ export function getDb() {
     },
   };
 }
+export { schema as applicationSchema };
 export async function initializeDatabase() {
   const database = getAuthDatabase();
   if (database instanceof DatabaseSync) database.exec(schema);

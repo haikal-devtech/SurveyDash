@@ -1,5 +1,5 @@
 import { FormsImport } from '@/components/forms-import';
-import { requireWorkspaceUser } from '@/lib/http';
+import { requireWorkspacePage as requireWorkspaceUser } from '@/lib/workspace-page';
 export default async function ImportPage({ searchParams }: { searchParams: Promise<{ google?: string }> }) {
   await requireWorkspaceUser();
   const parameters = await searchParams;

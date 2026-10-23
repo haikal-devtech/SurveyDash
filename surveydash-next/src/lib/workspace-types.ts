@@ -5,6 +5,7 @@ export interface WorkspaceChoice {
   own: boolean;
 }
 export interface WorkspaceMember {
+  role?: import('./workspace-roles').WorkspaceRole;
   userId: string;
   name: string;
   email: string;

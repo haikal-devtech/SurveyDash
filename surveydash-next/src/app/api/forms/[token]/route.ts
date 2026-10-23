@@ -21,7 +21,7 @@ export async function GET(_request: Request, context: Context) {
       })),
       demo: survey.demo,
     };
-  });
+  }, '/api/forms/[token]');
 }
 export async function POST(request: Request, context: Context) {
   return api(async () => {
@@ -38,8 +38,12 @@ export async function POST(request: Request, context: Context) {
     if (!(await allowSubmission(key)))
       throw new AppError('Terlalu banyak pengiriman. Coba lagi dalam satu menit.', 429);
     const input = z
-      .object({ answers: z.unknown(), requestKey: z.string().uuid() })
+      .object({
+        answers: z.unknown(),
+        requestKey: z.string().uuid(),
+        startedAt: z.iso.datetime({ offset: true }).optional(),
+      })
       .parse(await readJson(request));
-    return await submitResponse(token, input.answers, input.requestKey);
-  });
+    return await submitResponse(token, input.answers, input.requestKey, undefined, input.startedAt);
+  }, '/api/forms/[token]');
 }

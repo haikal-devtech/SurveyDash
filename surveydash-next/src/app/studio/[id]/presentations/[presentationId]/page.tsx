@@ -1,10 +1,11 @@
-import { requireWorkspaceUser } from '@/lib/http';
+import { requireWorkspacePage as requireWorkspaceUser } from '@/lib/workspace-page';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { getSurvey } from '@/lib/repository';
 import { getPresentation } from '@/lib/presentation-repository';
 import { PresentationEditor } from '@/components/presentation-editor';
+import { ReadonlyPresentation } from '@/components/readonly-presentation';
 export default async function PresentationPage({
   params,
 }: {
@@ -22,5 +23,6 @@ export default async function PresentationPage({
     notFound();
   }
   const survey = await getSurvey(id, workspaceUser.ownerId);
+  if (workspaceUser.workspaceRole === 'viewer') return <ReadonlyPresentation document={document} />;
   return <PresentationEditor key={document.id} initialDocument={document} survey={survey} />;
 }

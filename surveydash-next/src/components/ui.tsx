@@ -6,12 +6,19 @@ import { twMerge } from 'tailwind-merge';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { useDashboardMotion } from './dashboard-motion-context';
 import { TourHost } from './tour-host';
+import { useWorkspacePermissions } from './workspace-permissions';
 export const cn = (...values: Parameters<typeof clsx>) => twMerge(clsx(values));
 export function Button({
   className,
   variant = 'primary',
+  permission,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger' }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  permission?: 'edit' | 'field';
+}) {
+  const access = useWorkspacePermissions();
+  if ((permission === 'edit' && !access.canEdit) || (permission === 'field' && !access.canField)) return null;
   return <button type="button" {...props} className={cn('btn', `btn-${variant}`, className)} />;
 }
 export function Badge({

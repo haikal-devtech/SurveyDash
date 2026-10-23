@@ -1,9 +1,10 @@
 import { betterAuth, APIError } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
+import { twoFactor } from 'better-auth/plugins';
 import { getAuthDatabase } from './db';
 import { authBaseUrl, trustedOrigins } from './origins';
 import { after } from 'next/server';
-import { passwordRecoveryAvailable, sendPasswordResetEmail } from './email';
+import { passwordRecoveryAvailable, sendPasswordResetEmail, sendAccountVerificationEmail } from './email';
 import { randomUUID } from 'node:crypto';
 import { createSurveyorProfile, surveyorRegistration } from './account-repository';
 import { AppError } from './repository';
@@ -55,10 +56,16 @@ export const auth = betterAuth({
       },
     },
   },
+  emailVerification: {
+    sendOnSignUp: passwordRecoveryAvailable() && process.env.EMAIL_VERIFICATION_ENABLED === 'true',
+    sendVerificationEmail: async ({ user, url }: { user: { name: string; email: string }; url: string }) =>
+      sendAccountVerificationEmail(user, url),
+    expiresIn: 3600,
+  },
   rateLimit: {
     enabled: true,
     storage: 'database',
     customRules: { '/request-password-reset': { window: 600, max: 3 } },
   },
-  plugins: [nextCookies()],
+  plugins: [twoFactor({ issuer: 'SurveyDash Studio' }), nextCookies()],
 });

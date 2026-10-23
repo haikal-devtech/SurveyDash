@@ -1,4 +1,6 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
+import { SurveyorBlockAction } from './surveyor-block-action';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useDeferredValue, useEffect, useEffectEvent, useRef, useState } from 'react';
@@ -124,7 +126,7 @@ export function ManagerSurveyors({
       setError('');
     }
     try {
-      const response = await fetch('/api/workspace/surveyors', { cache: 'no-store', signal });
+      const response = await workspaceFetch('/api/workspace/surveyors', { cache: 'no-store', signal });
       const data = await response.json();
       if (!response.ok) throw Error(data.error ?? 'Tim belum dapat dimuat.');
       if (signal?.aborted || version !== refreshVersion.current) return;
@@ -176,11 +178,14 @@ export function ManagerSurveyors({
     setPending(true);
     setError('');
     try {
-      const response = await fetch(`/api/surveys/${encodeURIComponent(selected.surveyId)}/surveyors`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignmentId: selected.assignment.id, active: !selected.assignment.active }),
-      });
+      const response = await workspaceFetch(
+        `/api/surveys/${encodeURIComponent(selected.surveyId)}/surveyors`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assignmentId: selected.assignment.id, active: !selected.assignment.active }),
+        },
+      );
       const data = await response.json();
       if (!response.ok) throw Error(data.error ?? 'Status belum berhasil diubah.');
       update(selected.surveyId, data.assignments);
@@ -364,6 +369,7 @@ export function ManagerSurveyors({
               <>
                 <AssignmentMap
                   assignments={mapAssignments}
+                  provinceResponses={mapGroups.flatMap((group) => group.provinceResponses ?? [])}
                   targets={mapTargets}
                   unattributedResponses={unattributedResponses}
                   selected={provinceFilter}
@@ -425,13 +431,24 @@ export function ManagerSurveyors({
                             <small>Atur</small>
                           </Button>
                         </td>
-                        <td data-label="Respons">{assignment.responseCount.toLocaleString('id-ID')}</td>
+                        <td data-label="Respons">
+                          {assignment.responseCount.toLocaleString('id-ID')} masuk
+                          <br />
+                          <small>{assignment.acceptedCount ?? 0} diterima</small>
+                        </td>
                         <td data-label="Status">
                           <Badge tone={assignment.active ? 'green' : 'neutral'}>
                             {assignment.active ? 'Aktif' : 'Nonaktif'}
                           </Badge>
                         </td>
                         <td>
+                          {assignment.surveyorId && (
+                            <SurveyorBlockAction
+                              surveyorId={assignment.surveyorId}
+                              blocked={!!assignment.blocked}
+                              onSaved={() => void refreshTeam()}
+                            />
+                          )}
                           <Button
                             variant="secondary"
                             onClick={() => {

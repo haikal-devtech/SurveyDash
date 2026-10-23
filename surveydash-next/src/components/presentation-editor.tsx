@@ -1,4 +1,6 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
+import { downloadDraft } from '@/lib/download-draft';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
@@ -245,7 +247,7 @@ export function PresentationEditor({
     setError('');
     const snapshot = current.current;
     try {
-      const response = await fetch(`/api/presentations/${snapshot.id}`, {
+      const response = await workspaceFetch(`/api/presentations/${snapshot.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(snapshot),
@@ -409,7 +411,7 @@ export function PresentationEditor({
     busy.current = true;
     const snapshot = current.current;
     try {
-      const response = await fetch(`/api/presentations/${document.id}`, {
+      const response = await workspaceFetch(`/api/presentations/${document.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'refresh', version: current.current.version }),
@@ -433,7 +435,7 @@ export function PresentationEditor({
     setImageOpen(true);
     setError('');
     try {
-      const response = await fetch('/api/assets');
+      const response = await workspaceFetch('/api/assets');
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       setAssets(data);
@@ -446,7 +448,7 @@ export function PresentationEditor({
     try {
       const body = new FormData();
       body.append('file', file);
-      const response = await fetch('/api/assets', { method: 'POST', body });
+      const response = await workspaceFetch('/api/assets', { method: 'POST', body });
       const asset = await response.json();
       if (!response.ok) throw new Error(asset.error);
       setAssets((items) => [asset, ...items.filter((item) => item.id !== asset.id)]);
@@ -467,7 +469,7 @@ export function PresentationEditor({
     if (dirty && !(await save())) return;
     setTemplatePending(true);
     try {
-      const response = await fetch(`/api/presentations/${document.id}/template`, {
+      const response = await workspaceFetch(`/api/presentations/${document.id}/template`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: templateName }),
@@ -482,10 +484,37 @@ export function PresentationEditor({
       setTemplatePending(false);
     }
   }
-  async function exportFile(kind: 'pdf' | 'pptx') {
+  async function exportFile(kind: 'pdf' | 'pptx' | 'pptx-editable') {
     setExporting(true);
     setError('');
     try {
+      if (kind === 'pptx-editable') {
+        const { editablePresentation } = await import('@/lib/presentation-pptx');
+        const pptx = await editablePresentation(current.current, async (assetId) => {
+          const response = await workspaceFetch('/api/assets/' + encodeURIComponent(assetId));
+          if (!response.ok) throw new Error('Gambar belum dapat diunduh. Periksa workspace aktif.');
+          const bitmap = await createImageBitmap(await response.blob());
+          try {
+            const canvas = window.document.createElement('canvas');
+            canvas.width = bitmap.width;
+            canvas.height = bitmap.height;
+            const context = canvas.getContext('2d');
+            if (!context) throw new Error('Gambar belum dapat diproses.');
+            context.drawImage(bitmap, 0, 0);
+            return canvas.toDataURL('image/png');
+          } finally {
+            bitmap.close();
+          }
+        });
+        await pptx.writeFile({
+          fileName:
+            (document.title.replace(/[^\p{L}\p{N} _-]/gu, '').slice(0, 80) || 'SurveyDash') +
+            '-editable.pptx',
+        });
+        setNotice('PowerPoint editable berhasil diunduh.');
+        setExportOpen(false);
+        return;
+      }
       await window.document.fonts.ready;
       const { toPng, getFontEmbedCSS } = await import('html-to-image');
       const first = exportNodes.current.get(document.slides[0].id)!;
@@ -643,6 +672,33 @@ export function PresentationEditor({
       {error && (
         <div className="banner banner-error" role="alert">
           {error}
+          {dirty && (
+            <>
+              <Button variant="secondary" onClick={() => downloadDraft(current.current, document.title)}>
+                Unduh draft saya
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  if (!window.confirm('Buang perubahan yang belum tersimpan dan ambil versi terbaru?'))
+                    return;
+                  try {
+                    const response = await workspaceFetch(`/api/presentations/${document.id}`);
+                    const latest = await response.json();
+                    if (!response.ok) throw new Error(latest.error);
+                    current.current = latest;
+                    setDocument(latest);
+                    setDirty(false);
+                    setError('');
+                  } catch (failure) {
+                    setError(failure instanceof Error ? failure.message : 'Gagal memuat versi terbaru.');
+                  }
+                }}
+              >
+                Ambil versi terbaru
+              </Button>
+            </>
+          )}
           <Button variant="ghost" disabled={saving || !dirty} onClick={() => void save()}>
             <Save size={14} />
             Coba simpan
@@ -1200,8 +1256,9 @@ export function PresentationEditor({
         description="Semua slide diekspor sesuai tampilan kanvas."
       >
         <p className="template-safe-note">
-          PDF dan PowerPoint mempertahankan tata letak sebagai gambar berkualitas tinggi. Komponen dalam file
-          PowerPoint tidak dapat diedit satu per satu. Edit sumbernya di Studio.
+          PDF dan PowerPoint standar mempertahankan tata letak sebagai gambar. PowerPoint editable menyediakan
+          teks, bentuk dan chart yang dapat diubah; font dan tata letak dapat sedikit berbeda di Office. Chart
+          Titik disederhanakan menjadi batang.
         </p>
         <div className="actions" style={{ marginTop: 24 }}>
           <Button disabled={exporting} onClick={() => void exportFile('pdf')}>
@@ -1209,6 +1266,9 @@ export function PresentationEditor({
           </Button>
           <Button variant="secondary" disabled={exporting} onClick={() => void exportFile('pptx')}>
             Unduh PowerPoint
+          </Button>
+          <Button variant="secondary" disabled={exporting} onClick={() => void exportFile('pptx-editable')}>
+            PowerPoint editable
           </Button>
         </div>
       </Modal>

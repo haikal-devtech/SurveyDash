@@ -50,6 +50,27 @@ const escapeHtml = (value: string) =>
         "'": '&#39;',
       })[character]!,
   );
+export async function sendAccountVerificationEmail(user: { name: string; email: string }, url: string) {
+  const configuration = smtpConfiguration();
+  if (!passwordRecoveryAvailable() || !configuration) throw new Error('Email akun belum diaktifkan.');
+  if (new URL(url).origin !== new URL(authBaseUrl()).origin)
+    throw new Error('Alamat verifikasi tidak valid.');
+  const { from, ...options } = configuration;
+  const transport = nodemailer.createTransport(options);
+  try {
+    await transport.sendMail({
+      from: { name: 'SurveyDash Studio', address: from },
+      to: user.email,
+      subject: 'Verifikasi email SurveyDash Studio',
+      text: `Halo ${user.name},\n\nVerifikasi alamat email Anda melalui ${url}\n\nLink berlaku satu jam. Abaikan bila Anda tidak memintanya.`,
+      html: `<p>Halo ${escapeHtml(user.name)},</p><p><a href="${escapeHtml(url)}">Verifikasi alamat email</a></p><p>Link berlaku satu jam. Abaikan bila Anda tidak memintanya.</p>`,
+    });
+  } catch {
+    throw new Error('Email verifikasi belum dapat dikirim.');
+  } finally {
+    transport.close();
+  }
+}
 
 export async function sendPasswordResetEmail(user: { name: string; email: string }, url: string) {
   const configuration = smtpConfiguration();

@@ -9,5 +9,5 @@ export async function GET() {
       listSurveyorAssignments(user.id),
     ]);
     return { profile, assignments };
-  });
+  }, '/api/surveyor');
 }

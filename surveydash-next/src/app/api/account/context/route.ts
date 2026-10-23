@@ -5,5 +5,5 @@ export async function GET() {
     const user = await requireUser();
     const role = await getAccountRole(user.id);
     return { role, destination: role === 'surveyor' ? '/surveyor' : '/studio' };
-  });
+  }, '/api/account/context');
 }

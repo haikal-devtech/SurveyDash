@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -78,7 +79,7 @@ export function SurveyExplorer({
     setPending(true);
     setError('');
     try {
-      const response = await fetch(`/api/surveys/${menu.id}/manage`, {
+      const response = await workspaceFetch(`/api/surveys/${menu.id}/manage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: type }),
@@ -126,6 +127,7 @@ export function SurveyExplorer({
   );
   const menuButton = (survey: Survey) => (
     <Button
+      permission="edit"
       variant="ghost"
       aria-label={`Tindakan ${survey.title}`}
       onClick={() => {

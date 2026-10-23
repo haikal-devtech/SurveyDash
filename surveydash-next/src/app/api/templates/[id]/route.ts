@@ -4,12 +4,15 @@ import { duplicateTemplate, getTemplate, updateTemplate } from '@/lib/repository
 type Context = { params: Promise<{ id: string }> };
 export const runtime = 'nodejs';
 export async function GET(_request: Request, context: Context) {
-  return api(async () => getTemplate((await context.params).id, (await requireWorkspaceUser()).ownerId));
+  return api(
+    async () => getTemplate((await context.params).id, (await requireWorkspaceUser()).ownerId),
+    '/api/templates/[id]',
+  );
 }
 export async function PATCH(request: Request, context: Context) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireWorkspaceUser();
+    const user = await requireWorkspaceUser({ write: true });
     const input = z
       .object({
         name: z.string().trim().min(3).max(200).optional(),
@@ -18,15 +21,15 @@ export async function PATCH(request: Request, context: Context) {
       })
       .parse(await readJson(request));
     return updateTemplate((await context.params).id, user.ownerId, input);
-  });
+  }, '/api/templates/[id]');
 }
 export async function POST(request: Request, context: Context) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireWorkspaceUser();
+    const user = await requireWorkspaceUser({ write: true });
     const input = z
       .object({ action: z.literal('duplicate'), name: z.string().trim().min(3).max(200) })
       .parse(await readJson(request));
     return duplicateTemplate((await context.params).id, user.ownerId, input.name);
-  });
+  }, '/api/templates/[id]');
 }

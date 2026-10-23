@@ -1,5 +1,7 @@
 # Release and recovery
 
+Current audit-hardening procedures and verification are maintained in [the audit runbook](SURVEYDASH_AUDIT_RUNBOOK.md) and [implementation status](SURVEYDASH_AUDIT_IMPLEMENTATION.md). Sections below describe earlier releases; old feature deferrals, code rollback targets and visual holds are historical. The user's approval to release with visual QA following remains in effect. No browser/Office visual pass is claimed.
+
 ## Approved production rollout — 20 October 2026
 
 The user explicitly chose **“Rilis sekarang, QA visual menyusul”** after reviewing the new preview. This supersedes the visual-only release hold documented below; visual/browser/Lighthouse/WCAG verification remains deferred, not passed. SMTP delivery and real Google consent remain gated by their provider configuration.

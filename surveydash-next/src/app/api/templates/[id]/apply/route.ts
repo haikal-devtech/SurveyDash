@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireWorkspaceUser();
+    const user = await requireWorkspaceUser({ write: true });
     const input = z
       .object({
         surveyId: z.string().max(100),
@@ -19,5 +19,5 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return template.slidePreset
       ? createFromSlideTemplate(id, user.ownerId, input.surveyId, input.mapping)
       : applyTemplate(id, user.ownerId, input.surveyId, input.version, input.mapping);
-  });
+  }, '/api/templates/[id]/apply');
 }

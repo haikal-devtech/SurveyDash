@@ -2,12 +2,13 @@ import { z } from 'zod';
 import { answerLabel, ModelError } from './model';
 import type { Answer, Question, Submission, Survey } from './types';
 
-export const cleaningStatuses = ['unreviewed', 'valid', 'needs_verification'] as const;
+export const cleaningStatuses = ['unreviewed', 'valid', 'needs_verification', 'excluded'] as const;
 export type CleaningStatus = (typeof cleaningStatuses)[number];
 export const cleaningStatusLabels: Record<CleaningStatus, string> = {
   unreviewed: 'Belum ditinjau',
-  valid: 'Wajar',
+  valid: 'Diterima',
   needs_verification: 'Perlu verifikasi',
+  excluded: 'Dikeluarkan',
 };
 export const cleaningConfigSchema = z.object({
   nameQuestionId: z.string().min(1).max(100).optional(),
@@ -36,6 +37,7 @@ export type CleaningAuditEntry = Omit<CleaningReview, 'stale' | 'reviewedAt'> & 
   at: string;
 };
 export type CleaningRow = {
+  reportedSeconds?: number | null;
   id: string;
   submittedAt: string;
   revision: number;
@@ -47,6 +49,7 @@ export type CleaningRow = {
   comparison?: { questionId: string; label: string; value: string; truncated: boolean }[];
 };
 export type CleaningPage = {
+  indexing?: { done: number; total: number };
   config: CleaningConfig;
   configUpdatedAt: string | null;
   rows: CleaningRow[];

@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Layers3, ClipboardList, Plus, ArrowRight, Loader2 } from 'lucide-react';
@@ -6,6 +7,7 @@ import { templateDefinitions } from '@/lib/templates';
 import type { SavedTemplate } from '@/lib/types';
 import { Button, Modal } from './ui';
 import { TOUR_CREATED } from '@/lib/guided-tour';
+import { useWorkspacePermissions } from './workspace-permissions';
 export type { SavedTemplate } from '@/lib/types';
 export function CreateSurvey({
   open,
@@ -19,6 +21,7 @@ export function CreateSurvey({
   initialTemplate?: string;
 }) {
   const router = useRouter();
+  const { canEdit } = useWorkspacePermissions();
   const [title, setTitle] = useState('');
   const [selected, setSelected] = useState(initialTemplate);
   const [error, setError] = useState('');
@@ -28,7 +31,7 @@ export function CreateSurvey({
     setPending(true);
     setError('');
     try {
-      const resp = await fetch('/api/surveys', {
+      const resp = await workspaceFetch('/api/surveys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, templateId: selected }),
@@ -45,6 +48,7 @@ export function CreateSurvey({
       setPending(false);
     }
   }
+  if (!canEdit) return null;
   return (
     <Modal
       open={open}
@@ -115,7 +119,7 @@ export function CreateSurvey({
           <Button variant="secondary" onClick={() => onOpenChange(false)}>
             Batal
           </Button>
-          <Button data-tour="survey-create-submit" type="submit" disabled={pending}>
+          <Button permission="edit" data-tour="survey-create-submit" type="submit" disabled={pending}>
             {pending ? <Loader2 size={14} className="animate-spin" /> : null}Buat survei
             <ArrowRight size={14} />
           </Button>

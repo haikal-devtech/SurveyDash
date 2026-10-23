@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from '@/lib/workspace-request';
 import Link from 'next/link';
 import { useState } from 'react';
 import {
@@ -18,6 +19,7 @@ import { CreateSurvey } from './create-survey';
 import { SurveyExplorer } from './survey-explorer';
 import { Button } from './ui';
 import { GuideButton } from './role-guide';
+import { useWorkspacePermissions } from './workspace-permissions';
 import { BrandArtwork } from './brand-artwork';
 import { useRouter } from 'next/navigation';
 import '@/app/manager-surveyors.css';
@@ -45,6 +47,7 @@ export function Overview({
   initialQuery?: string;
 }) {
   const router = useRouter();
+  const { canEdit } = useWorkspacePermissions();
   const [selected, setSelected] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createSession, setCreateSession] = useState(0);
@@ -60,7 +63,7 @@ export function Overview({
     setPending(true);
     setError('');
     try {
-      const response = await fetch('/api/surveys/demo', { method: 'POST' });
+      const response = await workspaceFetch('/api/surveys/demo', { method: 'POST' });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       router.refresh();
@@ -81,14 +84,17 @@ export function Overview({
               : 'Buat survei baru atau lanjutkan pekerjaan Anda.'}
           </p>
           <div className="workspace-welcome-actions">
-            <Button data-tour="create-survey" onClick={() => startCreation('blank')}>
+            <Button permission="edit" data-tour="create-survey" onClick={() => startCreation('blank')}>
               <Plus size={17} />
               Buat survei
             </Button>
-            <Link href="/studio/import" className="btn btn-secondary">
-              Impor Google Form
-            </Link>
-            {!listOnly && <GuideButton role="manager" />}
+            {canEdit && (
+              <Link href="/studio/import" className="btn btn-secondary">
+                Impor Google Form
+              </Link>
+            )}
+            {!listOnly && canEdit && <GuideButton role="manager" />}
+            {!canEdit && <p className="hint">Akses pembaca. Anda dapat melihat survei dan hasil.</p>}
           </div>
         </div>
         {!listOnly && <BrandArtwork asset="hero" className="workspace-welcome-art" eager />}
@@ -148,7 +154,7 @@ export function Overview({
           </div>
         </>
       )}
-      {!listOnly && (
+      {!listOnly && canEdit && (
         <section className="starter-section" data-motion-enter="">
           <div className="explorer-heading">
             <h2>Mulai dari template</h2>
@@ -187,7 +193,7 @@ export function Overview({
         compact={!listOnly}
         initialQuery={initialQuery}
       />
-      {!surveys.length && !listOnly && (
+      {!surveys.length && !listOnly && canEdit && (
         <div className="demo-start">
           <p>Ingin melihat alur lengkap terlebih dahulu?</p>
           <Button variant="secondary" disabled={pending} onClick={() => void demo()}>

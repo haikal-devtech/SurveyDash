@@ -12,12 +12,12 @@ export async function GET(request: Request) {
       new URL(request.url).searchParams.get('archived') === 'include',
     );
     return { templates: [...systemTemplates, ...templates] };
-  });
+  }, '/api/templates');
 }
 export async function POST(request: Request) {
   return api(async () => {
     checkOrigin(request);
-    const user = await requireWorkspaceUser();
+    const user = await requireWorkspaceUser({ write: true });
     const input = templateMetadataSchema
       .extend({ surveyId: z.string().max(100), snapshot: z.unknown().optional() })
       .parse(await readJson(request));
@@ -25,5 +25,5 @@ export async function POST(request: Request) {
     const snapshot =
       input.snapshot === undefined ? source : { ...source, ...surveyInputSchema.parse(input.snapshot) };
     return saveTemplate(snapshot, input.name, input.category, input.description);
-  });
+  }, '/api/templates');
 }
