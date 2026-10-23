@@ -224,6 +224,15 @@ export async function setAssignmentActive(
 }
 export async function listSurveyorAssignments(userId: string): Promise<SurveyorAssignment[]> {
   await assertSurveyor(userId);
+  const { ensureAutomaticDemo } = await import('./demo-workspace');
+  // The shared synthetic surveyors already have demo assignments from manager workspaces.
+  if (
+    !String(
+      (await getDb().prepare('SELECT username FROM surveyor_profiles WHERE user_id = ?').get(userId))
+        ?.username ?? '',
+    ).match(/^demo_surveyor0[1-5]$/)
+  )
+    await ensureAutomaticDemo(userId);
   const rows = await getDb()
     .prepare(
       assignmentSelect +

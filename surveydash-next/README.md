@@ -2,7 +2,9 @@
 
 Proyek Next.js baru untuk mengelola seluruh proses survei dalam satu website: pembuat form → tabel respons → analisis → presentasi.
 
-Versi online untuk pengujian: [surveydash-studio.vercel.app](https://surveydash-studio.vercel.app). Pilih **Buat workspace** untuk membuat akun baru. Akun dan data lokal tidak otomatis disalin ke cloud. Workspace baru dimulai kosong. Pilih **Coba contoh SKM** bila ingin mencoba data simulasi, atau langsung buat survei sendiri.
+Versi online untuk pengujian: [surveydash-studio.vercel.app](https://surveydash-studio.vercel.app). Pilih **Buat workspace** untuk membuat akun baru. Akun dan data lokal tidak otomatis disalin ke cloud. Dengan `STUDIO_AUTO_DEMO=true`, setiap akun mendapat survei berlabel **DEMO** berisi 50 respons simulasi. Pengelola mendapat lima profil surveyor demo dengan masing-masing 10 respons; surveyor baru mendapat tugas demo pribadi dengan 50 respons. Salinan dimiliki akun masing-masing, tidak membuka workspace orang lain, dan tidak dibuat ulang setelah dihapus.
+
+Demo otomatis memerlukan lima profil fiktif `demo_surveyor01` sampai `demo_surveyor05` yang sudah disiapkan di database produksi. Profil bersama ini tidak mempunyai kredensial atau sesi login. Jangan menambahkan kredensial untuk profil fixture tersebut. Pada lingkungan lain fitur ini mati secara default; tombol **Coba contoh SKM** tetap tersedia untuk contoh manual.
 
 ## Jalankan lokal
 

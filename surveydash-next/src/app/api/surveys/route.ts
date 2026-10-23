@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { api, checkOrigin, readJson, requireWorkspaceUser } from '@/lib/http';
 import { createSurvey, listSurveys, listTemplates } from '@/lib/repository';
+import { ensureAutomaticDemo } from '@/lib/demo-workspace';
 export const runtime = 'nodejs';
 export async function GET() {
   return api(async () => {
     const user = await requireWorkspaceUser();
+    await ensureAutomaticDemo(user.ownerId);
     return { surveys: await listSurveys(user.ownerId), templates: await listTemplates(user.ownerId) };
   }, '/api/surveys');
 }
