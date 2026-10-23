@@ -11,7 +11,7 @@ const canonical = (rows: Row[]) =>
         ),
       ),
     )
-    .sort();
+    .sort((a, b) => a.localeCompare(b, 'en'));
 /** Compatibility for existing v1 JSON files; new backups use encrypted streaming v2. */
 export async function restoreLegacy(
   client: PoolClient,

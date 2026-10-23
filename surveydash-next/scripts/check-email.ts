@@ -12,7 +12,7 @@ if (!configuration) {
   process.exitCode = 2;
 } else {
   const { from: _from, ...options } = configuration;
-  const transport = nodemailer.createTransport(options);
+  const transport = nodemailer.createTransport({ ...options, requireTLS: options.requireTLS });
   try {
     await transport.verify();
     console.log(

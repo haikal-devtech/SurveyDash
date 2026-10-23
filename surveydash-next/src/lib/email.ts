@@ -56,7 +56,7 @@ export async function sendAccountVerificationEmail(user: { name: string; email: 
   if (new URL(url).origin !== new URL(authBaseUrl()).origin)
     throw new Error('Alamat verifikasi tidak valid.');
   const { from, ...options } = configuration;
-  const transport = nodemailer.createTransport(options);
+  const transport = nodemailer.createTransport({ ...options, requireTLS: options.requireTLS });
   try {
     await transport.sendMail({
       from: { name: 'SurveyDash Studio', address: from },
@@ -78,7 +78,10 @@ export async function sendPasswordResetEmail(user: { name: string; email: string
   const link = new URL(url);
   if (link.origin !== new URL(authBaseUrl()).origin) throw new Error('Alamat pemulihan tidak valid.');
   const { from, ...transportOptions } = configuration;
-  const transport = nodemailer.createTransport(transportOptions);
+  const transport = nodemailer.createTransport({
+    ...transportOptions,
+    requireTLS: transportOptions.requireTLS,
+  });
   try {
     await transport.sendMail({
       from: { name: 'SurveyDash Studio', address: from },

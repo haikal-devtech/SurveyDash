@@ -79,7 +79,13 @@ export async function indexedCleaningPage(
               .update(survey.id + ':' + index + ':' + value)
               .digest('hex')
           : '';
-      parameters.push(row.id, survey.id, row.revision, version, ...keys.map(hash));
+      parameters.push(
+        row.id,
+        survey.id,
+        row.revision,
+        version,
+        ...keys.map((value, index) => hash(value, index)),
+      );
     }
     await getDb()
       .prepare(
