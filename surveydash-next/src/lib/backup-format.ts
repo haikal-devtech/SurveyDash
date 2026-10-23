@@ -22,9 +22,18 @@ export const quoteIdentifier = (value: string) => {
   return '"' + value + '"';
 };
 const qualified = (schema: string, table: string) => quoteIdentifier(schema) + '.' + quoteIdentifier(table);
-const normalized = (row: Row) => JSON.parse(JSON.stringify(row)) as Row;
+const normalized = (row: Row) =>
+  JSON.parse(
+    JSON.stringify(row, (_key, value: unknown) => {
+      if (typeof value === 'number' && !Number.isFinite(value))
+        throw new Error('Nilai numerik backup tidak dapat diserialisasi tanpa kehilangan data.');
+      return value;
+    }),
+  ) as Row;
 const canonical = (row: Row) =>
-  JSON.stringify(Object.fromEntries(Object.entries(normalized(row)).sort(([a], [b]) => a.localeCompare(b))));
+  JSON.stringify(
+    Object.fromEntries(Object.entries(normalized(row)).sort(([a], [b]) => a.localeCompare(b, 'en'))),
+  );
 const encryptionKey = (secret: string) => {
   if (secret.length < 32)
     throw new Error('BACKUP_ENCRYPTION_KEY minimal 32 karakter dan harus disimpan terpisah dari backup.');
@@ -163,6 +172,63 @@ export async function* readEncryptedBackup(path: string, secret: string): AsyncG
   pending += decoder.end();
   if (pending.trim()) throw new Error('Akhir backup tidak lengkap.');
 }
+export function restoredRowSignature(row: Row, numericColumns: ReadonlySet<string>) {
+  const values = normalized(row);
+  for (const column of numericColumns) {
+    if (Object.hasOwn(values, column) && values[column] !== null && values[column] !== undefined)
+      values[column] = String(values[column]);
+  }
+  return canonical(values);
+}
+/** Read each inserted batch back by primary key, independent of database collation. */
+export async function makeRestoreVerifier(client: PoolClient, table: BackupTable, schema = 'public') {
+  const numericColumns = new Set<string>(
+    (
+      await client.query(
+        "SELECT column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND data_type IN ('smallint','integer','bigint','numeric','real','double precision')",
+        [schema, table.name],
+      )
+    ).rows.map((row) => String(row.column_name)),
+  );
+  return async (batch: Row[]) => {
+    const values: unknown[] = [];
+    const tuples = batch
+      .map(
+        (row) =>
+          '(' +
+          table.primaryKeys
+            .map((key) => {
+              values.push(row[key]);
+              return '$' + values.length;
+            })
+            .join(',') +
+          ')',
+      )
+      .join(',');
+    const rows = (
+      await client.query(
+        `SELECT ${table.columns.map(quoteIdentifier).join(',')} FROM ${qualified(schema, table.name)} WHERE (${table.primaryKeys.map(quoteIdentifier).join(',')}) IN (${tuples})`,
+        values,
+      )
+    ).rows as Row[];
+    const key = (row: Row) =>
+      restoredRowSignature(
+        Object.fromEntries(table.primaryKeys.map((column) => [column, row[column]])),
+        numericColumns,
+      );
+    const expected = new Map(batch.map((row) => [key(row), restoredRowSignature(row, numericColumns)]));
+    if (
+      rows.length !== batch.length ||
+      expected.size !== batch.length ||
+      rows.some((row) => expected.get(key(row)) !== restoredRowSignature(row, numericColumns))
+    ) {
+      throw Object.assign(new Error('Data hasil restore berbeda.'), {
+        code: 'RESTORE_VALUE_MISMATCH',
+        table: table.name,
+      });
+    }
+  };
+}
 export async function restoreRecords(
   client: PoolClient,
   records: AsyncIterable<BackupRecord>,
@@ -172,6 +238,7 @@ export async function restoreRecords(
     complete: Extract<BackupRecord, { type: 'complete' }> | undefined;
   const sourceDigests = new Map<string, ReturnType<typeof createHash>>(),
     counts = new Map<string, number>();
+  const verifiers = new Map<string, Awaited<ReturnType<typeof makeRestoreVerifier>>>();
   let batch: Row[] = [],
     current = '',
     bytes = 0;
@@ -196,6 +263,7 @@ export async function restoreRecords(
       `INSERT INTO ${qualified(schema, current)} (${table.columns.map(quoteIdentifier).join(',')}) VALUES ${placeholders}`,
       values,
     );
+    await verifiers.get(current)!(batch);
     batch = [];
     bytes = 0;
   };
@@ -222,6 +290,7 @@ export async function restoreRecords(
           throw new Error('Target restore harus kosong; tidak ada data yang ditimpa.');
         sourceDigests.set(table.name, createHash('sha256'));
         counts.set(table.name, 0);
+        verifiers.set(table.name, await makeRestoreVerifier(client, table, schema));
       }
     } else if (record.type === 'row') {
       if (!manifest || !sourceDigests.has(record.table)) throw new Error('Tabel baris backup tidak dikenal.');
@@ -248,14 +317,14 @@ export async function restoreRecords(
       expected.hash !== sourceDigests.get(table.name)!.digest('hex')
     )
       throw new Error('Checksum sumber backup tidak cocok.');
-    const digest = createHash('sha256');
-    let count = 0;
-    for await (const row of tableRows(client, table, schema)) {
-      count++;
-      digest.update(canonical(row) + '\n');
-    }
-    if (count !== expected.count || digest.digest('hex') !== expected.hash)
-      throw new Error('Verifikasi data hasil restore tidak cocok.');
+    const count = Number(
+      (await client.query(`SELECT count(*) AS n FROM ${qualified(schema, table.name)}`)).rows[0].n,
+    );
+    if (count !== expected.count)
+      throw Object.assign(new Error('Jumlah baris hasil restore berbeda.'), {
+        code: 'RESTORE_COUNT_MISMATCH',
+        table: table.name,
+      });
   }
   return {
     restoreVerified: true,

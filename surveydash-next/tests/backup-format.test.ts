@@ -3,7 +3,25 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
-import { readEncryptedBackup, writeEncryptedBackup, type BackupRecord } from '../src/lib/backup-format';
+import {
+  readEncryptedBackup,
+  writeEncryptedBackup,
+  restoredRowSignature,
+  type BackupRecord,
+} from '../src/lib/backup-format';
+
+test('restore comparison handles exact bigint driver representations and rejects precision loss or text changes', () => {
+  const numeric = new Set(['millis', 'large']);
+  assert.equal(
+    restoredRowSignature({ id: '0001', millis: '1792740000000' }, numeric),
+    restoredRowSignature({ id: '0001', millis: 1792740000000 }, numeric),
+  );
+  assert.notEqual(
+    restoredRowSignature({ large: '9007199254740993' }, numeric),
+    restoredRowSignature({ large: Number('9007199254740993') }, numeric),
+  );
+  assert.notEqual(restoredRowSignature({ id: '0001' }, numeric), restoredRowSignature({ id: '1' }, numeric));
+});
 test('streaming backups round-trip Unicode without plaintext and reject wrong keys, truncated or modified files', async () => {
   const folder = await mkdtemp(join(tmpdir(), 'studio-backup-v2-'));
   const path = join(folder, 'test.sdb.enc'),

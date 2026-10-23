@@ -1,17 +1,7 @@
 import assert from 'node:assert/strict';
 import type { PoolClient } from 'pg';
-import { discoverBackupTables, quoteIdentifier } from './backup-format';
+import { discoverBackupTables, quoteIdentifier, makeRestoreVerifier } from './backup-format';
 type Row = Record<string, unknown>;
-const canonical = (rows: Row[]) =>
-  rows
-    .map((row) =>
-      JSON.stringify(
-        Object.fromEntries(
-          Object.entries(JSON.parse(JSON.stringify(row)) as Row).sort(([a], [b]) => a.localeCompare(b)),
-        ),
-      ),
-    )
-    .sort((a, b) => a.localeCompare(b, 'en'));
 /** Compatibility for existing v1 JSON files; new backups use encrypted streaming v2. */
 export async function restoreLegacy(
   client: PoolClient,
@@ -33,6 +23,7 @@ export async function restoreLegacy(
       throw new Error('Target restore harus kosong; tidak ada data yang ditimpa.');
     if (!rows.length) continue;
     const columns = Object.keys(rows[0]);
+    const verify = await makeRestoreVerifier(client, { ...table, columns }, schema);
     let offset = 0;
     while (offset < rows.length) {
       const batch: Row[] = [];
@@ -64,10 +55,9 @@ export async function restoreLegacy(
         `INSERT INTO ${name} (${columns.map(quoteIdentifier).join(',')}) VALUES ${placeholders}`,
         values,
       );
+      await verify(batch);
     }
-    const restored = (await client.query(`SELECT ${columns.map(quoteIdentifier).join(',')} FROM ${name}`))
-      .rows;
-    assert.deepEqual(canonical(restored), canonical(rows));
+    assert.equal(Number((await client.query(`SELECT count(*) AS n FROM ${name}`)).rows[0].n), rows.length);
     total += rows.length;
   }
   return { restoreVerified: true, format: 1, rows: total };
